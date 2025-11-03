@@ -1,0 +1,1 @@
+//se creo la arquitectura de rutas para el uso de user
