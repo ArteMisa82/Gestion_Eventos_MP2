@@ -1,0 +1,182 @@
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+/* HERO */
+.hero {
+  position: relative;
+  height: 380px;
+  background-image: url("/vercel.svg"); /* puedes reemplazar por tu banner */
+  background-color: #0f172a;
+  background-size: cover;
+  background-position: center;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.heroContent {
+  position: relative;
+  text-align: center;
+  max-width: 800px;
+  padding: 0 20px;
+  z-index: 10;
+}
+
+.heroContent h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.heroContent p {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #f3f4f6;
+}
+
+/* STATS */
+.stats {
+  background-color: #f8fafc;
+  padding: 30px 0;
+  border-top: 1px solid #e5e7eb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  max-width: 1100px;
+  margin: 0 auto;
+  gap: 20px;
+  padding: 0 16px;
+}
+
+.statCard {
+  background: white;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  padding: 16px;
+  text-align: center;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.statValue {
+  display: block;
+  font-size: 22px;
+  font-weight: 800;
+  color: #111827;
+}
+
+.statLabel {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+/* PROGRAMS */
+.programs {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 20px 16px 60px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.badge {
+  background-color: #7f1d1d;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.header h2 {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.link {
+  color: #111827;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 16px;
+  display: grid;
+  gap: 8px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.08);
+}
+
+.cardImage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 140px;
+  background-color: #f3f4f6;
+  border-radius: 10px;
+}
+
+.card h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.card p {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.cardLink {
+  font-size: 14px;
+  color: #111827;
+  text-decoration: underline;
+}
+
+@media (max-width: 900px) {
+  .statsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .cards {
+    grid-template-columns: 1fr;
+  }
+
+  .heroContent h1 {
+    font-size: 1.4rem;
+  }
+}
