@@ -1,55 +1,141 @@
+/* =========================
+   PALETA (usa var() si existen en globals)
+========================= */
+:root{
+  --brand: #7f1d1d;
+  --brand-600:#8f2020;
+  --ink:#111827;
+  --muted:#6b7280;
+  --ring:#e5e7eb;
+  --surface:#ffffff;
+  --bg:#f8fafc;
+}
+
+/* =========================
+   LAYOUT GENERAL
+========================= */
 .main {
   display: flex;
   flex-direction: column;
   gap: 40px;
 }
 
-/* HERO */
-.hero {
-  position: relative;
-  height: 380px;
-  background-image: url("/vercel.svg"); /* puedes reemplazar por tu banner */
-  background-color: #0f172a;
-  background-size: cover;
-  background-position: center;
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+/* =========================
+   HERO CAROUSEL
+========================= */
+.carousel {
+  width: 100%;             /* FIX: que no se encoja en flex */
+  max-width: 1200px;
+  flex: 0 0 auto;
+  display: block;
+  margin: 24px auto 0;
+  padding: 0 16px;         /* respira en pantallas chicas */
 }
 
+.slide {
+  width: 100%;
+  min-width: 0;
+  position: relative;
+  height: 420px;
+  background-color: #0f172a;   /* fallback si no carga la imagen */
+  background-size: cover;
+  background-repeat: no-repeat;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* Sombrado para legibilidad del texto */
 .overlay {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: linear-gradient(
+    90deg,
+    rgba(0,0,0,.55) 0%,
+    rgba(0,0,0,.35) 40%,
+    rgba(0,0,0,.15) 100%
+  );
 }
 
-.heroContent {
-  position: relative;
-  text-align: center;
-  max-width: 800px;
-  padding: 0 20px;
-  z-index: 10;
+/* Contenido del slide */
+.slideContent {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  align-content: center;
+  gap: 10px;
+  padding: 24px 40px;
 }
 
-.heroContent h1 {
-  font-size: 1.8rem;
-  font-weight: 700;
-  margin-bottom: 10px;
+.alignLeft  { justify-items: start;  text-align: left; }
+.alignRight { justify-items: end;    text-align: right; }
+.alignCenter{ justify-items: center; text-align: center; }
+
+/* Tipografía y CTA */
+.kicker {
+  color: #e5e7eb;
+  font-size: 12px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  opacity: .85;
 }
 
-.heroContent p {
-  font-size: 1rem;
-  line-height: 1.6;
-  color: #f3f4f6;
+.headline {
+  color: #fff;
+  font-size: 32px;
+  font-weight: 800;
+  line-height: 1.15;
+  max-width: 620px;
 }
 
-/* STATS */
+.cta {
+  display: inline-block;
+  width: max-content;               /* evita que se estire */
+  background: var(--brand, #7f1d1d);
+  color: #fff;
+  font-size: 14px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  text-decoration: none;
+}
+.cta:hover { background: var(--brand-600, #8f2020); }
+
+/* Puntos del carrusel (sin shorthands conflictivos) */
+.dots {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 10px;
+}
+
+.dot,
+.dotActive {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  border-width: 2px;
+  border-style: solid;
+  border-color: #fff;   /* mismo borde en ambos estados */
+  cursor: pointer;
+}
+
+.dot {
+  background: rgba(255,255,255,.35);
+  opacity: .8;
+}
+
+.dotActive {
+  background: #fff;
+  opacity: 1;
+}
+
+/* =========================
+   STATS (tarjetas de métricas)
+========================= */
 .stats {
-  background-color: #f8fafc;
+  background-color: var(--bg, #f8fafc);
   padding: 30px 0;
-  border-top: 1px solid #e5e7eb;
-  border-bottom: 1px solid #e5e7eb;
+  border-top: 1px solid var(--ring, #e5e7eb);
+  border-bottom: 1px solid var(--ring, #e5e7eb);
 }
 
 .statsGrid {
@@ -62,9 +148,9 @@
 }
 
 .statCard {
-  background: white;
+  background: var(--surface, #fff);
   border-radius: 10px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--ring, #e5e7eb);
   padding: 16px;
   text-align: center;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
@@ -74,15 +160,17 @@
   display: block;
   font-size: 22px;
   font-weight: 800;
-  color: #111827;
+  color: var(--ink, #111827);
 }
 
 .statLabel {
   font-size: 14px;
-  color: #6b7280;
+  color: var(--muted, #6b7280);
 }
 
-/* PROGRAMS */
+/* =========================
+   PROGRAMS (cards de programas)
+========================= */
 .programs {
   max-width: 1100px;
   margin: 0 auto;
@@ -90,15 +178,16 @@
 }
 
 .header {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
-  justify-content: space-between;
+  gap: 12px;
   margin-bottom: 20px;
 }
 
 .badge {
-  background-color: #7f1d1d;
-  color: white;
+  background-color: var(--brand, #7f1d1d);
+  color: #fff;
   padding: 6px 12px;
   border-radius: 9999px;
   font-size: 12px;
@@ -108,17 +197,17 @@
 .header h2 {
   font-size: 22px;
   font-weight: 700;
+  color: var(--ink, #111827);
+  justify-self: center;
 }
 
 .link {
-  color: #111827;
+  color: var(--ink, #111827);
   text-decoration: none;
   font-size: 14px;
+  justify-self: end;
 }
-
-.link:hover {
-  text-decoration: underline;
-}
+.link:hover { text-decoration: underline; }
 
 .cards {
   display: grid;
@@ -127,8 +216,8 @@
 }
 
 .card {
-  background: white;
-  border: 1px solid #e5e7eb;
+  background: var(--surface, #fff);
+  border: 1px solid var(--ring, #e5e7eb);
   border-radius: 14px;
   padding: 16px;
   display: grid;
@@ -145,29 +234,28 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 140px;
+  height: 160px;               /* un poco más alto para foto */
   background-color: #f3f4f6;
   border-radius: 10px;
+  overflow: hidden;            /* recorta imágenes */
 }
 
-.card h3 {
-  font-size: 16px;
-  font-weight: 700;
-  color: #111827;
-}
-
-.card p {
-  font-size: 14px;
-  color: #6b7280;
-}
+.card h3 { font-size: 16px; font-weight: 700; color: var(--ink, #111827); }
+.card p  { font-size: 14px; color: var(--muted, #6b7280); }
 
 .cardLink {
   font-size: 14px;
-  color: #111827;
+  color: var(--ink, #111827);
   text-decoration: underline;
 }
 
+/* =========================
+   RESPONSIVE
+========================= */
 @media (max-width: 900px) {
+  .slide { height: 320px; }
+  .headline { font-size: 26px; }
+
   .statsGrid {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -175,8 +263,5 @@
   .cards {
     grid-template-columns: 1fr;
   }
-
-  .heroContent h1 {
-    font-size: 1.4rem;
-  }
 }
+

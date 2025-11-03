@@ -18,11 +18,19 @@ export default function Navbar() {
   return (
     <header className={styles.header}>
       <nav className={styles.nav}>
-        <div className={styles.brand}>
-          <Image src="/vercel.svg" width={28} height={28} alt="Logo" />
-          <span>Universidad Técnica de Ambato</span>
-        </div>
+        {/* Marca institucional */}
+        <Link href="/" className={styles.brand}>
+          <Image
+            src="/home/uta-seal.jpg"     // coloca aquí tu sello real en /public
+            alt="Escudo UTA"
+            width={190}
+            height={40}
+            priority
+          />
+          <span className={styles.brandText}></span>
+        </Link>
 
+        {/* Links de navegación */}
         <ul className={styles.links}>
           {links.map((link) => (
             <li key={link.href}>
@@ -38,6 +46,7 @@ export default function Navbar() {
           ))}
         </ul>
 
+        {/* Botones de acción */}
         <div className={styles.actions}>
           <Link href="/login" className={styles.secondaryBtn}>
             Iniciar sesión
@@ -50,3 +59,4 @@ export default function Navbar() {
     </header>
   );
 }
+
