@@ -1,81 +1,10 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import styles from "./cursos.module.css";
-
-type Course = {
-  id: string;
-  title: string;
-  career: "SOFTWARE" | "TI" | "ROBOTICA" | "TELECOM";
-  type: "GRATIS" | "PAGO" | "GENERAL" | "ESTUDIANTES";
-  hours: number;
-  cover: string;     // ruta en /public/home
-  open: boolean;     // “ABIERTO”
-  distance?: boolean;// “A Distancia”
-};
-
-// Datos de ejemplo (cambia las imágenes a las tuyas en /public/home)
-const COURSES: Course[] = [
-  {
-    id: "c1",
-    title: "Arduino desde cero: Electrónica, Programación y Automatización",
-    career: "SOFTWARE",
-    type: "GENERAL",
-    hours: 20,
-    cover: "/home/arduino.jpg",
-    open: true,
-    distance: true,
-  },
-  {
-    id: "c2",
-    title: "Inteligencia Artificial para la Gestión de RRHH",
-    career: "TI",
-    type: "PAGO",
-    hours: 24,
-    cover: "/home/RRHH.jpg",
-    open: true,
-  },
-  {
-    id: "c3",
-    title: "La Ley de Protección de Datos en el Ecuador",
-    career: "SOFTWARE",
-    type: "GRATIS",
-    hours: 12,
-    cover: "/home/proteccion.jpg",
-    open: true,
-    distance: true,
-  },
-  {
-    id: "c4",
-    title: "Robótica educativa con MicroPython",
-    career: "ROBOTICA",
-    type: "ESTUDIANTES",
-    hours: 18,
-    cover: "/home/robotica.jpg",
-    open: true,
-  },
-  {
-    id: "c5",
-    title: "Redes y Telecom: Fundamentos de Switching",
-    career: "TELECOM",
-    type: "GENERAL",
-    hours: 16,
-    cover: "/home/redes.jpg",
-    open: true,
-  },
-  // NUEVO
-  {
-    id: "c6",
-    title: "Ciberseguridad de Redes: Fundamentos y Buenas Prácticas",
-    career: "TI",
-    type: "GENERAL",
-    hours: 22,
-    cover: "/home/ciberedes.jpg",
-    open: true,
-  },
-];
-
+import { COURSES, type Course } from "./courses.data";
 
 const CAREERS = [
   { key: "SOFTWARE", label: "SOFTWARE" },
@@ -122,7 +51,7 @@ export default function CursosPage() {
 
   return (
     <main className={styles.main}>
-      {/* SIDEBAR */}
+      {/* FILTRO / SIDEBAR */}
       <aside className={styles.sidebar}>
         <div className={styles.sidebarSection}>
           <div className={styles.sidebarTitle}>FILTRO</div>
@@ -178,7 +107,7 @@ export default function CursosPage() {
         </div>
       </aside>
 
-      {/* CONTENT */}
+      {/* CONTENIDO */}
       <section className={styles.content}>
         <header className={styles.header}>
           <h1 className={styles.title}>Cursos</h1>
@@ -189,7 +118,12 @@ export default function CursosPage() {
 
         <div className={styles.grid}>
           {filtered.map((c) => (
-            <article key={c.id} className={styles.card}>
+            <Link
+              key={c.id}
+              href={`/cursos/${c.id}`}
+              className={styles.card}
+              aria-label={`Abrir curso: ${c.title}`}
+            >
               <div className={styles.coverWrap}>
                 <Image
                   src={c.cover}
@@ -228,10 +162,12 @@ export default function CursosPage() {
                   </span>
                 </div>
               </div>
-            </article>
+            </Link>
           ))}
         </div>
       </section>
     </main>
   );
 }
+
+
