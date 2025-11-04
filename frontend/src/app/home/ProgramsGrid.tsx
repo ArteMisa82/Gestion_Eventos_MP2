@@ -14,30 +14,31 @@ type Props = {
 
 const defaultPrograms: Program[] = [
   {
-    title: "Doctor of Physical Therapy (DPT)",
-    desc: "Conoce los programas de formación más destacados de nuestra universidad.",
+    title: "Telecomunicaciones y Redes",
+    desc: "Aprenderás a diseñar, implementar y gestionar redes de datos (LAN, WAN, Internet) y sistemas de comunicación modernos, garantizando la conectividad, seguridad y rendimiento de la infraestructura digital.",
     href: "/cursos/dpt",
     img: "/home/IA.jpg",
   },
   {
-    title: "PhD Engineering Dual Degree",
-    desc: "Conoce los programas de formación más destacados de nuestra universidad.",
+    title: "Software y Desarrollo de Aplicaciones",
+    desc: "Te prepararás para crear soluciones en diferentes plataformas: web, móvil y de escritorio.",
     href: "/cursos/phd-engineering",
     img: "/home/datos.jpg",
   },
   {
-    title: "Master of Public Health (MPH)",
-    desc: "Conoce los programas de formación más destacados de nuestra universidad.",
+    title: "Robotica y Automatización",
+    desc: "Aprenderás a programar el movimiento, la percepción y la toma de decisiones de máquinas para automatizar procesos industriales y mejorar la eficiencia en diversos entornos.",
     href: "/cursos/mph",
     img: "/home/ciberse.jpg",
   },
+  
 ];
 
 export default function ProgramsGrid({ programs = defaultPrograms }: Props) {
   return (
     <section className={styles.programs}>
       <div className={styles.header}>
-        <span className={styles.badge}>Cursos</span>
+        <span className={styles.badge}></span>
         <h2>Nuestros Programas</h2>
         <a href="/cursos" className={styles.link}>
           Ver más →
@@ -70,7 +71,7 @@ export default function ProgramsGrid({ programs = defaultPrograms }: Props) {
             <h3>{p.title}</h3>
             <p>{p.desc ?? "Conoce los programas de formación más destacados de nuestra universidad."}</p>
             <a className={styles.cardLink} href={p.href ?? "#"}>
-              Ver detalle
+              
             </a>
           </article>
         ))}

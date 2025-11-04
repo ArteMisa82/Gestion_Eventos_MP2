@@ -185,14 +185,7 @@
   margin-bottom: 20px;
 }
 
-.badge {
-  background-color: var(--brand, #7f1d1d);
-  color: #fff;
-  padding: 6px 12px;
-  border-radius: 9999px;
-  font-size: 12px;
-  font-weight: 600;
-}
+
 
 .header h2 {
   font-size: 22px;

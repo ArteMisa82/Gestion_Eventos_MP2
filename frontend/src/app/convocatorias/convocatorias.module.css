@@ -80,3 +80,88 @@
 
 .submit:hover { opacity: .96; }
 .submit:active { transform: translateY(1px); }
+
+
+/* ===== CENTRADO DEL BANNER ===== */
+.bannerWrap {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-top: 24px;
+  padding: 0 19px;              /* Respira en pantallas pequeñas */
+  box-sizing: border-box;
+}
+
+/* ===== BANNER ===== */
+.banner {
+  position: relative;
+  width: 450%;
+  max-width: 1200px;           /* 🔹 Limita el ancho y lo centra */
+  height: 200px;               /* 🔹 Ajusta la altura a gusto */
+  border-radius: 14px;
+  overflow: hidden;
+  background: #0f172a;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+}
+
+.banner :global(img) {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ===== SOMBRA / DEGRADADO ===== */
+.overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(0,0,0,.25) 0%,
+    rgba(0,0,0,.45) 65%,
+    rgba(0,0,0,.55) 100%
+  );
+}
+
+/* ===== TÍTULO SOBRE EL BANNER ===== */
+.bannerTitle {
+  position: absolute;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #fff;
+  font-size: 42px;
+  font-weight: 800;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+  letter-spacing: 0.5px;
+  margin: 0;
+}
+
+/* ===== EFECTO DE APARICIÓN CON useInView ===== */
+.reveal {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity .6s ease, transform .6s ease;
+}
+.show {
+  opacity: 1;
+  transform: none;
+}
+
+/* ===== ANIMACIÓN KEN BURNS ===== */
+.kenburns {
+  animation: kenburns 18s ease-in-out infinite alternate;
+  transform-origin: center;
+  will-change: transform;
+}
+
+@keyframes kenburns {
+  0%   { transform: scale(1.03) translate3d(0, 0, 0); }
+  50%  { transform: scale(1.08) translate3d(0, -2%, 0); }
+  100% { transform: scale(1.05) translate3d(0, 0, 0); }
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 900px) {
+  .banner { height: 260px; }
+  .bannerTitle { font-size: 32px; bottom: 20px; }
+}
