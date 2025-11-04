@@ -1,0 +1,153 @@
+:root {
+  --brand: #7f1d1d;
+  --brand-600: #8f2020;
+  --ink: #111827;
+  --muted: #6b7280;
+  --ring: #e5e7eb;
+  --surface: #ffffff;
+  --bg: #f8fafc;
+}
+
+.main {
+  display: grid;
+  gap: 32px;
+}
+
+/* ===== Banner ===== */
+.banner {
+  position: relative;
+  height: 280px;
+  max-width: 1200px;
+  margin: 0 auto;
+  border-radius: 16px;
+  overflow: hidden;
+}
+.bannerShade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(0deg, rgba(0,0,0,.35) 0%, rgba(0,0,0,0) 60%);
+}
+
+/* ===== Misión / Visión ===== */
+.mv {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 18px;
+  padding: 0 16px;
+}
+.mvCard {
+  background: var(--surface);
+  border: 1px solid var(--ring);
+  border-radius: 14px;
+  padding: 18px 18px 20px;
+  box-shadow: 0 1px 2px rgba(0,0,0,.05);
+}
+.mvCard h3 {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.mvCard p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+  font-size: 14px;
+}
+
+/* ===== Autoridades ===== */
+.autoridades {
+  max-width: 1100px;
+  margin: 8px auto 60px;
+  padding: 0 16px;
+}
+.badge {
+  background: var(--brand);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 999px;
+  display: inline-block;
+}
+.titleWrap {
+  text-align: center;
+  margin: 10px 0 18px;
+}
+.mini {
+  display: block;
+  color: var(--muted);
+  letter-spacing: .35em;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+.title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+/* Grid de tarjetas de autoridades */
+.authGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 22px;
+  margin-top: 8px;
+}
+
+/* Tarjeta */
+.authCard {
+  background: var(--surface);
+  border: 1px solid var(--ring);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0,0,0,.06);
+  display: grid;
+  grid-template-rows: 1fr auto; /* foto arriba, info abajo */
+}
+
+/* Foto */
+.photoBox {
+  background: #f3f4f6;
+  min-height: 260px;
+}
+
+/* Info */
+.authInfo {
+  text-align: center;
+  padding: 12px 10px 14px;
+  border-top: 1px solid var(--ring);
+}
+.authName {
+  display: block;
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.2;
+}
+.authRole {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.authUnit {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--muted);
+  padding: 2px 8px;
+  border: 1px solid var(--ring);
+  border-radius: 999px;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 900px) {
+  .banner { height: 200px; border-radius: 12px; }
+  .mv { grid-template-columns: 1fr; }
+  .authGrid { grid-template-columns: 1fr; }
+}
