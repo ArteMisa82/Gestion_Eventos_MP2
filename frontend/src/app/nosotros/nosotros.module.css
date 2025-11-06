@@ -1,0 +1,251 @@
+:root {
+  --brand: #7f1d1d;
+  --brand-600: #8f2020;
+  --ink: #111827;
+  --muted: #6b7280;
+  --ring: #e5e7eb;
+  --surface: #ffffff;
+  --bg: #f8fafc;
+}
+
+.main {
+  display: grid;
+  gap: 32px;
+}
+
+/* ===== Banner ===== */
+.banner {
+  position: relative;
+  height: 280px;
+  max-width: 1200px;
+  margin: 0 auto;
+  border-radius: 16px;
+  overflow: hidden;
+  background-color: #000; /* fallback, por si fallara la imagen */
+}
+
+.bannerShade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(0deg, rgba(0,0,0,.35) 0%, rgba(0,0,0,0) 60%);
+}
+
+
+/* ====== MISIÓN / VISIÓN ====== */
+.mv {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 24px;
+  margin: 60px auto;
+  max-width: 1000px;
+  padding: 0 20px;
+}
+
+.mvCard {
+  position: relative;
+  background: linear-gradient(145deg, #ffffff, #f8fafc);
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 32px 28px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+/* borde superior decorativo */
+.mvCard::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 6px;
+  width: 100%;
+  background: linear-gradient(to right, #7f1d1d, #991b1b, #7f1d1d);
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+}
+
+/* efecto hover */
+.mvCard:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.1);
+}
+
+/* títulos y textos */
+.mvCard h3 {
+  color: #7f1d1d;
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.mvCard p {
+  color: #334155;
+  font-size: 15px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* efecto de brillo lateral */
+.mvCard::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -75%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,.3) 50%, rgba(255,255,255,0) 100%);
+  transform: skewX(-20deg);
+  transition: all 0.7s ease;
+  pointer-events: none;
+}
+
+.mvCard:hover::after {
+  left: 130%;
+}
+
+/* responsive */
+@media (max-width: 600px) {
+  .mvCard {
+    padding: 24px 20px;
+  }
+  .mvCard h3 {
+    font-size: 18px;
+  }
+}
+
+
+/* ===== Autoridades ===== */
+.autoridades {
+  max-width: 1100px;
+  margin: 8px auto 60px;
+  padding: 0 16px;
+}
+.badge {
+  background: var(--brand);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 999px;
+  display: inline-block;
+}
+.titleWrap {
+  text-align: center;
+  margin: 10px 0 18px;
+}
+.mini {
+  display: block;
+  color: var(--muted);
+  letter-spacing: .35em;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+.title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+/* Grid de tarjetas de autoridades */
+.authGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 22px;
+  margin-top: 8px;
+}
+
+/* Tarjeta */
+.authCard {
+  background: var(--surface);
+  border: 1px solid var(--ring);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0,0,0,.06);
+  display: grid;
+  grid-template-rows: 1fr auto; /* foto arriba, info abajo */
+}
+
+/* Foto */
+.photoBox {
+  background: #f3f4f6;
+  min-height: 260px;
+}
+
+/* Info */
+.authInfo {
+  text-align: center;
+  padding: 12px 10px 14px;
+  border-top: 1px solid var(--ring);
+}
+.authName {
+  display: block;
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.2;
+}
+.authRole {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.authUnit {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--muted);
+  padding: 2px 8px;
+  border: 1px solid var(--ring);
+  border-radius: 999px;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 900px) {
+  .banner { height: 200px; border-radius: 12px; }
+  .mv { grid-template-columns: 1fr; }
+  .authGrid { grid-template-columns: 1fr; }
+}
+
+.bannerBg {
+  background-image: url("/home/uta_fisei.jpg");
+  background-size: cover;
+  background-position: center;
+}
+
+/* ====== REVEAL ON SCROLL (genérico) ====== */
+.reveal {
+  opacity: 0;
+  transform: translate3d(0, 10px, 0);
+  transition: opacity .6s ease, transform .6s ease;
+  will-change: opacity, transform;
+}
+.in {
+  opacity: 1;
+  transform: none;
+}
+.fadeUp {}                 /* alias semántico */
+.fadeLeft  { transform: translate3d(-16px, 0, 0); }
+.fadeRight { transform: translate3d(16px, 0, 0); }
+.zoomIn    { transform: scale(.98); }
+
+/* hover agradable en tarjetas de autoridad */
+.authCard:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(0,0,0,.08);
+  transition: transform .25s ease, box-shadow .25s ease;
+}
+
+/* ====== BANNER KEN-BURNS (suave) ====== */
+.kenburns {
+  animation: kb-uta 18s ease-in-out infinite alternate;
+  transform-origin: center;
+}
+@keyframes kb-uta {
+  0%   { transform: scale(1) translate3d(0,0,0); }
+  100% { transform: scale(1.07) translate3d(0,-6px,0); }
+}
+
