@@ -37,9 +37,19 @@ export class AuthController {
 
       const result = await authService.register(data);
 
+      // Determinar mensaje según tipo de usuario
+      let userTypeMessage = 'Usuario registrado exitosamente';
+      if (result.usuario.stu_usu === 1) {
+        userTypeMessage = 'Estudiante registrado exitosamente';
+      } else if (result.usuario.adm_usu === 1) {
+        userTypeMessage = 'Administrador registrado exitosamente';
+      } else {
+        userTypeMessage = 'Usuario externo registrado exitosamente';
+      }
+
       res.status(201).json({
         success: true,
-        message: 'Usuario registrado exitosamente',
+        message: userTypeMessage,
         data: result
       });
     } catch (error: any) {

@@ -1,5 +1,34 @@
 # 🔐 Sistema de Autenticación - API REST
 
+## 🎓 Detección automática de tipo de usuario
+
+El sistema detecta automáticamente el tipo de usuario basándose en el correo electrónico:
+
+### **Correos institucionales (@uta.edu.ec):**
+
+1. **Estudiante (`stu_usu = 1`):**
+   - Correo termina en `@uta.edu.ec`
+   - La parte antes del @ contiene **exactamente 4 dígitos consecutivos**
+   - Ejemplos: `juan1234@uta.edu.ec`, `maria5678@uta.edu.ec`
+   - **Requiere especificar nivel académico (`niv_usu`)**
+
+2. **Administrador (`adm_usu = 1`):**
+   - Correo termina en `@uta.edu.ec`
+   - La parte antes del @ **NO contiene ningún número**
+   - Ejemplos: `juan.perez@uta.edu.ec`, `maria.lopez@uta.edu.ec`
+
+3. **Usuario sin rol institucional:**
+   - Correo termina en `@uta.edu.ec`
+   - Tiene números pero NO 4 consecutivos
+   - Ejemplos: `juan12@uta.edu.ec`, `maria1@uta.edu.ec`
+
+### **Correos externos (otros dominios):**
+- No se asigna ningún rol institucional
+- `stu_usu = 0` y `adm_usu = 0`
+- Ejemplos: `usuario@gmail.com`, `test@hotmail.com`
+
+---
+
 ## 📋 Endpoints disponibles
 
 ### 1️⃣ **POST** `/api/auth/register` - Registro de usuario
@@ -32,16 +61,49 @@ Crea un nuevo usuario en el sistema.
 }
 ```
 
+**Ejemplos por tipo de usuario:**
+
+**Estudiante (requiere niv_usu):**
+```json
+{
+  "cor_usu": "juan1234@uta.edu.ec",
+  "pas_usu": "password123",
+  "nom_usu": "Juan",
+  "ape_usu": "Pérez",
+  "niv_usu": "NIV001"
+}
+```
+
+**Administrador:**
+```json
+{
+  "cor_usu": "juan.perez@uta.edu.ec",
+  "pas_usu": "password123",
+  "nom_usu": "Juan",
+  "ape_usu": "Pérez"
+}
+```
+
+**Usuario externo:**
+```json
+{
+  "cor_usu": "juan@gmail.com",
+  "pas_usu": "password123",
+  "nom_usu": "Juan",
+  "ape_usu": "Pérez"
+}
+```
+
 **Response (201):**
 ```json
 {
   "success": true,
-  "message": "Usuario registrado exitosamente",
+  "message": "Estudiante registrado exitosamente",
   "data": {
     "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
     "usuario": {
       "id_usu": 1,
-      "cor_usu": "juan@example.com",
+      "cor_usu": "juan1234@uta.edu.ec",
       "nom_usu": "Juan",
       "ape_usu": "Pérez",
       "adm_usu": 0,

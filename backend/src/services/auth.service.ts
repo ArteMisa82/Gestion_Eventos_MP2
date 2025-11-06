@@ -4,6 +4,42 @@ import { hashPassword, comparePassword } from '../utils/bcrypt.util';
 import { generateToken } from '../utils/jwt.util';
 
 export class AuthService {
+  /**
+   * Detecta el tipo de usuario basado en el correo institucional
+   * @param email - Correo del usuario
+   * @returns { isStudent: boolean, isAdmin: boolean }
+   */
+  private detectUserType(email: string): { isStudent: boolean; isAdmin: boolean } {
+    // Verificar si termina en @uta.edu.ec
+    if (!email.endsWith('@uta.edu.ec')) {
+      // Correo externo, no es ni estudiante ni admin institucional
+      return { isStudent: false, isAdmin: false };
+    }
+
+    // Extraer la parte antes del @
+    const localPart = email.split('@')[0];
+
+    // Verificar si contiene exactamente 4 dígitos consecutivos
+    const fourDigitsMatch = localPart.match(/\d{4}/);
+
+    if (fourDigitsMatch) {
+      // Tiene 4 números consecutivos -> Es estudiante
+      return { isStudent: true, isAdmin: false };
+    }
+
+    // Verificar si NO contiene ningún número
+    const hasNoNumbers = !/\d/.test(localPart);
+
+    if (hasNoNumbers) {
+      // No tiene números -> Es administrador
+      return { isStudent: false, isAdmin: true };
+    }
+
+    // Tiene @uta.edu.ec pero no cumple ninguna de las condiciones anteriores
+    // (tiene números pero no 4 consecutivos)
+    return { isStudent: false, isAdmin: false };
+  }
+
   // Registro de usuario
   async register(data: RegisterDto) {
     // Verificar si el correo ya existe
@@ -26,6 +62,14 @@ export class AuthService {
       }
     }
 
+    // Detectar tipo de usuario por correo
+    const { isStudent, isAdmin } = this.detectUserType(data.cor_usu);
+
+    // Si se detecta como estudiante pero no se proporciona nivel, lanzar error
+    if (isStudent && !data.niv_usu) {
+      throw new Error('Los estudiantes deben especificar un nivel académico');
+    }
+
     // Verificar que el nivel existe (si se proporciona)
     if (data.niv_usu) {
       const nivelExists = await prisma.nivel.findUnique({
@@ -40,7 +84,7 @@ export class AuthService {
     // Hashear contraseña
     const hashedPassword = await hashPassword(data.pas_usu);
 
-    // Crear usuario
+    // Crear usuario con tipo detectado automáticamente
     const newUser = await prisma.usuarios.create({
       data: {
         cor_usu: data.cor_usu,
@@ -52,8 +96,8 @@ export class AuthService {
         tel_usu: data.tel_usu,
         ced_usu: data.ced_usu,
         niv_usu: data.niv_usu,
-        stu_usu: data.niv_usu ? 1 : 0, // Si tiene nivel, es estudiante
-        adm_usu: 0 // Por defecto no es admin
+        stu_usu: isStudent ? 1 : 0,
+        adm_usu: isAdmin ? 1 : 0
       },
       select: {
         id_usu: true,
