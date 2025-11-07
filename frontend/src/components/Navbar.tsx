@@ -3,7 +3,9 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 import styles from "./navbar.module.css";
+import LoginModal from "../components/loginModal"; //importa el modal
 
 const links = [
   { href: "/home", label: "Inicio" },
@@ -15,19 +17,22 @@ const links = [
 export default function Navbar() {
   const pathname = usePathname();
 
+  // 👇 Estado para controlar el modal
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [isRegisterOpen, setIsRegisterOpen] = useState(false);
+
   return (
     <header className={styles.header}>
       <nav className={styles.nav}>
         {/* Marca institucional */}
         <Link href="/" className={styles.brand}>
           <Image
-            src="/home/uta-seal.jpg"     // coloca aquí tu sello real en /public
+            src="/home/uta-seal.jpg"
             alt="Escudo UTA"
             width={190}
             height={40}
             priority
           />
-          <span className={styles.brandText}></span>
         </Link>
 
         {/* Links de navegación */}
@@ -48,15 +53,34 @@ export default function Navbar() {
 
         {/* Botones de acción */}
         <div className={styles.actions}>
-          <Link href="/login" className={styles.secondaryBtn}>
+          <button
+            onClick={() => setIsLoginOpen(true)} // 👈 abre el modal de login
+            className={styles.secondaryBtn}
+          >
             Iniciar sesión
-          </Link>
-          <Link href="/registro" className={styles.primaryBtn}>
+          </button>
+          <button
+            onClick={() => {
+              setIsLoginOpen(true);
+              setIsRegisterOpen(true); // 👈 abre modal directamente en registro
+            }}
+            className={styles.primaryBtn}
+          >
             Registrarse
-          </Link>
+          </button>
         </div>
       </nav>
+
+      {/* MODAL de Login / Registro */}
+      <LoginModal
+        isOpen={isLoginOpen}
+        onClose={() => {
+          setIsLoginOpen(false);
+          setIsRegisterOpen(false);
+        }}
+        // 👇 le pasamos prop opcional para abrir en modo registro
+        initialRegister={isRegisterOpen}
+      />
     </header>
   );
 }
-
