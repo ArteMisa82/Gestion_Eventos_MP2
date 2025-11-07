@@ -1,6 +1,7 @@
 // Se actualizo la ruta y las carpetas del user para controlesuser.routes.ts
+// src/routes/user.routes.ts
 import { Router } from 'express';
-import { UserController } from '@/controllers/user.controller';
+import { UserController } from '../controllers/user.controller'; // <-- corregido
 
 const router = Router();
 const controller = new UserController();
@@ -14,6 +15,8 @@ router.delete('/:id', controller.delete.bind(controller));
 
 // Panel con cursos (en proceso y completados)
 router.get('/:id/panel', controller.getPanelCursos.bind(controller));
+
+export default router;
 
 export default router;
 //Aquí definimos las rutas REST:
