@@ -16,3 +16,4 @@ router.delete('/:id', controller.delete.bind(controller));
 router.get('/:id/panel', controller.getPanelCursos.bind(controller));
 
 export default router;
+//Aquí definimos las rutas REST:
