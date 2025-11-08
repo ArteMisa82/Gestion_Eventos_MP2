@@ -65,11 +65,14 @@ model eventos {
   tip_pub_evt     String            @db.VarChar(20)
   cos_evt         String            @db.VarChar(15)
   des_evt         String            @db.VarChar(255)
+  id_res_evt      Int?
   detalle_eventos detalle_eventos[]
+  usuarios        usuarios?         @relation(fields: [id_res_evt], references: [id_usu], map: "fk_eventos_responsable")
   requerimientos  requerimientos[]
   tarifas_evento  tarifas_evento[]
 
   @@index([fec_evt], map: "idx_eventos_fecha")
+  @@index([id_res_evt], map: "idx_eventos_responsable")
 }
 
 model informes {
@@ -170,7 +173,9 @@ model usuarios {
   stu_usu           Int?                @db.SmallInt
   niv_usu           String?             @db.VarChar(10)
   adm_usu           Int?                @default(0) @db.SmallInt
+  Administrador     Boolean             @default(false)
   detalle_eventos   detalle_eventos[]
+  eventos           eventos[]
   registro_personas registro_personas[]
   nivel             nivel?              @relation(fields: [niv_usu], references: [id_niv])
 
