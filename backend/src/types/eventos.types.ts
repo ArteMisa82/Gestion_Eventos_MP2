@@ -4,23 +4,24 @@ export interface CreateEventoDto {
   fec_evt: string | Date;
   lug_evt: string;
   des_evt: string;
-  id_usu_res?: number; // Responsable asignado (opcional en creación)
+  mod_evt?: string; // Modalidad: Presencial, Virtual, Híbrido
+  tip_pub_evt?: string; // Tipo público: Público, Privado, Restringido
+  cos_evt?: string; // Costo: Gratuito, Pagado
+  id_responsable?: number; // Responsable asignado (opcional en creación)
 }
 
 export interface UpdateEventoDto {
   nom_evt?: string;
   fec_evt?: string | Date;
   lug_evt?: string;
-  tip_evt?: string;
   mod_evt?: string;
   tip_pub_evt?: string;
   cos_evt?: string;
   des_evt?: string;
-  id_usu_res?: number;
 }
 
 export interface AsignarResponsableDto {
-  id_usu_res: number;
+  id_responsable: number;
 }
 
 // Respuesta de evento con información del responsable
@@ -29,12 +30,11 @@ export interface EventoResponse {
   nom_evt: string;
   fec_evt: Date;
   lug_evt: string;
-  tip_evt: string | null;
-  mod_evt: string | null;
-  tip_pub_evt: string | null;
-  cos_evt: string | null;
+  mod_evt: string;
+  tip_pub_evt: string;
+  cos_evt: string;
   des_evt: string;
-  id_usu_res: number | null;
+  id_res_evt: number | null;
   responsable?: {
     id_usu: number;
     nom_usu: string;
