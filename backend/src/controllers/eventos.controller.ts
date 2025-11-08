@@ -1,6 +1,12 @@
 import { Request, Response } from 'express';
 import { EventosService } from '../services/eventos.service';
-import { CreateEventoDto, UpdateEventoDto, AsignarResponsableDto } from '../types/eventos.types';
+import { 
+  CreateEventoDto, 
+  UpdateEventoDto, 
+  AsignarResponsableDto,
+  CreateDetalleEventoDto,
+  UpdateDetalleEventoDto 
+} from '../types/eventos.types';
 
 const eventosService = new EventosService();
 
@@ -168,6 +174,115 @@ export class EventosController {
       res.status(500).json({
         success: false,
         message: error.message || 'Error al obtener eventos asignados'
+      });
+    }
+  }
+
+  // ==========================================
+  // CONTROLADORES PARA DETALLE_EVENTOS
+  // ==========================================
+
+  // POST /api/eventos/:id/detalles - RESPONSABLE: Crear detalle de evento
+  async crearDetalle(req: Request, res: Response) {
+    try {
+      const userId = (req as any).userId;
+      const data: CreateDetalleEventoDto = {
+        ...req.body,
+        id_evt_per: req.params.id
+      };
+
+      // Validaciones
+      if (!data.cup_det || !data.hor_det || !data.are_det || !data.cat_det || !data.tip_evt) {
+        return res.status(400).json({
+          success: false,
+          message: 'Los campos cupo, horas, área, categoría y tipo de evento son obligatorios'
+        });
+      }
+
+      const detalle = await eventosService.crearDetalleEvento(data, userId);
+
+      res.status(201).json({
+        success: true,
+        message: 'Detalle de evento creado exitosamente',
+        data: detalle
+      });
+    } catch (error: any) {
+      res.status(403).json({
+        success: false,
+        message: error.message || 'Error al crear detalle de evento'
+      });
+    }
+  }
+
+  // GET /api/eventos/:id/detalles - Listar detalles de un evento
+  async obtenerDetallesPorEvento(req: Request, res: Response) {
+    try {
+      const detalles = await eventosService.obtenerDetallesPorEvento(req.params.id);
+      res.json({
+        success: true,
+        data: detalles
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Error al obtener detalles del evento'
+      });
+    }
+  }
+
+  // GET /api/detalles/:id - Obtener un detalle específico
+  async obtenerDetallePorId(req: Request, res: Response) {
+    try {
+      const detalle = await eventosService.obtenerDetallePorId(req.params.id);
+      res.json({
+        success: true,
+        data: detalle
+      });
+    } catch (error: any) {
+      res.status(404).json({
+        success: false,
+        message: error.message || 'Detalle de evento no encontrado'
+      });
+    }
+  }
+
+  // PUT /api/detalles/:id - RESPONSABLE: Actualizar detalle de evento
+  async actualizarDetalle(req: Request, res: Response) {
+    try {
+      const userId = (req as any).userId;
+      const data: UpdateDetalleEventoDto = req.body;
+
+      const detalle = await eventosService.actualizarDetalleEvento(
+        req.params.id,
+        data,
+        userId
+      );
+
+      res.json({
+        success: true,
+        message: 'Detalle de evento actualizado exitosamente',
+        data: detalle
+      });
+    } catch (error: any) {
+      res.status(403).json({
+        success: false,
+        message: error.message || 'Error al actualizar detalle de evento'
+      });
+    }
+  }
+
+  // DELETE /api/detalles/:id - RESPONSABLE o ADMIN: Eliminar detalle
+  async eliminarDetalle(req: Request, res: Response) {
+    try {
+      const userId = (req as any).userId;
+
+      await eventosService.eliminarDetalleEvento(req.params.id, userId);
+
+      res.status(204).send();
+    } catch (error: any) {
+      res.status(403).json({
+        success: false,
+        message: error.message || 'Error al eliminar detalle de evento'
       });
     }
   }

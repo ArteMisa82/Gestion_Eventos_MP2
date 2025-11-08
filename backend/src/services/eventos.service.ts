@@ -1,5 +1,11 @@
 import prisma from '../config/database';
-import { CreateEventoDto, UpdateEventoDto, AsignarResponsableDto } from '../types/eventos.types';
+import { 
+  CreateEventoDto, 
+  UpdateEventoDto, 
+  AsignarResponsableDto,
+  CreateDetalleEventoDto,
+  UpdateDetalleEventoDto 
+} from '../types/eventos.types';
 
 export class EventosService {
   /**
@@ -210,7 +216,7 @@ export class EventosService {
   }
 
   /**
-   * RESPONSABLE: Actualizar detalles del evento asignado
+   * RESPONSABLE o ADMIN: Actualizar detalles del evento asignado
    */
   async actualizarEvento(idEvento: string, data: UpdateEventoDto, userId: number) {
     // Verificar que el evento existe
@@ -222,9 +228,16 @@ export class EventosService {
       throw new Error('Evento no encontrado');
     }
 
-    // Verificar que el usuario sea el responsable del evento
-    if (evento.id_res_evt !== userId) {
-      throw new Error('Solo el responsable asignado puede editar los detalles del evento');
+    // Verificar que el usuario sea el responsable del evento O sea administrador
+    const usuario = await prisma.usuarios.findUnique({
+      where: { id_usu: userId }
+    });
+
+    const esResponsable = evento.id_res_evt === userId;
+    const esAdmin = usuario?.Administrador === true;
+
+    if (!esResponsable && !esAdmin) {
+      throw new Error('Solo el responsable asignado o el administrador pueden editar el evento');
     }
 
     // Actualizar evento
@@ -306,6 +319,265 @@ export class EventosService {
       orderBy: {
         fec_evt: 'desc'
       }
+    });
+  }
+
+  // ==========================================
+  // MÉTODOS PARA DETALLE_EVENTOS
+  // ==========================================
+
+  /**
+   * Genera un ID único para el detalle del evento
+   * Formato: DET + timestamp de 7 dígitos
+   */
+  private async generateDetalleId(): Promise<string> {
+    const timestamp = Date.now().toString().slice(-7);
+    const id = `DET${timestamp}`;
+    
+    // Verificar que no exista
+    const exists = await prisma.detalle_eventos.findUnique({
+      where: { id_det: id }
+    });
+    
+    if (exists) {
+      const random = Math.floor(Math.random() * 100).toString().padStart(2, '0');
+      return `DET${random}${timestamp.slice(-5)}`;
+    }
+    
+    return id;
+  }
+
+  /**
+   * RESPONSABLE: Crear detalle de evento (solo el responsable asignado)
+   */
+  async crearDetalleEvento(data: CreateDetalleEventoDto, userId: number) {
+    // Verificar que el evento existe
+    const evento = await prisma.eventos.findUnique({
+      where: { id_evt: data.id_evt_per }
+    });
+
+    if (!evento) {
+      throw new Error('Evento no encontrado');
+    }
+
+    // Verificar que el usuario sea el responsable del evento O sea administrador
+    const usuario = await prisma.usuarios.findUnique({
+      where: { id_usu: userId }
+    });
+
+    const esResponsable = evento.id_res_evt === userId;
+    const esAdmin = usuario?.Administrador === true;
+
+    if (!esResponsable && !esAdmin) {
+      throw new Error('Solo el responsable asignado o el administrador pueden crear detalles del evento');
+    }
+
+    // Si se asigna un instructor, verificar que sea usuario administrativo
+    if (data.id_usu_doc) {
+      const instructor = await prisma.usuarios.findUnique({
+        where: { id_usu: data.id_usu_doc }
+      });
+
+      if (!instructor || instructor.adm_usu !== 1) {
+        throw new Error('El instructor debe ser un usuario administrativo');
+      }
+    }
+
+    // Generar ID
+    const id_det = await this.generateDetalleId();
+
+    // Crear detalle
+    return await prisma.detalle_eventos.create({
+      data: {
+        id_det,
+        id_evt_per: data.id_evt_per,
+        id_usu_doc: data.id_usu_doc || null,
+        cup_det: data.cup_det,
+        hor_det: data.hor_det,
+        are_det: data.are_det,
+        cat_det: data.cat_det?.toUpperCase(),
+        tip_evt: data.tip_evt?.toUpperCase(),
+        not_evt_det: data.not_evt_det || null,
+        asi_evt_det: data.asi_evt_det || null,
+        cer_evt_det: data.cer_evt_det || 0,
+        apr_evt_det: data.apr_evt_det || 0,
+        est_evt_det: 'INSCRIPCIONES' // Estado inicial
+      },
+      include: {
+        usuarios: {
+          select: {
+            id_usu: true,
+            nom_usu: true,
+            ape_usu: true,
+            cor_usu: true
+          }
+        },
+        eventos: true
+      }
+    });
+  }
+
+  /**
+   * RESPONSABLE: Actualizar detalle de evento (solo el responsable asignado)
+   */
+  async actualizarDetalleEvento(idDetalle: string, data: UpdateDetalleEventoDto, userId: number) {
+    // Verificar que el detalle existe
+    const detalle = await prisma.detalle_eventos.findUnique({
+      where: { id_det: idDetalle },
+      include: {
+        eventos: true
+      }
+    });
+
+    if (!detalle) {
+      throw new Error('Detalle de evento no encontrado');
+    }
+
+    // Verificar que el usuario sea el responsable del evento O sea administrador
+    const usuario = await prisma.usuarios.findUnique({
+      where: { id_usu: userId }
+    });
+
+    const esResponsable = detalle.eventos.id_res_evt === userId;
+    const esAdmin = usuario?.Administrador === true;
+
+    if (!esResponsable && !esAdmin) {
+      throw new Error('Solo el responsable asignado o el administrador pueden editar los detalles del evento');
+    }
+
+    // Si se actualiza el instructor, verificar que sea usuario administrativo
+    if (data.id_usu_doc) {
+      const instructor = await prisma.usuarios.findUnique({
+        where: { id_usu: data.id_usu_doc }
+      });
+
+      if (!instructor || instructor.adm_usu !== 1) {
+        throw new Error('El instructor debe ser un usuario administrativo');
+      }
+    }
+
+    // Actualizar detalle
+    return await prisma.detalle_eventos.update({
+      where: { id_det: idDetalle },
+      data: {
+        id_usu_doc: data.id_usu_doc,
+        cup_det: data.cup_det,
+        hor_det: data.hor_det,
+        are_det: data.are_det,
+        cat_det: data.cat_det?.toUpperCase(),
+        tip_evt: data.tip_evt?.toUpperCase(),
+        not_evt_det: data.not_evt_det,
+        asi_evt_det: data.asi_evt_det,
+        cer_evt_det: data.cer_evt_det,
+        apr_evt_det: data.apr_evt_det,
+        est_evt_det: data.est_evt_det?.toUpperCase()
+      },
+      include: {
+        usuarios: {
+          select: {
+            id_usu: true,
+            nom_usu: true,
+            ape_usu: true,
+            cor_usu: true
+          }
+        },
+        eventos: true
+      }
+    });
+  }
+
+  /**
+   * Obtener detalle de evento por ID
+   */
+  async obtenerDetallePorId(idDetalle: string) {
+    const detalle = await prisma.detalle_eventos.findUnique({
+      where: { id_det: idDetalle },
+      include: {
+        usuarios: {
+          select: {
+            id_usu: true,
+            nom_usu: true,
+            ape_usu: true,
+            cor_usu: true
+          }
+        },
+        eventos: {
+          include: {
+            usuarios: {
+              select: {
+                id_usu: true,
+                nom_usu: true,
+                ape_usu: true,
+                cor_usu: true
+              }
+            }
+          }
+        },
+        registro_evento: true
+      }
+    });
+
+    if (!detalle) {
+      throw new Error('Detalle de evento no encontrado');
+    }
+
+    return detalle;
+  }
+
+  /**
+   * Listar detalles de un evento específico
+   */
+  async obtenerDetallesPorEvento(idEvento: string) {
+    return await prisma.detalle_eventos.findMany({
+      where: {
+        id_evt_per: idEvento
+      },
+      include: {
+        usuarios: {
+          select: {
+            id_usu: true,
+            nom_usu: true,
+            ape_usu: true,
+            cor_usu: true
+          }
+        }
+      },
+      orderBy: {
+        id_det: 'asc'
+      }
+    });
+  }
+
+  /**
+   * RESPONSABLE o ADMIN: Eliminar detalle de evento
+   */
+  async eliminarDetalleEvento(idDetalle: string, userId: number) {
+    // Verificar que el detalle existe
+    const detalle = await prisma.detalle_eventos.findUnique({
+      where: { id_det: idDetalle },
+      include: {
+        eventos: true
+      }
+    });
+
+    if (!detalle) {
+      throw new Error('Detalle de evento no encontrado');
+    }
+
+    // Verificar que el usuario sea el responsable del evento O sea administrador
+    const usuario = await prisma.usuarios.findUnique({
+      where: { id_usu: userId }
+    });
+
+    const esResponsable = detalle.eventos.id_res_evt === userId;
+    const esAdmin = usuario?.Administrador === true;
+
+    if (!esResponsable && !esAdmin) {
+      throw new Error('Solo el responsable asignado o el administrador pueden eliminar detalles del evento');
+    }
+
+    return await prisma.detalle_eventos.delete({
+      where: { id_det: idDetalle }
     });
   }
 }

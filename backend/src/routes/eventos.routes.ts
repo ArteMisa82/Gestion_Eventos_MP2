@@ -16,7 +16,17 @@ router.post('/', authMiddleware, adminMiddleware, controller.crear.bind(controll
 router.put('/:id/responsable', authMiddleware, adminMiddleware, controller.asignarResponsable.bind(controller));
 router.delete('/:id', authMiddleware, adminMiddleware, controller.eliminar.bind(controller));
 
-// Rutas RESPONSABLE (requieren ser el responsable del evento)
+// Rutas RESPONSABLE o ADMIN (requieren ser el responsable del evento o admin)
 router.put('/:id', authMiddleware, controller.actualizar.bind(controller));
+
+// ==========================================
+// RUTAS PARA DETALLE_EVENTOS
+// ==========================================
+
+// Crear detalle de evento (RESPONSABLE o ADMIN)
+router.post('/:id/detalles', authMiddleware, controller.crearDetalle.bind(controller));
+
+// Listar detalles de un evento
+router.get('/:id/detalles', authMiddleware, controller.obtenerDetallesPorEvento.bind(controller));
 
 export default router;
