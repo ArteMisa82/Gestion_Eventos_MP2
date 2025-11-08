@@ -76,6 +76,7 @@ export class EventosService {
           mod_evt: data.mod_evt?.toUpperCase() || 'PRESENCIAL',
           tip_pub_evt: data.tip_pub_evt?.toUpperCase() || 'GENERAL',
           cos_evt: data.cos_evt?.toUpperCase() || 'GRATUITO',
+          est_evt: 'EDITANDO', // Estado inicial al crear
           id_res_evt: data.id_responsable || null
         },
         include: {
@@ -233,10 +234,11 @@ export class EventosService {
         nom_evt: data.nom_evt,
         fec_evt: data.fec_evt ? new Date(data.fec_evt) : undefined,
         lug_evt: data.lug_evt,
-        mod_evt: data.mod_evt,
-        tip_pub_evt: data.tip_pub_evt,
-        cos_evt: data.cos_evt,
-        des_evt: data.des_evt
+        mod_evt: data.mod_evt?.toUpperCase(),
+        tip_pub_evt: data.tip_pub_evt?.toUpperCase(),
+        cos_evt: data.cos_evt?.toUpperCase(),
+        des_evt: data.des_evt,
+        est_evt: data.est_evt?.toUpperCase() // Permitir cambiar estado
       },
       include: {
         usuarios: {

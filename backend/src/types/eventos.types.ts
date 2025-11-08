@@ -18,6 +18,7 @@ export interface UpdateEventoDto {
   tip_pub_evt?: string;
   cos_evt?: string;
   des_evt?: string;
+  est_evt?: string; // Estado: EDITANDO, PLANIFICADO, EN CURSO, FINALIZADO, CANCELADO
 }
 
 export interface AsignarResponsableDto {
@@ -34,6 +35,7 @@ export interface EventoResponse {
   tip_pub_evt: string;
   cos_evt: string;
   des_evt: string;
+  est_evt: string | null;
   id_res_evt: number | null;
   responsable?: {
     id_usu: number;

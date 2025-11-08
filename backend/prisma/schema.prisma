@@ -37,6 +37,7 @@ model detalle_eventos {
   are_det         String            @db.VarChar(40)
   cat_det         String            @db.VarChar(20)
   tip_evt         String            @db.VarChar(20)
+  est_evt_det     String?           @default("INSCRIPCIONES") @db.VarChar(20)
   eventos         eventos           @relation(fields: [id_evt_per], references: [id_evt], onDelete: Cascade)
   usuarios        usuarios?         @relation(fields: [id_usu_doc], references: [id_usu])
   registro_evento registro_evento[]
@@ -44,6 +45,7 @@ model detalle_eventos {
   @@index([id_evt_per], map: "idx_detalle_eventos_evento")
   @@index([tip_evt], map: "idx_detalle_eventos_tipo")
   @@index([id_usu_doc], map: "idx_detalle_eventos_usuario")
+  @@index([est_evt_det], map: "idx_detalle_eventos_estado")
 }
 
 model detalle_informe {
@@ -66,6 +68,7 @@ model eventos {
   cos_evt         String            @db.VarChar(15)
   des_evt         String            @db.VarChar(255)
   id_res_evt      Int?
+  est_evt         String?           @default("EDITANDO") @db.VarChar(20)
   detalle_eventos detalle_eventos[]
   usuarios        usuarios?         @relation(fields: [id_res_evt], references: [id_usu], map: "fk_eventos_responsable")
   requerimientos  requerimientos[]
@@ -73,6 +76,7 @@ model eventos {
 
   @@index([fec_evt], map: "idx_eventos_fecha")
   @@index([id_res_evt], map: "idx_eventos_responsable")
+  @@index([est_evt], map: "idx_eventos_estado")
 }
 
 model informes {
