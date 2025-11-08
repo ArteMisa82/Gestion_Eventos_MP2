@@ -9,7 +9,7 @@ node_modules/
 .pnp
 .pnp.*
 .pnpm-debug.log*
-
+*.ps1
 # --- Builds / Compilación ---
 dist/
 build/
