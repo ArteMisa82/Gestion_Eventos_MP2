@@ -28,55 +28,75 @@ export class EventosService {
    * ADMIN (Administrador = true): Crear evento (campos básicos)
    */
   async crearEvento(data: CreateEventoDto, adminId: number) {
-    // Verificar que el usuario sea administrador (superusuario)
-    const admin = await prisma.usuarios.findUnique({
-      where: { id_usu: adminId }
-    });
-
-    if (!admin || !admin.Administrador) {
-      throw new Error('Solo el administrador puede crear eventos');
-    }
-
-    // Si se asigna responsable, verificar que sea usuario administrativo (adm_usu = 1)
-    if (data.id_responsable) {
-      const responsable = await prisma.usuarios.findUnique({
-        where: { id_usu: data.id_responsable }
+    try {
+      // Verificar que el usuario sea administrador (superusuario)
+      const admin = await prisma.usuarios.findUnique({
+        where: { id_usu: adminId }
       });
 
-      if (!responsable || responsable.adm_usu !== 1) {
-        throw new Error('El responsable debe ser un usuario administrativo (profesor, secretaría, etc.)');
+      if (!admin || !admin.Administrador) {
+        throw new Error('Solo el administrador puede crear eventos');
       }
-    }
 
-    // Generar ID
-    const id_evt = await this.generateEventoId();
+      // Si se asigna responsable, verificar que sea usuario administrativo (adm_usu = 1)
+      if (data.id_responsable) {
+        const responsable = await prisma.usuarios.findUnique({
+          where: { id_usu: data.id_responsable }
+        });
 
-    // Crear evento con campos básicos
-    const evento = await prisma.eventos.create({
-      data: {
+        if (!responsable || responsable.adm_usu !== 1) {
+          throw new Error('El responsable debe ser un usuario administrativo (profesor, secretaría, etc.)');
+        }
+      }
+
+      // Generar ID
+      const id_evt = await this.generateEventoId();
+      
+      console.log('ID generado para evento:', id_evt);
+      console.log('Datos a insertar:', {
         id_evt,
         nom_evt: data.nom_evt,
-        fec_evt: new Date(data.fec_evt),
+        fec_evt: data.fec_evt,
         lug_evt: data.lug_evt,
         des_evt: data.des_evt,
         mod_evt: data.mod_evt || 'Presencial',
         tip_pub_evt: data.tip_pub_evt || 'Público',
         cos_evt: data.cos_evt || 'Gratuito',
         id_res_evt: data.id_responsable || null
-      },
-      include: {
-        usuarios: {
-          select: {
-            id_usu: true,
-            nom_usu: true,
-            ape_usu: true,
-            cor_usu: true
+      });
+
+      // Crear evento con campos básicos
+      const evento = await prisma.eventos.create({
+        data: {
+          id_evt,
+          nom_evt: data.nom_evt,
+          fec_evt: new Date(data.fec_evt),
+          lug_evt: data.lug_evt,
+          des_evt: data.des_evt,
+          mod_evt: data.mod_evt?.toUpperCase() || 'PRESENCIAL',
+          tip_pub_evt: data.tip_pub_evt?.toUpperCase() || 'GENERAL',
+          cos_evt: data.cos_evt?.toUpperCase() || 'GRATUITO',
+          id_res_evt: data.id_responsable || null
+        },
+        include: {
+          usuarios: {
+            select: {
+              id_usu: true,
+              nom_usu: true,
+              ape_usu: true,
+              cor_usu: true
+            }
           }
         }
-      }
-    });
+      });
 
-    return evento;
+      console.log('Evento creado exitosamente:', evento);
+      return evento;
+      
+    } catch (error) {
+      console.error('Error al crear evento:', error);
+      throw error;
+    }
   }
 
   /**
