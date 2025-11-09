@@ -1,3 +1,4 @@
+/* Contenedor general */
 .wrapper {
   padding: 24px 32px;
   min-height: 100%;
@@ -25,150 +26,128 @@
   border: none;
   border-radius: 24px;
   padding: 10px 20px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   transition: transform .15s ease, box-shadow .2s ease, background .2s;
 }
 .tab:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,.18); }
-.activeTab { background: #6670ff; }
 .activeTabRed { background: #c34141; }
 .activeTabBlue { background: #3f61a8; }
 
-/* Toolbar */
-.toolbar {
-  background: #f5f6f9;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  padding: 12px;
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 12px;
-  max-width: 1100px;
-  margin: 0 auto 14px;
-}
-.searchBox label { display:block; font-size:12px; color:#555; margin-bottom:4px; }
-.searchBox input {
-  width: 100%;
-  padding: 9px 12px;
-  border: 1px solid #d7d7dd;
-  border-radius: 8px;
-  background: #fff;
-}
-.filterGroup { display: flex; gap: 10px; align-items: end; }
-.filterLabel { font-size: 12px; color: #555; }
-.filterGroup select, .btnLight {
-  height: 36px; border-radius: 8px; border:1px solid #d7d7dd; background:#fff; padding: 0 10px;
-}
-.btnLight { cursor: pointer; }
-
-/* Tabla */
-.table {
-  max-width: 1100px;
-  margin: 0 auto;
-  background: #ffffff;
-  border-radius: 10px;
-  border: 1px solid #e8e8ee;
-  overflow: hidden;
-}
-.row { display: grid; grid-template-columns: 1fr 280px; border-bottom: 1px solid #eee; }
-.header { background: #eef1f7; font-weight: 700; color:#4f4f57; }
-.row > div { padding: 12px 14px; }
-
-.cellInfo {}
-.courseName { font-weight: 700; color:#2f2f38; }
-.studentName { color:#6a6a76; margin-top: 3px; }
-.courseMeta { color:#9a9aa3; font-size: 12px; margin-top: 2px; }
-
-.colAction { display: flex; align-items: center; gap: 10px; }
-
-/* Material */
-.materialCell { display:flex; gap:8px; align-items:center; flex-wrap: wrap; }
-.iconBtn { width:36px; height:36px; border-radius: 8px; border:1px solid #ddd; background:#fff; cursor:pointer; }
-.fileTag { font-size: 12px; color:#666; max-width: 180px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-/* Nota */
-.notaInput {
-  width: 90px;
-  padding: 8px 10px;
-  border-radius: 8px;
-  border:1px solid #ddd;
-  font-weight: 600;
-}
-
-/* Asistencia */
-.switch { display:flex; align-items:center; gap:8px; }
-.switch input { transform: scale(1.2); }
-
-/* Footer */
-.footerBar {
-  max-width: 1100px;
-  margin: 12px auto 0;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 12px;
-}
-.hint { color:#fff; opacity:.9; margin-right:auto; }
-
-.btnDanger, .btnPrimary {
-  border: none; border-radius: 8px; padding: 10px 16px; color:#fff; cursor: pointer; font-weight: 700;
-}
-.btnDanger { background:#b33434; }
-.btnPrimary { background:#3f61a8; }
-
-/* Responsive */
-@media (max-width: 900px) {
-  .row { grid-template-columns: 1fr; }
-  .colAction { justify-content: flex-start; }
-}
-
+/* Card */
 .card {
   background: #f4f4f8;
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 16px;
   margin: 20px auto;
   max-width: 1100px;
   box-shadow: 0 4px 10px rgba(0,0,0,0.08);
 }
+.cardTitle { margin: 0 0 8px; }
 
-.materialUpload {
-  display: flex;
-  gap: 10px;
-  align-items: center;
+/* Toolbar (buscador + filtros) */
+.toolbarRow {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
   margin-bottom: 12px;
 }
-
-.table {
+.searchBox input {
   width: 100%;
-  border-collapse: collapse;
-}
-.table th, .table td {
-  border: 1px solid #ddd;
-  padding: 8px;
+  padding: 10px 12px;
+  border: 1px solid #d7d7dd;
+  border-radius: 8px;
   background: #fff;
 }
-.table th {
+.filterGroup { display: flex; gap: 10px; align-items: center; }
+.filterGroup select {
+  height: 38px;
+  border-radius: 8px;
+  border: 1px solid #d7d7dd;
+  background: #fff;
+  padding: 0 10px;
+}
+
+/* Tabla */
+.table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid #e8e8ee;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+}
+.table th, .table td {
+  border-bottom: 1px solid #eee;
+  padding: 10px 12px;
+}
+.table thead th {
   background: #eaeaea;
+  font-weight: 700;
+  color: #3b3b45;
 }
+.table tbody tr:last-child td { border-bottom: none; }
+.emptyCell { text-align: center; color: #888; padding: 16px; }
 
-.resumenNotas {
-  display: flex;
-  gap: 16px;
-  justify-content: flex-start;
-  font-weight: bold;
-  margin-bottom: 10px;
+/* Inputs/controles */
+.notaInput {
+  width: 100px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  font-weight: 600;
 }
-.aprobado { color: green; }
-.reprobado { color: red; }
-.progreso { color: #444; }
+.switch { display: inline-flex; align-items: center; gap: 8px; }
+.switch input { transform: scale(1.1); }
 
-.btnGuardar {
-  margin-top: 12px;
-  background: #b33434;
-  color: #fff;
+/* Botones */
+.btnLight, .btnPrimary, .btnDanger, .btnOutline {
   border: none;
-  border-radius: 6px;
-  padding: 10px 16px;
-  font-weight: bold;
+  border-radius: 8px;
+  padding: 10px 14px;
   cursor: pointer;
+  font-weight: 700;
 }
+.btnLight {
+  background: #ffffff;
+  border: 1px solid #dcdce2;
+}
+.btnPrimary { background: #3f61a8; color: #fff; }
+.btnDanger  { background: #b33434; color: #fff; }
+.btnOutline {
+  background: transparent;
+  border: 1px solid #9aa0aa;
+  color: #333;
+}
+
+/* Barra de subida al pie (Material) */
+.uploadBar {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px dashed #d9d9e2;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.fileBox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.fileBox input[type="file"] {
+  position: absolute;
+  opacity: 0;
+  width: 0; height: 0; pointer-events: none;
+}
+.btnOutline { padding: 10px 16px; border-radius: 8px; }
+.fileName { color: #666; }
+
+/* Responsive */
+@media (max-width: 900px) {
+  .toolbarRow { grid-template-columns: 1fr; }
+  .uploadBar { flex-direction: column; align-items: stretch; }
+}
+
