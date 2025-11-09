@@ -158,44 +158,31 @@ export class AuthService {
 
     return { token, usuario: userWithoutPassword };
   }
-
-  // Obtener perfil de usuario
-  async getProfile(userId: number) {
-    const user = await prisma.usuarios.findUnique({
-      where: { id_usu: userId },
-      select: {
-        id_usu: true,
-        cor_usu: true,
-        nom_usu: true,
-        nom_seg_usu: true,
-        ape_usu: true,
-        ape_seg_usu: true,
-        tel_usu: true,
-        ced_usu: true,
-        img_usu: true,
-        stu_usu: true,
-        adm_usu: true,
-        niv_usu: true,
-        nivel: {
-          select: {
-            id_niv: true,
-            nom_niv: true,
-            org_cur_niv: true,
-            carreras: {
-              select: {
-                id_car: true,
-                nom_car: true
-              }
-            }
-          }
-        }
-      }
-    });
-
-    if (!user) {
-      throw new Error('Usuario no encontrado');
+// Obtener perfil de usuario
+async getProfile(userId: number) {
+  const user = await prisma.usuarios.findUnique({
+    where: { id_usu: userId },
+    select: {
+      id_usu: true,
+      cor_usu: true,
+      nom_usu: true,
+      nom_seg_usu: true,
+      ape_usu: true,
+      ape_seg_usu: true,
+      tel_usu: true,
+      ced_usu: true,
+      img_usu: true,
+      stu_usu: true,
+      adm_usu: true,
+      niv_usu: true,
+      "Administrador": true
     }
+  });
 
-    return user;
+  if (!user) {
+    throw new Error('Usuario no encontrado');
   }
+
+  return user;
+}
 }

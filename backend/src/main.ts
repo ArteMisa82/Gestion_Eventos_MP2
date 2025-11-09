@@ -1,7 +1,9 @@
 import express from 'express';
+import session from 'express-session';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import routes from './routes';
+import { sessionConfig } from './utils/session.util';
 import prisma from './config/database';
 import { errorHandler } from './middlewares/errorHandler.middleware';
 
@@ -12,6 +14,7 @@ const app = express();
 // Middlewares
 app.use(cors());
 app.use(express.json());
+app.use(session(sessionConfig as any));
 
 // Ruta raíz
 app.get('/', (req, res) => {

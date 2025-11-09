@@ -14,12 +14,14 @@ model autoridades {
   ced_per  String   @db.VarChar(10)
   dir_aut  String   @db.VarChar(30)
   car_aut  String   @db.VarChar(20)
+  id_fac   String   @db.VarChar(10)
   personas personas @relation(fields: [ced_per], references: [ced_per], onDelete: Cascade)
 }
 
 model carreras {
   id_car  String  @id @db.VarChar(10)
   nom_car String  @db.VarChar(25)
+  id_fac  String  @db.VarChar(10)
   nivel   nivel[]
 }
 
@@ -36,12 +38,12 @@ model detalle_eventos {
   apr_evt_det     Int?              @db.SmallInt
   are_det         String            @db.VarChar(40)
   cat_det         String            @db.VarChar(20)
-  eventos         eventos           @relation(fields: [id_evt_per], references: [id_evt], onDelete: Cascade)
-  usuarios        usuarios?         @relation(fields: [id_usu_doc], references: [id_usu])
+  est_evt_det     String?           @default("INSCRIPCIONES") @db.VarChar(20)
+  tip_evt         String            @default("CONFERENCIA") @db.VarChar(20)
   registro_evento registro_evento[]
 
-  @@index([id_evt_per], map: "idx_detalle_eventos_evento")
-  @@index([id_usu_doc], map: "idx_detalle_eventos_usuario")
+  @@index([est_evt_det], map: "idx_detalle_eventos_estado")
+  @@index([tip_evt], map: "idx_detalle_eventos_tipo")
 }
 
 model detalle_informe {
@@ -55,24 +57,23 @@ model detalle_informe {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model eventos {
-  id_evt          String            @id @db.VarChar(10)
-  nom_evt         String            @db.VarChar(25)
-  fec_evt         DateTime          @db.Date
-  lug_evt         String            @db.VarChar(25)
-  tip_evt         String            @db.VarChar(20)
-  mod_evt         String            @db.VarChar(15)
-  tip_pub_evt     String            @db.VarChar(20)
-  cos_evt         String            @db.VarChar(15)
-  des_evt         String            @db.VarChar(255)
-  id_usu_res      Int?
-  detalle_eventos detalle_eventos[]
-  usuarios        usuarios?         @relation(fields: [id_usu_res], references: [id_usu])
-  requerimientos  requerimientos[]
-  tarifas_evento  tarifas_evento[]
+  id_evt         String           @id @db.VarChar(10)
+  nom_evt        String           @db.VarChar(25)
+  fec_evt        DateTime         @db.Date
+  lug_evt        String           @db.VarChar(25)
+  tip_evt        String           @db.VarChar(20)
+  mod_evt        String           @db.VarChar(15)
+  tip_pub_evt    String           @db.VarChar(20)
+  cos_evt        String           @db.VarChar(15)
+  des_evt        String           @db.VarChar(255)
+  id_res_evt     Int?
+  est_evt        String?          @default("EDITANDO") @db.VarChar(20)
+  requerimientos requerimientos[]
+  tarifas_evento tarifas_evento[]
 
   @@index([fec_evt], map: "idx_eventos_fecha")
   @@index([tip_evt], map: "idx_eventos_tipo")
-  @@index([id_usu_res], map: "idx_eventos_responsable")
+  @@index([est_evt], map: "idx_eventos_estado")
 }
 
 model informes {
@@ -90,7 +91,6 @@ model nivel {
   id_car          String            @db.VarChar(10)
   carreras        carreras          @relation(fields: [id_car], references: [id_car], onDelete: Cascade)
   registro_evento registro_evento[]
-  usuarios        usuarios[]
 }
 
 model pagos {
@@ -102,8 +102,6 @@ model pagos {
   pdf_comp_pag      String?
   pag_o_no          Int?              @default(0) @db.SmallInt
   registro_personas registro_personas @relation(fields: [num_reg_per], references: [num_reg_per], onDelete: Cascade)
-
-  @@index([num_reg_per], map: "idx_pagos_registro")
 }
 
 model personas {
@@ -132,10 +130,8 @@ model registro_personas {
   informes        informes[]
   pagos           pagos[]
   registro_evento registro_evento @relation(fields: [id_reg_evt], references: [id_reg_evt], onDelete: Cascade)
-  usuarios        usuarios        @relation(fields: [id_usu], references: [id_usu], onDelete: Cascade)
 
   @@index([fec_reg_per], map: "idx_registro_personas_fecha")
-  @@index([id_usu], map: "idx_registro_personas_usuario")
 }
 
 model requerimientos {
@@ -159,24 +155,21 @@ model tarifas_evento {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model usuarios {
-  id_usu            Int                 @id @default(autoincrement())
-  cor_usu           String              @unique @db.VarChar(100)
-  pas_usu           String              @db.VarChar(255)
-  ced_usu           String?             @db.VarChar(10)
-  nom_usu           String              @db.VarChar(50)
-  nom_seg_usu       String?             @db.VarChar(50)
-  ape_usu           String              @db.VarChar(50)
-  ape_seg_usu       String?             @db.VarChar(50)
-  tel_usu           String?             @db.VarChar(10)
-  img_usu           String?
-  pdf_ced_usu       String?
-  stu_usu           Int?                @db.SmallInt
-  niv_usu           String?             @db.VarChar(10)
-  adm_usu           Int?                @default(0) @db.SmallInt
-  detalle_eventos   detalle_eventos[]
-  eventos           eventos[]
-  registro_personas registro_personas[]
-  nivel             nivel?              @relation(fields: [niv_usu], references: [id_niv])
+  id_usu        Int     @id @default(autoincrement())
+  cor_usu       String  @unique @db.VarChar(100)
+  pas_usu       String  @db.VarChar(255)
+  ced_usu       String? @db.VarChar(10)
+  nom_usu       String  @db.VarChar(50)
+  nom_seg_usu   String? @db.VarChar(50)
+  ape_usu       String  @db.VarChar(50)
+  ape_seg_usu   String? @db.VarChar(50)
+  tel_usu       String? @db.VarChar(10)
+  img_usu       String?
+  pdf_ced_usu   String?
+  stu_usu       Int?    @db.SmallInt
+  niv_usu       String? @db.VarChar(10)
+  adm_usu       Int?    @default(0) @db.SmallInt
+  Administrador Boolean @default(false)
 
   @@index([ced_usu], map: "idx_usuarios_cedula")
   @@index([cor_usu], map: "idx_usuarios_correo")
