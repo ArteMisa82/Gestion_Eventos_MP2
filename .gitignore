@@ -10,6 +10,9 @@ node_modules/
 .pnp.*
 .pnpm-debug.log*
 *.ps1
+.ps1
+*.sql
+.sql
 # --- Builds / Compilación ---
 dist/
 build/

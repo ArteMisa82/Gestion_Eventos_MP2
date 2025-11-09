@@ -7,7 +7,9 @@ export interface CreateEventoDto {
   mod_evt?: string; // Modalidad: Presencial, Virtual, Híbrido
   tip_pub_evt?: string; // Tipo público: Público, Privado, Restringido
   cos_evt?: string; // Costo: Gratuito, Pagado
-  id_responsable?: number; // Responsable asignado (opcional en creación)
+  id_responsable: number; // Responsable asignado (OBLIGATORIO - todo evento debe tener responsable)
+  // Detalles opcionales para crear en la misma petición (solo ADMIN)
+  detalles?: Omit<CreateDetalleEventoDto, 'id_evt_per'>;
 }
 
 export interface UpdateEventoDto {
@@ -19,6 +21,7 @@ export interface UpdateEventoDto {
   cos_evt?: string;
   des_evt?: string;
   est_evt?: string; // Estado: EDITANDO, PLANIFICADO, EN CURSO, FINALIZADO, CANCELADO
+  id_responsable?: number; // Solo ADMIN puede cambiar el responsable
 }
 
 export interface AsignarResponsableDto {
@@ -57,9 +60,15 @@ export interface UsuarioAdministrativoDto {
 // DTOs para DETALLE_EVENTOS
 // ==========================================
 
+// DTO para crear instructor
+export interface InstructorDto {
+  id_usu: number; // ID del instructor (debe tener adm_usu = 1)
+  rol_instructor?: string; // INSTRUCTOR | COORDINADOR | ASISTENTE | CONFERENCISTA
+}
+
 export interface CreateDetalleEventoDto {
   id_evt_per: string; // ID del evento padre
-  id_usu_doc?: number; // Instructor/Docente (opcional)
+  instructores?: InstructorDto[]; // Array de instructores (opcional, uno o varios)
   cup_det: number; // Cupo
   hor_det: number; // Horas
   are_det: string; // Área
@@ -72,7 +81,7 @@ export interface CreateDetalleEventoDto {
 }
 
 export interface UpdateDetalleEventoDto {
-  id_usu_doc?: number;
+  instructores?: InstructorDto[]; // Array de instructores para actualizar
   cup_det?: number;
   hor_det?: number;
   are_det?: string;

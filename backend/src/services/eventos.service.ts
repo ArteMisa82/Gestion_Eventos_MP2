@@ -32,6 +32,7 @@ export class EventosService {
 
   /**
    * ADMIN (Administrador = true): Crear evento (campos básicos)
+   * Opcionalmente puede crear los detalles en la misma petición
    */
   async crearEvento(data: CreateEventoDto, adminId: number) {
     try {
@@ -44,15 +45,18 @@ export class EventosService {
         throw new Error('Solo el administrador puede crear eventos');
       }
 
-      // Si se asigna responsable, verificar que sea usuario administrativo (adm_usu = 1)
-      if (data.id_responsable) {
-        const responsable = await prisma.usuarios.findUnique({
-          where: { id_usu: data.id_responsable }
-        });
+      // Verificar que se haya asignado un responsable (OBLIGATORIO)
+      if (!data.id_responsable) {
+        throw new Error('Debe asignar un responsable al evento');
+      }
 
-        if (!responsable || responsable.adm_usu !== 1) {
-          throw new Error('El responsable debe ser un usuario administrativo (profesor, secretaría, etc.)');
-        }
+      // Verificar que el responsable sea usuario administrativo (adm_usu = 1)
+      const responsable = await prisma.usuarios.findUnique({
+        where: { id_usu: data.id_responsable }
+      });
+
+      if (!responsable || responsable.adm_usu !== 1) {
+        throw new Error('El responsable debe ser un usuario administrativo (profesor, secretaría, etc.)');
       }
 
       // Generar ID
@@ -68,7 +72,8 @@ export class EventosService {
         mod_evt: data.mod_evt || 'Presencial',
         tip_pub_evt: data.tip_pub_evt || 'Público',
         cos_evt: data.cos_evt || 'Gratuito',
-        id_res_evt: data.id_responsable || null
+        id_res_evt: data.id_responsable,
+        tiene_detalles: !!data.detalles
       });
 
       // Crear evento con campos básicos
@@ -83,7 +88,7 @@ export class EventosService {
           tip_pub_evt: data.tip_pub_evt?.toUpperCase() || 'GENERAL',
           cos_evt: data.cos_evt?.toUpperCase() || 'GRATUITO',
           est_evt: 'EDITANDO', // Estado inicial al crear
-          id_res_evt: data.id_responsable || null
+          id_res_evt: data.id_responsable
         },
         include: {
           usuarios: {
@@ -97,8 +102,76 @@ export class EventosService {
         }
       });
 
+      // Si se enviaron detalles, crearlos también
+      let detalleCreado = null;
+      if (data.detalles) {
+        console.log('Creando detalles del evento...');
+        
+        // Validar instructores si se proporcionan
+        if (data.detalles.instructores && data.detalles.instructores.length > 0) {
+          for (const instructor of data.detalles.instructores) {
+            const usuarioInstructor = await prisma.usuarios.findUnique({
+              where: { id_usu: instructor.id_usu }
+            });
+
+            if (!usuarioInstructor || usuarioInstructor.adm_usu !== 1) {
+              throw new Error(`El instructor con ID ${instructor.id_usu} debe ser un usuario administrativo`);
+            }
+          }
+        }
+
+        const id_det = await this.generateDetalleId();
+
+        detalleCreado = await prisma.detalle_eventos.create({
+          data: {
+            id_det,
+            id_evt_per: id_evt,
+            cup_det: data.detalles.cup_det,
+            hor_det: data.detalles.hor_det,
+            are_det: data.detalles.are_det,
+            cat_det: data.detalles.cat_det?.toUpperCase(),
+            tip_evt: data.detalles.tip_evt?.toUpperCase(),
+            not_evt_det: data.detalles.not_evt_det || null,
+            asi_evt_det: data.detalles.asi_evt_det || null,
+            cer_evt_det: data.detalles.cer_evt_det || 0,
+            apr_evt_det: data.detalles.apr_evt_det || 0,
+            est_evt_det: 'INSCRIPCIONES', // Estado inicial
+            // Crear instructores si se proporcionan
+            ...(data.detalles.instructores && data.detalles.instructores.length > 0 && {
+              detalle_instructores: {
+                create: data.detalles.instructores.map(instructor => ({
+                  id_usu: instructor.id_usu,
+                  rol_instructor: instructor.rol_instructor?.toUpperCase() || 'INSTRUCTOR'
+                }))
+              }
+            })
+          },
+          include: {
+            detalle_instructores: {
+              include: {
+                usuarios: {
+                  select: {
+                    id_usu: true,
+                    nom_usu: true,
+                    ape_usu: true,
+                    cor_usu: true
+                  }
+                }
+              }
+            }
+          }
+        });
+
+        console.log('Detalle creado exitosamente:', detalleCreado);
+      }
+
       console.log('Evento creado exitosamente:', evento);
-      return evento;
+      
+      // Retornar evento con detalles si se crearon
+      return {
+        ...evento,
+        ...(detalleCreado && { detalle_eventos: [detalleCreado] })
+      };
       
     } catch (error) {
       console.error('Error al crear evento:', error);
@@ -120,7 +193,22 @@ export class EventosService {
             cor_usu: true
           }
         },
-        detalle_eventos: true,
+        detalle_eventos: {
+          include: {
+            detalle_instructores: {
+              include: {
+                usuarios: {
+                  select: {
+                    id_usu: true,
+                    nom_usu: true,
+                    ape_usu: true,
+                    cor_usu: true
+                  }
+                }
+              }
+            }
+          }
+        },
         tarifas_evento: true
       },
       orderBy: {
@@ -146,11 +234,16 @@ export class EventosService {
         },
         detalle_eventos: {
           include: {
-            usuarios: {
-              select: {
-                id_usu: true,
-                nom_usu: true,
-                ape_usu: true
+            detalle_instructores: {
+              include: {
+                usuarios: {
+                  select: {
+                    id_usu: true,
+                    nom_usu: true,
+                    ape_usu: true,
+                    cor_usu: true
+                  }
+                }
               }
             }
           }
@@ -217,6 +310,8 @@ export class EventosService {
 
   /**
    * RESPONSABLE o ADMIN: Actualizar detalles del evento asignado
+   * - ADMIN puede editar TODO
+   * - RESPONSABLE puede editar TODO excepto el campo id_res_evt (responsable)
    */
   async actualizarEvento(idEvento: string, data: UpdateEventoDto, userId: number) {
     // Verificar que el evento existe
@@ -240,6 +335,11 @@ export class EventosService {
       throw new Error('Solo el responsable asignado o el administrador pueden editar el evento');
     }
 
+    // Si NO es admin e intenta cambiar el responsable, lanzar error
+    if (!esAdmin && data.id_responsable !== undefined) {
+      throw new Error('Solo el administrador puede cambiar el responsable del evento');
+    }
+
     // Actualizar evento
     return await prisma.eventos.update({
       where: { id_evt: idEvento },
@@ -251,7 +351,11 @@ export class EventosService {
         tip_pub_evt: data.tip_pub_evt?.toUpperCase(),
         cos_evt: data.cos_evt?.toUpperCase(),
         des_evt: data.des_evt,
-        est_evt: data.est_evt?.toUpperCase() // Permitir cambiar estado
+        est_evt: data.est_evt?.toUpperCase(), // Permitir cambiar estado
+        // Solo admin puede cambiar responsable
+        ...(esAdmin && data.id_responsable !== undefined && {
+          id_res_evt: data.id_responsable
+        })
       },
       include: {
         usuarios: {
@@ -348,7 +452,7 @@ export class EventosService {
   }
 
   /**
-   * RESPONSABLE: Crear detalle de evento (solo el responsable asignado)
+   * RESPONSABLE o ADMIN: Crear detalle de evento (solo el responsable asignado o admin)
    */
   async crearDetalleEvento(data: CreateDetalleEventoDto, userId: number) {
     // Verificar que el evento existe
@@ -372,26 +476,27 @@ export class EventosService {
       throw new Error('Solo el responsable asignado o el administrador pueden crear detalles del evento');
     }
 
-    // Si se asigna un instructor, verificar que sea usuario administrativo
-    if (data.id_usu_doc) {
-      const instructor = await prisma.usuarios.findUnique({
-        where: { id_usu: data.id_usu_doc }
-      });
+    // Validar instructores si se proporcionan
+    if (data.instructores && data.instructores.length > 0) {
+      for (const instructor of data.instructores) {
+        const usuarioInstructor = await prisma.usuarios.findUnique({
+          where: { id_usu: instructor.id_usu }
+        });
 
-      if (!instructor || instructor.adm_usu !== 1) {
-        throw new Error('El instructor debe ser un usuario administrativo');
+        if (!usuarioInstructor || usuarioInstructor.adm_usu !== 1) {
+          throw new Error(`El instructor con ID ${instructor.id_usu} debe ser un usuario administrativo`);
+        }
       }
     }
 
     // Generar ID
     const id_det = await this.generateDetalleId();
 
-    // Crear detalle
+    // Crear detalle con instructores
     return await prisma.detalle_eventos.create({
       data: {
         id_det,
         id_evt_per: data.id_evt_per,
-        id_usu_doc: data.id_usu_doc || null,
         cup_det: data.cup_det,
         hor_det: data.hor_det,
         are_det: data.are_det,
@@ -401,15 +506,28 @@ export class EventosService {
         asi_evt_det: data.asi_evt_det || null,
         cer_evt_det: data.cer_evt_det || 0,
         apr_evt_det: data.apr_evt_det || 0,
-        est_evt_det: 'INSCRIPCIONES' // Estado inicial
+        est_evt_det: 'INSCRIPCIONES', // Estado inicial
+        // Crear instructores si se proporcionan
+        ...(data.instructores && data.instructores.length > 0 && {
+          detalle_instructores: {
+            create: data.instructores.map(instructor => ({
+              id_usu: instructor.id_usu,
+              rol_instructor: instructor.rol_instructor?.toUpperCase() || 'INSTRUCTOR'
+            }))
+          }
+        })
       },
       include: {
-        usuarios: {
-          select: {
-            id_usu: true,
-            nom_usu: true,
-            ape_usu: true,
-            cor_usu: true
+        detalle_instructores: {
+          include: {
+            usuarios: {
+              select: {
+                id_usu: true,
+                nom_usu: true,
+                ape_usu: true,
+                cor_usu: true
+              }
+            }
           }
         },
         eventos: true
@@ -418,7 +536,7 @@ export class EventosService {
   }
 
   /**
-   * RESPONSABLE: Actualizar detalle de evento (solo el responsable asignado)
+   * RESPONSABLE o ADMIN: Actualizar detalle de evento (solo el responsable asignado o admin)
    */
   async actualizarDetalleEvento(idDetalle: string, data: UpdateDetalleEventoDto, userId: number) {
     // Verificar que el detalle existe
@@ -445,22 +563,28 @@ export class EventosService {
       throw new Error('Solo el responsable asignado o el administrador pueden editar los detalles del evento');
     }
 
-    // Si se actualiza el instructor, verificar que sea usuario administrativo
-    if (data.id_usu_doc) {
-      const instructor = await prisma.usuarios.findUnique({
-        where: { id_usu: data.id_usu_doc }
-      });
+    // Validar instructores si se proporcionan
+    if (data.instructores && data.instructores.length > 0) {
+      for (const instructor of data.instructores) {
+        const usuarioInstructor = await prisma.usuarios.findUnique({
+          where: { id_usu: instructor.id_usu }
+        });
 
-      if (!instructor || instructor.adm_usu !== 1) {
-        throw new Error('El instructor debe ser un usuario administrativo');
+        if (!usuarioInstructor || usuarioInstructor.adm_usu !== 1) {
+          throw new Error(`El instructor con ID ${instructor.id_usu} debe ser un usuario administrativo`);
+        }
       }
+
+      // Si se envían instructores, eliminar los actuales y crear los nuevos
+      await prisma.detalle_instructores.deleteMany({
+        where: { id_det: idDetalle }
+      });
     }
 
     // Actualizar detalle
     return await prisma.detalle_eventos.update({
       where: { id_det: idDetalle },
       data: {
-        id_usu_doc: data.id_usu_doc,
         cup_det: data.cup_det,
         hor_det: data.hor_det,
         are_det: data.are_det,
@@ -470,15 +594,28 @@ export class EventosService {
         asi_evt_det: data.asi_evt_det,
         cer_evt_det: data.cer_evt_det,
         apr_evt_det: data.apr_evt_det,
-        est_evt_det: data.est_evt_det?.toUpperCase()
+        est_evt_det: data.est_evt_det?.toUpperCase(),
+        // Actualizar instructores si se proporcionan
+        ...(data.instructores && data.instructores.length > 0 && {
+          detalle_instructores: {
+            create: data.instructores.map(instructor => ({
+              id_usu: instructor.id_usu,
+              rol_instructor: instructor.rol_instructor?.toUpperCase() || 'INSTRUCTOR'
+            }))
+          }
+        })
       },
       include: {
-        usuarios: {
-          select: {
-            id_usu: true,
-            nom_usu: true,
-            ape_usu: true,
-            cor_usu: true
+        detalle_instructores: {
+          include: {
+            usuarios: {
+              select: {
+                id_usu: true,
+                nom_usu: true,
+                ape_usu: true,
+                cor_usu: true
+              }
+            }
           }
         },
         eventos: true
@@ -493,12 +630,16 @@ export class EventosService {
     const detalle = await prisma.detalle_eventos.findUnique({
       where: { id_det: idDetalle },
       include: {
-        usuarios: {
-          select: {
-            id_usu: true,
-            nom_usu: true,
-            ape_usu: true,
-            cor_usu: true
+        detalle_instructores: {
+          include: {
+            usuarios: {
+              select: {
+                id_usu: true,
+                nom_usu: true,
+                ape_usu: true,
+                cor_usu: true
+              }
+            }
           }
         },
         eventos: {
@@ -533,12 +674,16 @@ export class EventosService {
         id_evt_per: idEvento
       },
       include: {
-        usuarios: {
-          select: {
-            id_usu: true,
-            nom_usu: true,
-            ape_usu: true,
-            cor_usu: true
+        detalle_instructores: {
+          include: {
+            usuarios: {
+              select: {
+                id_usu: true,
+                nom_usu: true,
+                ape_usu: true,
+                cor_usu: true
+              }
+            }
           }
         }
       },
@@ -550,6 +695,7 @@ export class EventosService {
 
   /**
    * RESPONSABLE o ADMIN: Eliminar detalle de evento
+   * Solo puede eliminar detalles del evento que tiene asignado
    */
   async eliminarDetalleEvento(idDetalle: string, userId: number) {
     // Verificar que el detalle existe
