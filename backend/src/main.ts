@@ -14,7 +14,7 @@ const app = express();
 // Middlewares
 app.use(cors());
 app.use(express.json());
-app.use(session(sessionConfig as any));
+app.use(session(sessionConfig)); // ← SESIONES CONFIGURADAS
 
 // Ruta raíz
 app.get('/', (req, res) => {
@@ -29,7 +29,6 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 3001;
 
-// Iniciar servidor
 app.listen(PORT, async () => {
   try {
     await prisma.$connect();
@@ -42,7 +41,6 @@ app.listen(PORT, async () => {
   }
 });
 
-// Cerrar conexión al terminar
 process.on('SIGINT', async () => {
   await prisma.$disconnect();
   process.exit(0);
