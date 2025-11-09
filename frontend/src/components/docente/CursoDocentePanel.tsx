@@ -96,7 +96,7 @@ export default function CursoDocentePanel({ courseId }: { courseId: string }) {
 
   return (
     <section className={styles.wrapper}>
-      <h1 className={styles.title}>CURSOS DE JAVA</h1>
+      <h1 className={styles.title}></h1>
 
       {/* Tabs */}
       <div className={styles.tabs}>
@@ -123,7 +123,7 @@ export default function CursoDocentePanel({ courseId }: { courseId: string }) {
       {/* MATERIAL */}
       {tab === "material" && (
         <div className={styles.card}>
-          <h3 className={styles.cardTitle}>Materiales disponibles</h3>
+          <h3 className={styles.cardTitle}></h3>
 
           <table className={styles.table}>
             <thead>
