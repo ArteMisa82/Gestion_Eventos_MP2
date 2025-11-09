@@ -1,188 +1,159 @@
-import prisma from '../config/database';
-import { RegisterDto, LoginDto } from '../types/auth.types';
-import { hashPassword, comparePassword } from '../utils/bcrypt.util';
-import { generateToken } from '../utils/jwt.util';
+import { PrismaClient } from '../generated/prisma';
+import { comparePassword, hashPassword } from '../utils/bcrypt.util';
+
+const prisma = new PrismaClient();
+
+export interface AuthResult {
+  success: boolean;
+  user?: {
+    id_usu: number;
+    cor_usu: string;
+    nom_usu: string;
+    ape_usu: string;
+    adm_usu: number | null;
+    stu_usu: number | null;
+    "Administrador": boolean;
+    niv_usu?: string | null;
+  };
+  error?: string;
+}
 
 export class AuthService {
-  /**
-   * Detecta el tipo de usuario basado en el correo institucional
-   * @param email - Correo del usuario
-   * @returns { isStudent: boolean, isAdmin: boolean }
-   */
-  private detectUserType(email: string): { isStudent: boolean; isAdmin: boolean } {
-    // Verificar si termina en @uta.edu.ec
-    if (!email.endsWith('@uta.edu.ec')) {
-      // Correo externo, no es ni estudiante ni admin institucional
-      return { isStudent: false, isAdmin: false };
-    }
+  private prisma: PrismaClient;
 
-    // Extraer la parte antes del @
-    const localPart = email.split('@')[0];
-
-    // Verificar si contiene exactamente 4 dígitos consecutivos
-    const fourDigitsMatch = localPart.match(/\d{4}/);
-
-    if (fourDigitsMatch) {
-      // Tiene 4 números consecutivos -> Es estudiante
-      return { isStudent: true, isAdmin: false };
-    }
-
-    // Verificar si NO contiene ningún número
-    const hasNoNumbers = !/\d/.test(localPart);
-
-    if (hasNoNumbers) {
-      // No tiene números -> Es administrador
-      return { isStudent: false, isAdmin: true };
-    }
-
-    // Tiene @uta.edu.ec pero no cumple ninguna de las condiciones anteriores
-    // (tiene números pero no 4 consecutivos)
-    return { isStudent: false, isAdmin: false };
+  constructor() {
+    this.prisma = new PrismaClient();
   }
 
-  // Registro de usuario
-  async register(data: RegisterDto) {
-    // Verificar si el correo ya existe
-    const existingUser = await prisma.usuarios.findUnique({
-      where: { cor_usu: data.cor_usu }
-    });
-
-    if (existingUser) {
-      throw new Error('El correo ya está registrado');
-    }
-
-    // Si se proporciona cédula, verificar que no exista
-    if (data.ced_usu) {
-      const existingCedula = await prisma.usuarios.findFirst({
-        where: { ced_usu: data.ced_usu }
+  async identifyUser(email: string, password: string): Promise<AuthResult> {
+    try {
+      const user = await this.prisma.usuarios.findUnique({
+        where: { cor_usu: email }
       });
 
-      if (existingCedula) {
-        throw new Error('La cédula ya está registrada');
+      if (!user) {
+        return { success: false, error: 'Usuario no encontrado' };
       }
+
+      const isPasswordValid = await comparePassword(password, user.pas_usu);
+      if (!isPasswordValid) {
+        return { success: false, error: 'Credenciales inválidas' };
+      }
+
+      return {
+        success: true,
+        user: {
+          id_usu: user.id_usu,
+          cor_usu: user.cor_usu,
+          nom_usu: user.nom_usu,
+          ape_usu: user.ape_usu,
+          adm_usu: user.adm_usu,
+          stu_usu: user.stu_usu,
+          "Administrador": user.Administrador,
+          niv_usu: user.niv_usu
+        }
+      };
+    } catch (error) {
+      console.error('Error en identificación:', error);
+      return { success: false, error: 'Error interno del servidor' };
     }
+  }
 
-    // Detectar tipo de usuario por correo
-    const { isStudent, isAdmin } = this.detectUserType(data.cor_usu);
+  async login(loginData: { email: string; password: string }): Promise<AuthResult> {
+    return await this.identifyUser(loginData.email, loginData.password);
+  }
 
-    // Si se detecta como estudiante pero no se proporciona nivel, lanzar error
-    if (isStudent && !data.niv_usu) {
-      throw new Error('Los estudiantes deben especificar un nivel académico');
-    }
-
-    // Verificar que el nivel existe (si se proporciona)
-    if (data.niv_usu) {
-      const nivelExists = await prisma.nivel.findUnique({
-        where: { id_niv: data.niv_usu }
+  async register(userData: {
+    email: string;
+    password: string;
+    nombre: string;
+    apellido: string;
+  }): Promise<AuthResult> {
+    try {
+      const existingUser = await this.prisma.usuarios.findUnique({
+        where: { cor_usu: userData.email }
       });
 
-      if (!nivelExists) {
-        throw new Error('El nivel especificado no existe');
+      if (existingUser) {
+        return { success: false, error: 'El usuario ya existe' };
       }
+
+      const hashedPassword = await hashPassword(userData.password);
+
+      const newUser = await this.prisma.usuarios.create({
+        data: {
+          cor_usu: userData.email,
+          pas_usu: hashedPassword,
+          nom_usu: userData.nombre,
+          ape_usu: userData.apellido,
+          stu_usu: 0,
+          adm_usu: 0,
+          Administrador: false
+        }
+      });
+
+      return {
+        success: true,
+        user: {
+          id_usu: newUser.id_usu,
+          cor_usu: newUser.cor_usu,
+          nom_usu: newUser.nom_usu,
+          ape_usu: newUser.ape_usu,
+          adm_usu: newUser.adm_usu,
+          stu_usu: newUser.stu_usu,
+          "Administrador": newUser.Administrador,
+          niv_usu: newUser.niv_usu
+        }
+      };
+    } catch (error) {
+      console.error('Error en registro:', error);
+      return { success: false, error: 'Error al registrar usuario' };
     }
-
-    // Hashear contraseña
-    const hashedPassword = await hashPassword(data.pas_usu);
-
-    // Crear usuario con tipo detectado automáticamente
-    const newUser = await prisma.usuarios.create({
-      data: {
-        cor_usu: data.cor_usu,
-        pas_usu: hashedPassword,
-        nom_usu: data.nom_usu,
-        ape_usu: data.ape_usu,
-        nom_seg_usu: data.nom_seg_usu,
-        ape_seg_usu: data.ape_seg_usu,
-        tel_usu: data.tel_usu,
-        ced_usu: data.ced_usu,
-        niv_usu: data.niv_usu,
-        stu_usu: isStudent ? 1 : 0,
-        adm_usu: isAdmin ? 1 : 0
-      },
-      select: {
-        id_usu: true,
-        cor_usu: true,
-        nom_usu: true,
-        ape_usu: true,
-        adm_usu: true,
-        stu_usu: true
-      }
-    });
-
-    // Generar token
-    const token = generateToken({
-      id_usu: newUser.id_usu,
-      cor_usu: newUser.cor_usu,
-      adm_usu: newUser.adm_usu
-    });
-
-    return { token, usuario: newUser };
   }
 
-  // Login de usuario
-  async login(data: LoginDto) {
-    // Buscar usuario por correo
-    const user = await prisma.usuarios.findUnique({
-      where: { cor_usu: data.cor_usu },
-      select: {
-        id_usu: true,
-        cor_usu: true,
-        pas_usu: true,
-        nom_usu: true,
-        ape_usu: true,
-        adm_usu: true,
-        stu_usu: true
+  async getProfile(userId: number): Promise<AuthResult> {
+    try {
+      const user = await this.prisma.usuarios.findUnique({
+        where: { id_usu: userId },
+        select: {
+          id_usu: true,
+          cor_usu: true,
+          nom_usu: true,
+          ape_usu: true,
+          adm_usu: true,
+          stu_usu: true,
+          Administrador: true,
+          niv_usu: true
+        }
+      });
+
+      if (!user) {
+        return { success: false, error: 'Usuario no encontrado' };
       }
-    });
 
-    if (!user) {
-      throw new Error('Credenciales inválidas');
+      return {
+        success: true,
+        user: {
+          id_usu: user.id_usu,
+          cor_usu: user.cor_usu,
+          nom_usu: user.nom_usu,
+          ape_usu: user.ape_usu,
+          adm_usu: user.adm_usu,
+          stu_usu: user.stu_usu,
+          "Administrador": user.Administrador,
+          niv_usu: user.niv_usu
+        }
+      };
+    } catch (error) {
+      console.error('Error obteniendo perfil:', error);
+      return { success: false, error: 'Error al obtener perfil' };
     }
-
-    // Verificar contraseña
-    const isPasswordValid = await comparePassword(data.pas_usu, user.pas_usu);
-
-    if (!isPasswordValid) {
-      throw new Error('Credenciales inválidas');
-    }
-
-    // Generar token
-    const token = generateToken({
-      id_usu: user.id_usu,
-      cor_usu: user.cor_usu,
-      adm_usu: user.adm_usu
-    });
-
-    // Excluir password de la respuesta
-    const { pas_usu, ...userWithoutPassword } = user;
-
-    return { token, usuario: userWithoutPassword };
-  }
-// Obtener perfil de usuario
-async getProfile(userId: number) {
-  const user = await prisma.usuarios.findUnique({
-    where: { id_usu: userId },
-    select: {
-      id_usu: true,
-      cor_usu: true,
-      nom_usu: true,
-      nom_seg_usu: true,
-      ape_usu: true,
-      ape_seg_usu: true,
-      tel_usu: true,
-      ced_usu: true,
-      img_usu: true,
-      stu_usu: true,
-      adm_usu: true,
-      niv_usu: true,
-      "Administrador": true
-    }
-  });
-
-  if (!user) {
-    throw new Error('Usuario no encontrado');
   }
 
-  return user;
-}
+  private determineUserRole(user: any): string {
+    if (user.Administrador) return 'Administrador';
+    if (user.adm_usu === 1) return 'admin';
+    if (user.stu_usu === 1) return 'student';
+    return 'user';
+  }
 }
