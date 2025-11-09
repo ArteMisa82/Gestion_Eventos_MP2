@@ -8,6 +8,9 @@ const controller = new EventosController();
 // GET /api/detalles/:id - Obtener un detalle específico
 router.get('/:id', authMiddleware, controller.obtenerDetallePorId.bind(controller));
 
+// PUT /api/detalles/:id/estado - RESPONSABLE o ADMIN: Cambiar estado del detalle
+router.put('/:id/estado', authMiddleware, controller.cambiarEstado.bind(controller));
+
 // PUT /api/detalles/:id - RESPONSABLE o ADMIN: Actualizar detalle
 router.put('/:id', authMiddleware, controller.actualizarDetalle.bind(controller));
 

@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { EventosService } from '../services/eventos.service';
+import { DetallesEventosService } from '../services/detalles-eventos.service';
 import { 
   CreateEventoDto, 
   UpdateEventoDto, 
@@ -9,6 +10,7 @@ import {
 } from '../types/eventos.types';
 
 const eventosService = new EventosService();
+const detallesService = new DetallesEventosService();
 
 export class EventosController {
   // GET /api/eventos - Listar todos los eventos
@@ -199,7 +201,7 @@ export class EventosController {
         });
       }
 
-      const detalle = await eventosService.crearDetalleEvento(data, userId);
+      const detalle = await detallesService.crearDetalle(data, userId);
 
       res.status(201).json({
         success: true,
@@ -217,7 +219,7 @@ export class EventosController {
   // GET /api/eventos/:id/detalles - Listar detalles de un evento
   async obtenerDetallesPorEvento(req: Request, res: Response) {
     try {
-      const detalles = await eventosService.obtenerDetallesPorEvento(req.params.id);
+      const detalles = await detallesService.obtenerDetallesPorEvento(req.params.id);
       res.json({
         success: true,
         data: detalles
@@ -233,7 +235,7 @@ export class EventosController {
   // GET /api/detalles/:id - Obtener un detalle específico
   async obtenerDetallePorId(req: Request, res: Response) {
     try {
-      const detalle = await eventosService.obtenerDetallePorId(req.params.id);
+      const detalle = await detallesService.obtenerDetallePorId(req.params.id);
       res.json({
         success: true,
         data: detalle
@@ -252,7 +254,7 @@ export class EventosController {
       const userId = (req as any).userId;
       const data: UpdateDetalleEventoDto = req.body;
 
-      const detalle = await eventosService.actualizarDetalleEvento(
+      const detalle = await detallesService.actualizarDetalle(
         req.params.id,
         data,
         userId
@@ -271,12 +273,44 @@ export class EventosController {
     }
   }
 
+  // PUT /api/detalles/:id/estado - RESPONSABLE: Cambiar estado del detalle
+  async cambiarEstado(req: Request, res: Response) {
+    try {
+      const userId = (req as any).userId;
+      const { estado } = req.body;
+
+      if (!estado) {
+        return res.status(400).json({
+          success: false,
+          message: 'El estado es obligatorio. Valores permitidos: INSCRIPCIONES, EN_CURSO, FINALIZADO'
+        });
+      }
+
+      const detalle = await detallesService.cambiarEstado(
+        req.params.id,
+        estado.toUpperCase(),
+        userId
+      );
+
+      res.json({
+        success: true,
+        message: `Estado cambiado a ${estado.toUpperCase()} exitosamente`,
+        data: detalle
+      });
+    } catch (error: any) {
+      res.status(403).json({
+        success: false,
+        message: error.message || 'Error al cambiar estado del detalle'
+      });
+    }
+  }
+
   // DELETE /api/detalles/:id - RESPONSABLE o ADMIN: Eliminar detalle
   async eliminarDetalle(req: Request, res: Response) {
     try {
       const userId = (req as any).userId;
 
-      await eventosService.eliminarDetalleEvento(req.params.id, userId);
+      await detallesService.eliminarDetalle(req.params.id, userId);
 
       res.status(204).send();
     } catch (error: any) {
