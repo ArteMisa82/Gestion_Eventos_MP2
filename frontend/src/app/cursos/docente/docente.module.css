@@ -1,12 +1,12 @@
 .wrapper {
   padding: 24px 32px;
   min-height: 100%;
-  background: var(--panel-bg, #4a4a4a); /* gris del mock */
+  background: var(--panel-bg, #ffffff); /* gris del mock */
 }
 
 .title {
   text-align: center;
-  color: #fff;
+  color: #161616;
   letter-spacing: 1px;
   font-weight: 600;
   margin: 8px 0 24px;
