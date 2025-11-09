@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Swal from "sweetalert2";
+import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Lock, Mail, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import RecuperarModal from "@/app/login/RecuperarModal";
@@ -12,11 +13,14 @@ export default function LoginModal({
   isOpen,
   onClose,
   initialRegister = false,
+  onLoginSuccess, // ✅ nueva prop
 }: {
   isOpen: boolean;
   onClose: () => void;
   initialRegister?: boolean;
+  onLoginSuccess?: (userData: any) => void; // ✅ callback al Navbar
 }) {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -36,37 +40,46 @@ export default function LoginModal({
     if (isOpen) setShowRegister(initialRegister);
   }, [isOpen, initialRegister]);
 
-  // Lógica simulada de login
+  // 🔐 Lógica simulada de login (temporal hasta conectar backend)
   const handleLogin = async () => {
     try {
-      if (email === "admin") {
+      const adminEmail = "admin@admin.uta.edu.ec";
+      const adminPassword = "admin123";
+      const responsableEmail = "responsable@responsable.uta.edu.ec";
+      const responsablePassword = "resp123";
+
+      let userData = null;
+
+      if (email === adminEmail && password === adminPassword) {
+        userData = { name: "Administrador", role: "admin", email };
         Swal.fire({
-          title: "Bienvenido Administrador",
+          title: "Bienvenido Administrador 👑",
           icon: "success",
           confirmButtonColor: "#581517",
         });
-        // 🔄 Limpiar campos
-        setEmail("");
-        setPassword("");
-      } else if (email.includes("encargado")) {
+        router.push("/admin");
+
+      } else if (email.includes("@") && password.length > 0) {
+        userData = { name: email.split("@")[0], role: "usuario", email };
         Swal.fire({
-          title: "Bienvenido Encargado",
+          title: "Inicio de sesión exitoso ✅",
           icon: "success",
           confirmButtonColor: "#581517",
         });
-        setEmail("");
-        setPassword("");
-      } else if (email.includes("@")) {
-        Swal.fire({
-          title: "Inicio de sesión correcto",
-          icon: "success",
-          confirmButtonColor: "#581517",
-        });
-        setEmail("");
-        setPassword("");
+        router.push("/home");
       } else {
-        throw new Error("Credenciales inválidas");
+        throw new Error("Correo o contraseña incorrectos ❌");
       }
+
+      
+      setEmail("");
+      setPassword("");
+
+      if (userData && onLoginSuccess) {
+        onLoginSuccess(userData);
+      }
+
+      onClose();
     } catch (error: any) {
       Swal.fire({
         title: "Error",
@@ -179,7 +192,8 @@ export default function LoginModal({
                       type="submit"
                       className="w-full py-3 mt-2 rounded-lg text-white font-semibold shadow-md transition-transform transform hover:-translate-y-1 hover:shadow-lg"
                       style={{
-                        background: "linear-gradient(to right, #581517, #7a2022)",
+                        background:
+                          "linear-gradient(to right, #581517, #7a2022)",
                       }}
                     >
                       Iniciar sesión
