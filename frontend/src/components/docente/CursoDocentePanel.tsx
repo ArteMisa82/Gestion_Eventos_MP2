@@ -1,116 +1,101 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState, useMemo } from "react";
 import Swal from "sweetalert2";
 import styles from "./docentePanel.module.css";
 
 type Alumno = {
   id: string;
-  nombres: string;
-  apellidos: string;
-  estado: "Aprobado" | "Reprobado" | "En Progreso";
-  nota?: number;        // 0-10
-  asistencia?: boolean; // presente/ausente
-  materialUrl?: string; // último material subido (si aplica)
+  nombre: string;
+  nota?: number;
+  asistencia?: boolean;
 };
 
-type Props = { courseId: string };
+type Material = {
+  id: string;
+  nombre: string;
+  visible: boolean;
+};
+
 type Tab = "material" | "notas" | "asistencia";
 
-export default function CursoDocentePanel({ courseId }: Props) {
-  // MOCK: cámbialo por fetch a tu API
-  const alumnosBase: Alumno[] = useMemo(
-    () => [
-      { id: "1", nombres: "Andrea", apellidos: "Lema", estado: "En Progreso", nota: 8.6, asistencia: true },
-      { id: "2", nombres: "Bryan", apellidos: "Paredes", estado: "Aprobado", nota: 9.2, asistencia: true },
-      { id: "3", nombres: "Carlos", apellidos: "Ortiz", estado: "Reprobado", nota: 4.1, asistencia: false },
-      { id: "4", nombres: "Diana", apellidos: "Ríos", estado: "En Progreso", nota: 7.1, asistencia: true },
-      { id: "5", nombres: "Evelyn", apellidos: "Cardenas", estado: "En Progreso", nota: 0, asistencia: false },
-    ],
-    []
-  );
+export default function CursoDocentePanel({ courseId }: { courseId: string }) {
+  // 🧩 Datos simulados (sustituye luego con tu fetch al backend)
+  const alumnosMock: Alumno[] = [
+    { id: "1", nombre: "Estudiante 1", nota: 8.5, asistencia: true },
+    { id: "2", nombre: "Estudiante 2", nota: 9.2, asistencia: false },
+    { id: "3", nombre: "Estudiante 3", nota: 6.0, asistencia: true },
+  ];
+
+  const materialesMock: Material[] = [
+    { id: "m1", nombre: "Diapositiva clase 1.pdf", visible: true },
+  ];
 
   const [tab, setTab] = useState<Tab>("material");
-  const [query, setQuery] = useState("");
-  const [estado, setEstado] = useState<"Todos" | Alumno["estado"]>("Todos");
-  const [alumnos, setAlumnos] = useState<Alumno[]>(alumnosBase);
-  const [subiendo, setSubiendo] = useState<string | null>(null); // id alumno mientras sube
+  const [alumnos, setAlumnos] = useState<Alumno[]>(alumnosMock);
+  const [materiales, setMateriales] = useState<Material[]>(materialesMock);
 
-  const filtrados = useMemo(() => {
-    return alumnos.filter(a => {
-      const coincideTexto =
-        (a.nombres + " " + a.apellidos).toLowerCase().includes(query.toLowerCase().trim());
-      const coincideEstado = estado === "Todos" ? true : a.estado === estado;
-      return coincideTexto && coincideEstado;
-    });
-  }, [alumnos, query, estado]);
+  const [nuevoArchivo, setNuevoArchivo] = useState<File | null>(null);
 
-  // Handlers comunes
-  const onGuardarNotas = async () => {
-    // TODO: POST a tu backend con { courseId, notas: alumnos.map({id, nota}) }
-    await Swal.fire({
-      icon: "success",
-      title: "Notas guardadas",
-      text: "Se registraron las calificaciones correctamente.",
-      confirmButtonText: "OK",
-    });
-  };
+  // 🔹 Resumen de notas
+  const resumen = useMemo(() => {
+    const total = alumnos.length;
+    const aprobados = alumnos.filter((a) => (a.nota ?? 0) >= 7).length;
+    const reprobados = alumnos.filter((a) => (a.nota ?? 0) < 7 && a.nota !== undefined).length;
+    const progreso = total - aprobados - reprobados;
+    return { total, aprobados, reprobados, progreso };
+  }, [alumnos]);
 
-  const onGuardarAsistencia = async () => {
-    // TODO: POST a tu backend con { courseId, asistencia: alumnos.map({id, asistencia}) }
-    await Swal.fire({
-      icon: "success",
-      title: "Asistencia guardada",
-      text: "Se registró la asistencia correctamente.",
-      confirmButtonText: "OK",
-    });
-  };
-
-  const onSubirMaterial = async (alumnoId: string, file?: File | null) => {
-    if (!file) {
-      await Swal.fire({ icon: "warning", title: "Selecciona un archivo", timer: 1400, showConfirmButton: false });
+  // 📤 Subir material
+  const subirMaterial = async () => {
+    if (!nuevoArchivo) {
+      Swal.fire("Atención", "Selecciona un archivo para subir", "warning");
       return;
     }
-    setSubiendo(alumnoId);
-    try {
-      // TODO: subir a tu API + storage. Ejemplo:
-      // const form = new FormData();
-      // form.append("file", file);
-      // await fetch(`${API}/docente/cursos/${courseId}/material/${alumnoId}`, { method:"POST", body: form });
+    const nuevo: Material = {
+      id: Math.random().toString(36).substring(2, 9),
+      nombre: nuevoArchivo.name,
+      visible: true,
+    };
+    setMateriales([...materiales, nuevo]);
+    setNuevoArchivo(null);
+    Swal.fire("Éxito", "Material subido correctamente", "success");
+  };
 
-      // MOCK: “subida”
-      await new Promise(r => setTimeout(r, 900));
-      setAlumnos(prev =>
-        prev.map(a => (a.id === alumnoId ? { ...a, materialUrl: file.name } : a))
-      );
+  // 👁️ Cambiar visibilidad de material
+  const toggleVisibilidad = async (id: string) => {
+    setMateriales((prev) =>
+      prev.map((m) =>
+        m.id === id ? { ...m, visible: !m.visible } : m
+      )
+    );
+    Swal.fire("Actualizado", "Estado de visibilidad cambiado", "info");
+  };
 
-      await Swal.fire({
-        icon: "success",
-        title: "Material subido",
-        text: `Se guardó "${file.name}" para el estudiante.`,
-        confirmButtonText: "OK",
-      });
-    } catch {
-      await Swal.fire({ icon: "error", title: "Error al subir material" });
-    } finally {
-      setSubiendo(null);
-    }
+  // 💾 Guardar notas
+  const guardarNotas = async () => {
+    Swal.fire("Guardado", "Las notas fueron registradas correctamente", "success");
+  };
+
+  // 💾 Guardar asistencia
+  const guardarAsistencia = async () => {
+    Swal.fire("Guardado", "La asistencia fue registrada correctamente", "success");
   };
 
   return (
     <section className={styles.wrapper}>
       <h1 className={styles.title}>CURSOS DE JAVA</h1>
 
-      {/* Tabs */}
+      {/* --- Tabs --- */}
       <div className={styles.tabs}>
         <button
-          className={`${styles.tab} ${tab === "material" ? styles.activeTab : ""}`}
+          className={`${styles.tab} ${tab === "material" ? styles.activeTabRed : ""}`}
           onClick={() => setTab("material")}
         >
           MATERIAL PEDAGÓGICO
         </button>
         <button
-          className={`${styles.tab} ${tab === "notas" ? styles.activeTabRed : ""}`}
+          className={`${styles.tab} ${tab === "notas" ? styles.activeTabBlue : ""}`}
           onClick={() => setTab("notas")}
         >
           NOTAS
@@ -123,169 +108,142 @@ export default function CursoDocentePanel({ courseId }: Props) {
         </button>
       </div>
 
-      {/* Filtros / barra */}
-      <div className={styles.toolbar}>
-        <div className={styles.searchBox}>
-          <label>Buscar por nombre:</label>
-          <input
-            placeholder="Escribe el nombre..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-        </div>
+      {/* --- MATERIAL --- */}
+      {tab === "material" && (
+        <div className={styles.card}>
+          <h3>Subir nuevo material</h3>
+          <div className={styles.materialUpload}>
+            <input
+              type="file"
+              onChange={(e) => setNuevoArchivo(e.target.files?.[0] || null)}
+            />
+            <button onClick={subirMaterial}>SUBIR MATERIAL</button>
+          </div>
 
-        <div className={styles.filterGroup}>
-          <span className={styles.filterLabel}>Por estado</span>
-          <select value={estado} onChange={(e) => setEstado(e.target.value as any)}>
-            <option value="Todos">Todos los estados</option>
-            <option value="Aprobado">Aprobado</option>
-            <option value="Reprobado">Reprobado</option>
-            <option value="En Progreso">En Progreso</option>
-          </select>
-          <button className={styles.btnLight} onClick={() => { setQuery(""); setEstado("Todos"); }}>
-            Limpiar filtros
+          <h4>Materiales disponibles</h4>
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th>Archivo</th>
+                <th>Visibilidad</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {materiales.map((m) => (
+                <tr key={m.id}>
+                  <td>{m.nombre}</td>
+                  <td>{m.visible ? "Visible" : "No visible"}</td>
+                  <td>
+                    <button onClick={() => toggleVisibilidad(m.id)}>
+                      Cambiar
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* --- NOTAS --- */}
+      {tab === "notas" && (
+        <div className={styles.card}>
+          <div className={styles.resumenNotas}>
+            <span>Total: {resumen.total}</span>
+            <span className={styles.aprobado}>Aprobados: {resumen.aprobados}</span>
+            <span className={styles.reprobado}>Reprobados: {resumen.reprobados}</span>
+            <span className={styles.progreso}>En progreso: {resumen.progreso}</span>
+          </div>
+
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th>Estudiante</th>
+                <th>Nota</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {alumnos.map((a) => (
+                <tr key={a.id}>
+                  <td>{a.nombre}</td>
+                  <td>
+                    <input
+                      type="number"
+                      min={0}
+                      max={10}
+                      step={0.1}
+                      value={a.nota ?? ""}
+                      onChange={(e) =>
+                        setAlumnos((prev) =>
+                          prev.map((x) =>
+                            x.id === a.id
+                              ? { ...x, nota: parseFloat(e.target.value) }
+                              : x
+                          )
+                        )
+                      }
+                    />
+                  </td>
+                  <td>
+                    {a.nota === undefined
+                      ? "En progreso"
+                      : a.nota >= 7
+                      ? "Aprobado"
+                      : "Reprobado"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <button className={styles.btnGuardar} onClick={guardarNotas}>
+            GUARDAR
           </button>
         </div>
-      </div>
+      )}
 
-      {/* Tabla */}
-      <div className={styles.table}>
-        <div className={`${styles.row} ${styles.header}`}>
-          <div>Curso / Estudiante</div>
-          <div className={styles.colAction}>
-            {tab === "material" ? "Subir material" : tab === "notas" ? "Nota" : "Asistencia"}
-          </div>
+      {/* --- ASISTENCIA --- */}
+      {tab === "asistencia" && (
+        <div className={styles.card}>
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th>Estudiante</th>
+                <th>Asistencia</th>
+              </tr>
+            </thead>
+            <tbody>
+              {alumnos.map((a) => (
+                <tr key={a.id}>
+                  <td>{a.nombre}</td>
+                  <td>
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={a.asistencia ?? false}
+                        onChange={(e) =>
+                          setAlumnos((prev) =>
+                            prev.map((x) =>
+                              x.id === a.id
+                                ? { ...x, asistencia: e.target.checked }
+                                : x
+                            )
+                          )
+                        }
+                      />
+                      {a.asistencia ? "Sí" : "No"}
+                    </label>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <button className={styles.btnGuardar} onClick={guardarAsistencia}>
+            GUARDAR
+          </button>
         </div>
-
-        {filtrados.map((a) => (
-          <div key={a.id} className={styles.row}>
-            <div className={styles.cellInfo}>
-              <div className={styles.courseName}>Desarrollo Web Full Stack</div>
-              <div className={styles.studentName}>{a.apellidos}, {a.nombres}</div>
-              <div className={styles.courseMeta}>Finalizado: 14/3/2024 • Estado: {a.estado}</div>
-            </div>
-
-            {/* Columna de acción variable */}
-            <div className={styles.colAction}>
-              {tab === "material" && (
-                <MaterialCell
-                  disabled={subiendo === a.id}
-                  onUpload={(file) => onSubirMaterial(a.id, file)}
-                  value={a.materialUrl}
-                />
-              )}
-
-              {tab === "notas" && (
-                <NotaCell
-                  value={a.nota ?? 0}
-                  onChange={(val) =>
-                    setAlumnos(prev => prev.map(x => x.id === a.id ? { ...x, nota: val } : x))
-                  }
-                />
-              )}
-
-              {tab === "asistencia" && (
-                <AsistenciaCell
-                  value={!!a.asistencia}
-                  onChange={(val) =>
-                    setAlumnos(prev => prev.map(x => x.id === a.id ? { ...x, asistencia: val } : x))
-                  }
-                />
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Botón guardar por tab */}
-      <div className={styles.footerBar}>
-        {tab === "material" && (
-          <span className={styles.hint}>Sube material por estudiante o general del curso.</span>
-        )}
-        {tab === "notas" && (
-          <button className={styles.btnDanger} onClick={onGuardarNotas}>GUARDAR</button>
-        )}
-        {tab === "asistencia" && (
-          <button className={styles.btnPrimary} onClick={onGuardarAsistencia}>GUARDAR</button>
-        )}
-      </div>
+      )}
     </section>
-  );
-}
-
-/* ------- Subcomponentes ------- */
-
-function MaterialCell({
-  disabled,
-  onUpload,
-  value,
-}: {
-  disabled?: boolean;
-  value?: string;
-  onUpload: (file?: File | null) => void;
-}) {
-  const [file, setFile] = useState<File | null>(null);
-  return (
-    <div className={styles.materialCell}>
-      <label className={styles.btnLight}>
-        SUBIR MATERIAL
-        <input
-          type="file"
-          hidden
-          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-        />
-      </label>
-      <button
-        className={styles.iconBtn}
-        disabled={disabled}
-        title="Cargar"
-        onClick={() => onUpload(file)}
-      >
-        ⤴
-      </button>
-      {value && <span className={styles.fileTag} title={value}>{value}</span>}
-    </div>
-  );
-}
-
-function NotaCell({
-  value,
-  onChange,
-}: {
-  value: number;
-  onChange: (v: number) => void;
-}) {
-  return (
-    <input
-      type="number"
-      min={0}
-      max={10}
-      step={0.1}
-      className={styles.notaInput}
-      value={Number.isFinite(value) ? value : 0}
-      onChange={(e) => {
-        const v = parseFloat(e.target.value);
-        if (v >= 0 && v <= 10) onChange(v);
-      }}
-    />
-  );
-}
-
-function AsistenciaCell({
-  value,
-  onChange,
-}: {
-  value: boolean;
-  onChange: (v: boolean) => void;
-}) {
-  return (
-    <label className={styles.switch}>
-      <input
-        type="checkbox"
-        checked={value}
-        onChange={(e) => onChange(e.target.checked)}
-      />
-      <span> {value ? "Sí" : "No"} </span>
-    </label>
   );
 }
