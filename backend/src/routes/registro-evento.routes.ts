@@ -12,6 +12,27 @@ const router = Router();
 // Vincula detalles con niveles académicos
 
 /**
+ * GET /api/registro-evento/estudiante/mis-cursos
+ * Obtiene cursos disponibles para el estudiante según su nivel
+ */
+router.get(
+  '/estudiante/mis-cursos',
+  authMiddleware,
+  registroController.obtenerCursosParaEstudiante.bind(registroController)
+);
+
+/**
+ * GET /api/registro-evento/filtrar
+ * Obtiene cursos con filtros (admin/encargado)
+ * Query params: id_instructor, id_niv, id_carrera, estado, solo_mis_cursos
+ */
+router.get(
+  '/filtrar',
+  authMiddleware,
+  registroController.obtenerCursosFiltrados.bind(registroController)
+);
+
+/**
  * POST /api/registro-evento
  * Crea un nuevo registro de evento (vincula detalle con nivel)
  * Requiere: id_det, id_niv

@@ -104,7 +104,8 @@ export class InscripcionesService {
         where: { id_reg_evt },
         include: {
           detalle_eventos: true,
-          registro_personas: true
+          registro_personas: true,
+          nivel: true
         }
       });
 
@@ -118,8 +119,30 @@ export class InscripcionesService {
 
     const detalle = registroEvento.detalle_eventos;
     const inscritos = registroEvento.registro_personas || [];
+    const nivelRequerido = registroEvento.id_niv;
 
-    // 1. Verificar estado del detalle
+    // 1. NUEVA VALIDACIÓN: Verificar que el estudiante pertenezca al nivel del curso
+    const estudianteEnNivel = await prisma.estudiantes.findFirst({
+      where: {
+        id_usu: id_usu,
+        id_niv: nivelRequerido,
+        est_activo: 1
+      }
+    });
+
+    if (!estudianteEnNivel) {
+      return {
+        valido: false,
+        mensaje: `No puedes inscribirte. Este curso es para el nivel: ${registroEvento.nivel?.nom_niv || nivelRequerido}`,
+        detalles: {
+          cupoDisponible: false,
+          yaInscrito: false,
+          estadoDetalle: detalle.est_evt_det
+        }
+      };
+    }
+
+    // 2. Verificar estado del detalle
     if (detalle.est_evt_det !== EstadoDetalleEvento.INSCRIPCIONES) {
       return {
         valido: false,
@@ -132,7 +155,7 @@ export class InscripcionesService {
       };
     }
 
-    // 2. Verificar cupo disponible
+    // 3. Verificar cupo disponible
     const cupoDisponible = inscritos.length < detalle.cup_det;
     if (!cupoDisponible) {
       return {
@@ -146,7 +169,7 @@ export class InscripcionesService {
       };
     }
 
-    // 3. Verificar si el usuario ya está inscrito
+    // 4. Verificar si el usuario ya está inscrito
     const yaInscrito = inscritos.some((i: any) => i.id_usu === id_usu);
     if (yaInscrito) {
       return {

@@ -160,6 +160,81 @@ export class RegistroController {
     }
   }
 
+  /**
+   * GET /api/registro-evento/estudiante/mis-cursos
+   * Obtiene cursos disponibles para el estudiante según su nivel
+   */
+  async obtenerCursosParaEstudiante(req: Request, res: Response) {
+    try {
+      const id_usu = (req as any).userId; // Del token JWT
+
+      const cursos = await registroEventoService.obtenerCursosParaEstudiante(id_usu);
+
+      return res.status(200).json(
+        successResponse(cursos, 'Cursos disponibles obtenidos exitosamente')
+      );
+    } catch (error: any) {
+      return res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  /**
+   * GET /api/registro-evento/filtrar
+   * Obtiene cursos con filtros (admin/encargado)
+   */
+  async obtenerCursosFiltrados(req: Request, res: Response) {
+    try {
+      const id_usu = (req as any).userId;
+      const isAdmin = (req as any).isAdmin;
+
+      const {
+        id_instructor,
+        id_niv,
+        id_carrera,
+        estado,
+        solo_mis_cursos
+      } = req.query;
+
+      const filtros: any = {};
+
+      // Si no es admin y solicita solo sus cursos (encargado)
+      if (!isAdmin && solo_mis_cursos === 'true') {
+        filtros.id_responsable = id_usu;
+      }
+
+      // Aplicar filtros adicionales
+      if (id_instructor) {
+        filtros.id_instructor = parseInt(id_instructor as string);
+      }
+
+      if (id_niv) {
+        filtros.id_niv = id_niv as string;
+      }
+
+      if (id_carrera) {
+        filtros.id_carrera = id_carrera as string;
+      }
+
+      if (estado) {
+        filtros.estado = estado as string;
+      }
+
+      const cursos = await registroEventoService.obtenerCursosFiltrados(filtros);
+
+      return res.status(200).json(
+        successResponse(cursos, 'Cursos filtrados obtenidos exitosamente')
+      );
+    } catch (error: any) {
+      return res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
   // ============= INSCRIPCIONES =============
 
   /**
