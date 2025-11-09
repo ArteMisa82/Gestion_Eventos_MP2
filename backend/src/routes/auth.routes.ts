@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { AuthController } from '../controllers/auth.controller';
-import { authMiddleware } from '../middlewares/auth.middleware';
+import { requireAuth } from '../middlewares/session.middleware';
 
 const router = Router();
 const controller = new AuthController();
@@ -9,7 +9,8 @@ const controller = new AuthController();
 router.post('/register', controller.register.bind(controller));
 router.post('/login', controller.login.bind(controller));
 
-// Rutas protegidas (requieren token)
-router.get('/profile', authMiddleware, controller.getProfile.bind(controller));
+// Rutas protegidas (requieren SESIÓN)
+router.get('/profile', requireAuth, controller.getProfile.bind(controller));
+router.post('/logout', requireAuth, controller.logout.bind(controller));
 
 export default router;
