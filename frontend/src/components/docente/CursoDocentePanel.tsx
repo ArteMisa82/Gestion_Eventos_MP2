@@ -168,6 +168,12 @@ export default function CursoDocentePanel({ courseId }: { courseId: string }) {
               <span className={styles.fileName}>
                 {nuevoArchivo ? nuevoArchivo.name : "Ningún archivo seleccionado"}
               </span>
+
+              {/* leyenda de tipos */}
+              <small className={styles.fileHelp}>
+                Se permiten: PDF, DOC, DOCX, PPT, PPTX, XLS, XLSX, TXT (máx. 10&nbsp;MB).
+              </small>
+ 
             </div>
 
             <button className={styles.btnPrimary} onClick={subirMaterial}>
