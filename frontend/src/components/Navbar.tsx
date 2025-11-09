@@ -9,7 +9,7 @@ const links = [
   { href: "/home", label: "Inicio" },
   { href: "/nosotros", label: "Nosotros" },
   { href: "/cursos", label: "Cursos" },
-  { href: "/convocatorias", label: "Convocatorias" },
+  { href: "/convocatorias", label: "Contáctanos" },
 ];
 
 export default function Navbar() {

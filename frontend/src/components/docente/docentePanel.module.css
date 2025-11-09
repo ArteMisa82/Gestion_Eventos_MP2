@@ -2,7 +2,7 @@
 .wrapper {
   padding: 24px 32px;
   min-height: 100%;
-  background: #4a4a4a;
+  background: #ffffff;
 }
 .title {
   text-align: center;
@@ -21,8 +21,8 @@
   flex-wrap: wrap;
 }
 .tab {
-  background: #6f7a8a;
-  color: #fff;
+  background: #707479;
+  color: #f9f6f6;
   border: none;
   border-radius: 24px;
   padding: 10px 20px;
@@ -32,11 +32,11 @@
 }
 .tab:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,.18); }
 .activeTabRed { background: #c34141; }
-.activeTabBlue { background: #3f61a8; }
+.activeTabBlue { background: #c34141; }
 
 /* Card */
 .card {
-  background: #f4f4f8;
+  background: #d5d5db;
   border-radius: 12px;
   padding: 16px;
   margin: 20px auto;
@@ -55,7 +55,7 @@
 .searchBox input {
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid #d7d7dd;
+  border: 1px solid #bbbbc3;
   border-radius: 8px;
   background: #fff;
 }
@@ -111,19 +111,19 @@
   transition: transform .12s ease, box-shadow .2s ease, background-color .2s ease, border-color .2s ease;
 }
 
-.btnPrimary { background: #3f61a8; color: #fff; }
-.btnDanger  { background: #b33434; color: #fff; }
-.btnLight   { background: #ffffff; border: 1px solid #dcdce2; }
+.btnPrimary { background: #810b0b; color: #fcfbfb; }
+.btnDanger  { background: #810b0b; color: #fff; }
+.btnLight   { background: #7c7b7b; border: 1px solid #dcdce2; color: #fff;}
 .btnOutline { background: transparent; border: 1px solid #9aa0aa; color: #333; }
 
 .btnPrimary:hover, .btnDanger:hover, .btnLight:hover, .btnOutline:hover {
   transform: translateY(-1px);
-  box-shadow: 0 8px 20px rgba(0,0,0,.16);
+  box-shadow: 0 8px 20px rgba(22, 22, 22, 0.16);
 }
 
 .btnPrimary:active, .btnDanger:active, .btnLight:active, .btnOutline:active {
   transform: translateY(0);
-  box-shadow: 0 3px 10px rgba(0,0,0,.12);
+  box-shadow: 0 3px 10px rgba(21, 21, 21, 0.12);
 }
 
 
