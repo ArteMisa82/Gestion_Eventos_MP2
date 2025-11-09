@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 import styles from "./navbar.module.css";
-import LoginModal from "../components/loginModal"; //importa el modal
+import LoginModal from "../components/loginModal";
 
 const links = [
   { href: "/home", label: "Inicio" },
@@ -16,10 +16,31 @@ const links = [
 
 export default function Navbar() {
   const pathname = usePathname();
+  const router = useRouter();
 
-  // 👇 Estado para controlar el modal
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
+
+  // 🔄 Cargar usuario desde localStorage al montar
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) setUser(JSON.parse(storedUser));
+  }, []);
+
+  // 🔐 Cuando el login es exitoso
+  const handleLoginSuccess = (userData: any) => {
+    setUser(userData);
+    localStorage.setItem("user", JSON.stringify(userData));
+    setIsLoginOpen(false);
+  };
+
+  // 🚪 Cerrar sesión y redirigir al home
+  const handleLogout = () => {
+    setUser(null);
+    localStorage.removeItem("user");
+    router.push("/home");
+  };
 
   return (
     <header className={styles.header}>
@@ -49,37 +70,62 @@ export default function Navbar() {
               </Link>
             </li>
           ))}
+
+          {/* 🔸 Mostrar "Panel" solo si el usuario es admin */}
+          {user?.role === "admin" && (
+            <li>
+              <Link
+                href="/admin"
+                className={
+                  pathname === "/admin" ? styles.activeLink : styles.link
+                }
+              >
+                Panel
+              </Link>
+            </li>
+          )}
         </ul>
 
         {/* Botones de acción */}
         <div className={styles.actions}>
-          <button
-            onClick={() => setIsLoginOpen(true)} // 👈 abre el modal de login
-            className={styles.secondaryBtn}
-          >
-            Iniciar sesión
-          </button>
-          <button
-            onClick={() => {
-              setIsLoginOpen(true);
-              setIsRegisterOpen(true); // 👈 abre modal directamente en registro
-            }}
-            className={styles.primaryBtn}
-          >
-            Registrarse
-          </button>
+          {user ? (
+            <>
+              <span className={styles.userName}>👋 {user.name}</span>
+              <button onClick={handleLogout} className={styles.secondaryBtn}>
+                Cerrar sesión
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => setIsLoginOpen(true)}
+                className={styles.secondaryBtn}
+              >
+                Iniciar sesión
+              </button>
+              <button
+                onClick={() => {
+                  setIsLoginOpen(true);
+                  setIsRegisterOpen(true);
+                }}
+                className={styles.primaryBtn}
+              >
+                Registrarse
+              </button>
+            </>
+          )}
         </div>
       </nav>
 
-      {/* MODAL de Login / Registro */}
+      {/* Modal de Login / Registro */}
       <LoginModal
         isOpen={isLoginOpen}
         onClose={() => {
           setIsLoginOpen(false);
           setIsRegisterOpen(false);
         }}
-        // 👇 le pasamos prop opcional para abrir en modo registro
         initialRegister={isRegisterOpen}
+        onLoginSuccess={handleLoginSuccess}
       />
     </header>
   );
