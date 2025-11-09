@@ -42,3 +42,24 @@ export async function generateDetalleId(): Promise<string> {
   
   return id;
 }
+
+/**
+ * Genera un ID único para registros de eventos
+ * Formato: REG + timestamp de 7 dígitos
+ */
+export async function generateRegistroEventoId(): Promise<string> {
+  const timestamp = Date.now().toString().slice(-7);
+  const id = `REG${timestamp}`;
+  
+  // Verificar que no exista
+  const exists = await prisma.registro_evento.findUnique({
+    where: { id_reg_evt: id }
+  });
+  
+  if (exists) {
+    const random = Math.floor(Math.random() * 100).toString().padStart(2, '0');
+    return `REG${random}${timestamp.slice(-5)}`;
+  }
+  
+  return id;
+}
