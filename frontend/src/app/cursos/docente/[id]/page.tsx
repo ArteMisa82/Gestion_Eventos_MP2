@@ -1,10 +1,9 @@
+import CursoDocentePanel from "@/components/docente/CursoDocentePanel";
+
 type Props = { params: { id: string } };
 
-export default function DocenteCursoDetalle({ params }: Props) {
-  return (
-    <main style={{ padding: "24px 32px" }}>
-      <h2>Panel del curso: {params.id}</h2>
-      <p>Próximo paso: tablero con alumnos, calificaciones, materiales, asistencia, etc.</p>
-    </main>
-  );
+export default async function DocenteCursoDetalle({ params }: Props) {
+  // TODO: aquí puedes traer metadata del curso si necesitas (server-side)
+  return <CursoDocentePanel courseId={params.id} />;
 }
+
