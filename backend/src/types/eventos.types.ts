@@ -4,9 +4,9 @@ export interface CreateEventoDto {
   fec_evt: string | Date;
   lug_evt: string;
   des_evt: string;
-  mod_evt?: string; // Modalidad: Presencial, Virtual, Híbrido
-  tip_pub_evt?: string; // Tipo público: Público, Privado, Restringido
-  cos_evt?: string; // Costo: Gratuito, Pagado
+  mod_evt?: string; // Modalidad: PRESENCIAL, VIRTUAL
+  tip_pub_evt?: string; // Tipo público: GENERAL, ESTUDIANTES, ADMINISTRATIVOS
+  cos_evt?: string; // Costo: GRATUITO, DE PAGO
   id_responsable: number; // Responsable asignado (OBLIGATORIO - todo evento debe tener responsable)
   // Detalles opcionales para crear en la misma petición (solo ADMIN)
   detalles?: Omit<CreateDetalleEventoDto, 'id_evt_per'>;

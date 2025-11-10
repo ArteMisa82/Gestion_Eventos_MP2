@@ -5,6 +5,7 @@
 
 import prisma from '../config/database';
 import { EstadoDetalleEvento } from '../utils/estados-detalle.util';
+import { TipoPublicoEvento } from '../types/eventos-constants.types';
 import {
   CrearInscripcionDTO,
   InscripcionResponse,
@@ -137,19 +138,33 @@ export class InscripcionesService {
     const evento = detalle.eventos;
     const inscritos = registroEvento.registro_personas || [];
     const nivelRequerido = registroEvento.id_niv;
-    const tipoPublico = evento.tip_pub_evt; // GENERAL, USUARIOS UTA
+    const tipoPublico = evento.tip_pub_evt; // GENERAL, ESTUDIANTES, ADMINISTRATIVOS
 
     // ===== VALIDACIÓN 1: TIPO DE PÚBLICO DEL EVENTO =====
     const esEstudiante = usuario.stu_usu === 1;
     const esAdministrativo = usuario.adm_usu === 1 || usuario.Administrador === true;
-    const esUsuarioUTA = esEstudiante || esAdministrativo;
 
-    // Si el evento es solo para USUARIOS UTA
-    if (tipoPublico === 'USUARIOS UTA') {
-      if (!esUsuarioUTA) {
+    // Si el evento es solo para ESTUDIANTES
+    if (tipoPublico === TipoPublicoEvento.ESTUDIANTES) {
+      if (!esEstudiante) {
         return {
           valido: false,
-          mensaje: 'Este evento es exclusivo para usuarios UTA (estudiantes o personal administrativo)',
+          mensaje: 'Este evento es exclusivo para estudiantes',
+          detalles: {
+            cupoDisponible: false,
+            yaInscrito: false,
+            estadoDetalle: detalle.est_evt_det
+          }
+        };
+      }
+    }
+    
+    // Si el evento es solo para ADMINISTRATIVOS
+    if (tipoPublico === TipoPublicoEvento.ADMINISTRATIVOS) {
+      if (!esAdministrativo) {
+        return {
+          valido: false,
+          mensaje: 'Este evento es exclusivo para personal administrativo',
           detalles: {
             cupoDisponible: false,
             yaInscrito: false,

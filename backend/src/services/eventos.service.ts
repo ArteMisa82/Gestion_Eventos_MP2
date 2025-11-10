@@ -4,6 +4,7 @@ import {
   UpdateEventoDto, 
   AsignarResponsableDto 
 } from '../types/eventos.types';
+import { TipoPublicoEvento, ModalidadEvento, CostoEvento } from '../types/eventos-constants.types';
 import { generateEventoId } from '../utils/id-generator.util';
 import { validateIsAdmin, validateIsResponsableOrAdmin, validateIsAdministrativeUser } from '../utils/validators.util';
 import { EVENTO_INCLUDES, USUARIO_SELECT } from '../utils/prisma-includes.util';
@@ -50,9 +51,9 @@ export class EventosService {
           fec_evt: new Date(data.fec_evt),
           lug_evt: data.lug_evt,
           des_evt: data.des_evt,
-          mod_evt: data.mod_evt?.toUpperCase() || 'PRESENCIAL',
-          tip_pub_evt: data.tip_pub_evt?.toUpperCase() || 'GENERAL',
-          cos_evt: data.cos_evt?.toUpperCase() || 'GRATUITO',
+          mod_evt: data.mod_evt?.toUpperCase() || ModalidadEvento.PRESENCIAL,
+          tip_pub_evt: data.tip_pub_evt?.toUpperCase() || TipoPublicoEvento.GENERAL,
+          cos_evt: data.cos_evt?.toUpperCase() || CostoEvento.GRATUITO,
           est_evt: 'EDITANDO', // Estado inicial al crear
           id_res_evt: data.id_responsable
         },
