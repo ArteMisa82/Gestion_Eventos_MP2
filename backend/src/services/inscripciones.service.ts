@@ -98,12 +98,28 @@ export class InscripcionesService {
     id_reg_evt: string,
     registroEvento?: any
   ): Promise<ValidarInscripcionResult> {
+    // Obtener datos del usuario
+    const usuario = await prisma.usuarios.findUnique({
+      where: { id_usu }
+    });
+
+    if (!usuario) {
+      return {
+        valido: false,
+        mensaje: 'Usuario no encontrado'
+      };
+    }
+
     // Obtener registro evento si no se proporcionó
     if (!registroEvento) {
       registroEvento = await prisma.registro_evento.findUnique({
         where: { id_reg_evt },
         include: {
-          detalle_eventos: true,
+          detalle_eventos: {
+            include: {
+              eventos: true
+            }
+          },
           registro_personas: true,
           nivel: true
         }
@@ -118,31 +134,56 @@ export class InscripcionesService {
     }
 
     const detalle = registroEvento.detalle_eventos;
+    const evento = detalle.eventos;
     const inscritos = registroEvento.registro_personas || [];
     const nivelRequerido = registroEvento.id_niv;
+    const tipoPublico = evento.tip_pub_evt; // GENERAL, USUARIOS UTA
 
-    // 1. NUEVA VALIDACIÓN: Verificar que el estudiante pertenezca al nivel del curso
-    const estudianteEnNivel = await prisma.estudiantes.findFirst({
-      where: {
-        id_usu: id_usu,
-        id_niv: nivelRequerido,
-        est_activo: 1
+    // ===== VALIDACIÓN 1: TIPO DE PÚBLICO DEL EVENTO =====
+    const esEstudiante = usuario.stu_usu === 1;
+    const esAdministrativo = usuario.adm_usu === 1 || usuario.Administrador === true;
+    const esUsuarioUTA = esEstudiante || esAdministrativo;
+
+    // Si el evento es solo para USUARIOS UTA
+    if (tipoPublico === 'USUARIOS UTA') {
+      if (!esUsuarioUTA) {
+        return {
+          valido: false,
+          mensaje: 'Este evento es exclusivo para usuarios UTA (estudiantes o personal administrativo)',
+          detalles: {
+            cupoDisponible: false,
+            yaInscrito: false,
+            estadoDetalle: detalle.est_evt_det
+          }
+        };
       }
-    });
+    }
+    // Si el evento es GENERAL, cualquiera puede registrarse (no se valida nada aquí)
 
-    if (!estudianteEnNivel) {
-      return {
-        valido: false,
-        mensaje: `No puedes inscribirte. Este curso es para el nivel: ${registroEvento.nivel?.nom_niv || nivelRequerido}`,
-        detalles: {
-          cupoDisponible: false,
-          yaInscrito: false,
-          estadoDetalle: detalle.est_evt_det
+    // ===== VALIDACIÓN 2: SI ES ESTUDIANTE, VERIFICAR NIVEL =====
+    if (esEstudiante) {
+      const estudianteEnNivel = await prisma.estudiantes.findFirst({
+        where: {
+          id_usu: id_usu,
+          id_niv: nivelRequerido,
+          est_activo: 1
         }
-      };
+      });
+
+      if (!estudianteEnNivel) {
+        return {
+          valido: false,
+          mensaje: `No puedes inscribirte. Este curso es para el nivel: ${registroEvento.nivel?.nom_niv || nivelRequerido}. Verifica que estés matriculado en ese nivel.`,
+          detalles: {
+            cupoDisponible: false,
+            yaInscrito: false,
+            estadoDetalle: detalle.est_evt_det
+          }
+        };
+      }
     }
 
-    // 2. Verificar estado del detalle
+    // ===== VALIDACIÓN 3: ESTADO DEL DETALLE =====
     if (detalle.est_evt_det !== EstadoDetalleEvento.INSCRIPCIONES) {
       return {
         valido: false,
@@ -155,7 +196,7 @@ export class InscripcionesService {
       };
     }
 
-    // 3. Verificar cupo disponible
+    // ===== VALIDACIÓN 4: CUPO DISPONIBLE =====
     const cupoDisponible = inscritos.length < detalle.cup_det;
     if (!cupoDisponible) {
       return {
@@ -169,7 +210,7 @@ export class InscripcionesService {
       };
     }
 
-    // 4. Verificar si el usuario ya está inscrito
+    // ===== VALIDACIÓN 5: USUARIO YA INSCRITO =====
     const yaInscrito = inscritos.some((i: any) => i.id_usu === id_usu);
     if (yaInscrito) {
       return {
@@ -183,7 +224,7 @@ export class InscripcionesService {
       };
     }
 
-    // Inscripción válida
+    // ===== INSCRIPCIÓN VÁLIDA =====
     return {
       valido: true,
       detalles: {
