@@ -69,8 +69,9 @@ const EditEventModal: React.FC<EditEventModalProps> = ({ onClose, event, onSave 
         throw new Error("No hay sesión activa");
       }
 
-      // ✅ Actualizar evento en el backend
-      await eventosAPI.update(token, event.id.toString(), {
+      // ✅ Actualizar evento en el backend usando el ID real
+      const idToUpdate = event.realId || event.id.toString();
+      await eventosAPI.update(token, idToUpdate, {
         nom_evt: title,
         id_responsable: responsableId,
       });
