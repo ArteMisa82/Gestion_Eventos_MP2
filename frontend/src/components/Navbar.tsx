@@ -25,7 +25,14 @@ export default function Navbar() {
   // 🔄 Cargar usuario desde localStorage al montar
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
-    if (storedUser) setUser(JSON.parse(storedUser));
+    if (storedUser && storedUser !== "undefined") {
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch (error) {
+        console.error("Error al parsear usuario:", error);
+        localStorage.removeItem("user");
+      }
+    }
   }, []);
 
   // 🔐 Cuando el login es exitoso
@@ -39,6 +46,7 @@ export default function Navbar() {
   const handleLogout = () => {
     setUser(null);
     localStorage.removeItem("user");
+    localStorage.removeItem("token");
     router.push("/home");
   };
 
@@ -72,7 +80,7 @@ export default function Navbar() {
           ))}
 
           {/* 🔸 Mostrar "Panel" solo si el usuario es admin */}
-          {user?.role === "admin" && (
+          {(user?.adm_usu === 1 || user?.Administrador === true || user?.role === "admin") && (
             <li>
               <Link
                 href="/admin"
@@ -90,7 +98,9 @@ export default function Navbar() {
         <div className={styles.actions}>
           {user ? (
             <>
-              <span className={styles.userName}>👋 {user.name}</span>
+              <span className={styles.userName}>
+                👋 {user.nom_usu || user.name || user.cor_usu}
+              </span>
               <button onClick={handleLogout} className={styles.secondaryBtn}>
                 Cerrar sesión
               </button>
