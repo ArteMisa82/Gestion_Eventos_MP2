@@ -1,12 +1,4 @@
-:root {
-  --brand: #7f1d1d;
-  --brand-600: #8f2020;
-  --ink: #111827;
-  --muted: #6b7280;
-  --ring: #e5e7eb;
-  --surface: #ffffff;
-  --bg: #f8fafc;
-}
+
 
 .main {
   display: grid;

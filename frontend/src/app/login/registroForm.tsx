@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Swal from "sweetalert2";
 import { Eye, EyeOff, Lock, Mail, User } from "lucide-react";
 
@@ -17,10 +17,16 @@ export default function RegisterForm({ onClose }: RegisterFormProps) {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordError, setPasswordError] = useState("");
 
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "auto";
+    };
+  }, []);
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validar campos vacíos
     if (!nombre || !apellido || !email || !password || !confirmPassword) {
       Swal.fire({
         title: "Campos incompletos",
@@ -31,15 +37,13 @@ export default function RegisterForm({ onClose }: RegisterFormProps) {
       return;
     }
 
-    // Validar contraseñas
     if (password !== confirmPassword) {
       setPasswordError("Las contraseñas no coinciden");
       return;
     }
 
-    setPasswordError(""); // limpiar error si todo bien
+    setPasswordError("");
 
-    // Simular éxito
     Swal.fire({
       title: "Registro exitoso",
       text: `Bienvenido, ${nombre} ${apellido}!`,
@@ -47,21 +51,18 @@ export default function RegisterForm({ onClose }: RegisterFormProps) {
       confirmButtonColor: "#581517",
     });
 
-    console.log({
-      nombre,
-      apellido,
-      email,
-      password,
-    });
-
+    console.log({ nombre, apellido, email, password });
     onClose();
   };
 
   return (
-    <div className="flex flex-col items-center">
+    <div className="flex flex-col items-center justify-center w-full h-full max-h-[90vh] overflow-hidden">
       <h2 className="text-2xl font-bold text-[#581517] mb-6">Crear Cuenta</h2>
 
-      <form onSubmit={handleRegister} className="w-full flex flex-col gap-5">
+      <form
+        onSubmit={handleRegister}
+        className="w-full flex flex-col gap-5 overflow-hidden px-2"
+      >
         {/* Nombre */}
         <div className="relative">
           <User className="absolute left-3 top-3 text-[#bfa66b]" size={20} />
@@ -146,11 +147,8 @@ export default function RegisterForm({ onClose }: RegisterFormProps) {
             {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
           </button>
 
-          {/* Mensaje debajo del campo */}
           {passwordError && (
-            <p className="text-red-600 text-sm mt-1 ml-2">
-              {passwordError}
-            </p>
+            <p className="text-red-600 text-sm mt-1 ml-2">{passwordError}</p>
           )}
         </div>
 
