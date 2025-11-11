@@ -179,6 +179,17 @@ export const eventosAPI = {
     });
     return handleResponse(response);
   },
+
+  /**
+   * Obtener lista de usuarios administrativos (para asignar como responsables)
+   * GET /api/eventos/usuarios/administrativos
+   */
+  getResponsables: async (token: string) => {
+    const response = await fetch(`${API_URL}/eventos/usuarios/administrativos`, {
+      headers: getHeaders(token),
+    });
+    return handleResponse(response);
+  },
 };
 
 // ==========================================
