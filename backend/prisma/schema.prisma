@@ -10,47 +10,40 @@ datasource db {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model autoridades {
-  id_aut     String     @id @db.VarChar(10)
-  ced_per    String     @db.VarChar(10)
-  dir_aut    String     @db.VarChar(30)
-  car_aut    String     @db.VarChar(20)
-  id_fac     String     @db.VarChar(10)
-  personas   personas   @relation(fields: [ced_per], references: [ced_per], onDelete: Cascade)
-  facultades facultades @relation(fields: [id_fac], references: [id_fac], onDelete: Cascade)
-
-  @@index([id_fac], map: "idx_autoridades_facultad")
+  id_aut   String   @id @db.VarChar(10)
+  ced_per  String   @db.VarChar(10)
+  dir_aut  String   @db.VarChar(30)
+  car_aut  String   @db.VarChar(20)
+  personas personas @relation(fields: [ced_per], references: [ced_per], onDelete: Cascade)
 }
 
 model carreras {
-  id_car     String     @id @db.VarChar(10)
-  nom_car    String     @db.VarChar(25)
-  id_fac     String     @db.VarChar(10)
-  facultades facultades @relation(fields: [id_fac], references: [id_fac], onDelete: Cascade)
-  nivel      nivel[]
-}
-
-model credenciales {
-  ced_per  String   @id @db.VarChar(10)
-  cor_per  String   @unique @db.VarChar(50)
-  con_per  String   @db.VarChar(255)
-  personas personas @relation(fields: [ced_per], references: [ced_per], onDelete: Cascade)
+  id_car  String  @id @db.VarChar(10)
+  nom_car String  @db.VarChar(25)
+  nivel   nivel[]
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model detalle_eventos {
-  id_det          String            @id @db.VarChar(10)
-  id_evt          String            @db.VarChar(10)
-  ced_aut         String            @db.VarChar(10)
-  cup_det         Int
-  not_det         Decimal           @db.Decimal(4, 2)
-  hor_det         Decimal           @db.Decimal(4, 2)
-  are_det         String            @db.VarChar(40)
-  cat_det         String            @db.VarChar(20)
-  personas        personas          @relation(fields: [ced_aut], references: [ced_per], onDelete: Cascade)
-  eventos         eventos           @relation(fields: [id_evt], references: [id_evt], onDelete: Cascade)
-  registro_evento registro_evento[]
+  id_det               String                 @id @db.VarChar(10)
+  id_evt_per           String                 @db.VarChar(10)
+  cup_det              Int
+  not_evt_det          Decimal?               @db.Decimal(4, 2)
+  hor_det              Decimal                @db.Decimal(4, 2)
+  asi_evt_det          Decimal?               @db.Decimal(3, 2)
+  cer_evt_det          Int?                   @db.SmallInt
+  apr_evt_det          Int?                   @db.SmallInt
+  are_det              String                 @db.VarChar(40)
+  cat_det              String                 @db.VarChar(20)
+  tip_evt              String                 @db.VarChar(20)
+  est_evt_det          String?                @default("INSCRIPCIONES") @db.VarChar(20)
+  eventos              eventos                @relation(fields: [id_evt_per], references: [id_evt], onDelete: Cascade)
+  detalle_instructores detalle_instructores[]
+  registro_evento      registro_evento[]
 
-  @@index([ced_aut], map: "idx_detalle_eventos_autoridad")
+  @@index([id_evt_per], map: "idx_detalle_eventos_evento")
+  @@index([tip_evt], map: "idx_detalle_eventos_tipo")
+  @@index([est_evt_det], map: "idx_detalle_eventos_estado")
 }
 
 model detalle_informe {
@@ -58,17 +51,8 @@ model detalle_informe {
   num_inf     Int
   reg_asi     DateTime? @db.Date
   not_det     Decimal   @db.Decimal(5, 2)
+  pdf_cer     String?
   informes    informes  @relation(fields: [num_inf], references: [num_inf], onDelete: Cascade)
-}
-
-model estudiantes {
-  id_est   String   @id @db.VarChar(10)
-  ced_est  String   @db.VarChar(10)
-  id_niv   String   @db.VarChar(10)
-  personas personas @relation(fields: [ced_est], references: [ced_per], onDelete: Cascade)
-  nivel    nivel    @relation(fields: [id_niv], references: [id_niv], onDelete: Cascade)
-
-  @@index([id_niv], map: "idx_estudiantes_nivel")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -77,28 +61,20 @@ model eventos {
   nom_evt         String            @db.VarChar(25)
   fec_evt         DateTime          @db.Date
   lug_evt         String            @db.VarChar(25)
-  tip_evt         String            @db.VarChar(10)
-  mod_evt         String            @db.VarChar(10)
+  mod_evt         String            @db.VarChar(15)
+  tip_pub_evt     String            @db.VarChar(20)
+  cos_evt         String            @db.VarChar(15)
   des_evt         String            @db.VarChar(255)
-  sub_evt         String?           @db.VarChar(80)
+  id_res_evt      Int?
+  est_evt         String?           @default("EDITANDO") @db.VarChar(20)
   detalle_eventos detalle_eventos[]
-  pagos           pagos[]
+  usuarios        usuarios?         @relation(fields: [id_res_evt], references: [id_usu], map: "fk_eventos_responsable")
   requerimientos  requerimientos[]
   tarifas_evento  tarifas_evento[]
 
   @@index([fec_evt], map: "idx_eventos_fecha")
-  @@index([tip_evt], map: "idx_eventos_tipo")
-}
-
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model facultades {
-  id_fac      String        @id @db.VarChar(10)
-  nom_fac     String        @db.VarChar(30)
-  ubi_pre_fac String        @db.VarChar(15)
-  mis_fac     String        @db.VarChar(255)
-  vic_fac     String        @db.VarChar(255)
-  autoridades autoridades[]
-  carreras    carreras[]
+  @@index([id_res_evt], map: "idx_eventos_responsable")
+  @@index([est_evt], map: "idx_eventos_estado")
 }
 
 model informes {
@@ -117,29 +93,28 @@ model nivel {
   estudiantes     estudiantes[]
   carreras        carreras          @relation(fields: [id_car], references: [id_car], onDelete: Cascade)
   registro_evento registro_evento[]
+  usuarios        usuarios[]
 }
 
 model pagos {
   num_pag           Int               @id @default(autoincrement())
-  id_evt            String            @db.VarChar(10)
   num_reg_per       Int
   val_pag           Decimal           @db.Decimal(5, 2)
-  eventos           eventos           @relation(fields: [id_evt], references: [id_evt], onDelete: Cascade)
+  met_pag           String            @db.VarChar(15)
+  pdf_orden_pag     String?
+  pdf_comp_pag      String?
+  pag_o_no          Int?              @default(0) @db.SmallInt
   registro_personas registro_personas @relation(fields: [num_reg_per], references: [num_reg_per], onDelete: Cascade)
 
-  @@index([id_evt], map: "idx_pagos_evento")
+  @@index([num_reg_per], map: "idx_pagos_registro")
 }
 
 model personas {
-  ced_per           String              @id @db.VarChar(10)
-  nom_per           String              @db.VarChar(20)
-  ape_per           String              @db.VarChar(20)
-  tel_per           String              @db.VarChar(10)
-  autoridades       autoridades[]
-  credenciales      credenciales?
-  detalle_eventos   detalle_eventos[]
-  estudiantes       estudiantes[]
-  registro_personas registro_personas[]
+  ced_per     String        @id @db.VarChar(10)
+  nom_per     String        @db.VarChar(20)
+  ape_per     String        @db.VarChar(20)
+  tel_per     String        @db.VarChar(10)
+  autoridades autoridades[]
 }
 
 model registro_evento {
@@ -154,17 +129,16 @@ model registro_evento {
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model registro_personas {
   num_reg_per     Int             @id @default(autoincrement())
-  ced_per         String          @db.VarChar(10)
+  id_usu          Int
   id_reg_evt      String          @db.VarChar(10)
-  tip_par         String          @db.VarChar(10)
   fec_reg_per     DateTime        @default(dbgenerated("CURRENT_DATE")) @db.Date
   informes        informes[]
   pagos           pagos[]
-  personas        personas        @relation(fields: [ced_per], references: [ced_per], onDelete: Cascade)
   registro_evento registro_evento @relation(fields: [id_reg_evt], references: [id_reg_evt], onDelete: Cascade)
+  usuarios        usuarios        @relation(fields: [id_usu], references: [id_usu], onDelete: Cascade)
 
-  @@index([ced_per], map: "idx_registro_personas_cedula")
   @@index([fec_reg_per], map: "idx_registro_personas_fecha")
+  @@index([id_usu], map: "idx_registro_personas_usuario")
 }
 
 model requerimientos {
@@ -184,4 +158,86 @@ model tarifas_evento {
   eventos    eventos @relation(fields: [id_evt], references: [id_evt], onDelete: Cascade)
 
   @@index([id_evt], map: "idx_tarifas_evento")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model usuarios {
+  id_usu               Int                    @id @default(autoincrement())
+  cor_usu              String                 @unique @db.VarChar(100)
+  pas_usu              String                 @db.VarChar(255)
+  ced_usu              String?                @db.VarChar(10)
+  nom_usu              String                 @db.VarChar(50)
+  nom_seg_usu          String?                @db.VarChar(50)
+  ape_usu              String                 @db.VarChar(50)
+  ape_seg_usu          String?                @db.VarChar(50)
+  tel_usu              String?                @db.VarChar(10)
+  img_usu              String?
+  pdf_ced_usu          String?
+  stu_usu              Int?                   @db.SmallInt
+  niv_usu              String?                @db.VarChar(10)
+  adm_usu              Int?                   @default(0) @db.SmallInt
+  Administrador        Boolean                @default(false)
+  detalle_instructores detalle_instructores[]
+  estudiantes          estudiantes[]
+  eventos              eventos[]
+  registro_personas    registro_personas[]
+  nivel                nivel?                 @relation(fields: [niv_usu], references: [id_niv])
+
+  @@index([ced_usu], map: "idx_usuarios_cedula")
+  @@index([cor_usu], map: "idx_usuarios_correo")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model backup_detalle_eventos_20251108 {
+  id_det      String?  @db.VarChar(10)
+  id_evt_per  String?  @db.VarChar(10)
+  id_usu_doc  Int?
+  cup_det     Int?
+  not_evt_det Decimal? @db.Decimal(4, 2)
+  hor_det     Decimal? @db.Decimal(4, 2)
+  asi_evt_det Decimal? @db.Decimal(3, 2)
+  cer_evt_det Int?     @db.SmallInt
+  apr_evt_det Int?     @db.SmallInt
+  are_det     String?  @db.VarChar(40)
+  cat_det     String?  @db.VarChar(20)
+  tip_evt     String?  @db.VarChar(20)
+  est_evt_det String?  @db.VarChar(20)
+
+  @@ignore
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model detalle_instructores {
+  id_det          String          @db.VarChar(10)
+  id_usu          Int
+  rol_instructor  String?         @default("INSTRUCTOR") @db.VarChar(30)
+  fec_asignacion  DateTime?       @default(now()) @db.Timestamp(6)
+  detalle_eventos detalle_eventos @relation(fields: [id_det], references: [id_det], onDelete: Cascade)
+  usuarios        usuarios        @relation(fields: [id_usu], references: [id_usu], onDelete: Cascade)
+
+  @@id([id_det, id_usu])
+  @@index([id_det], map: "idx_detalle_instructores_detalle")
+  @@index([rol_instructor], map: "idx_detalle_instructores_rol")
+  @@index([id_usu], map: "idx_detalle_instructores_usuario")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model estudiantes {
+  id_est        Int       @id @default(autoincrement())
+  id_usu        Int
+  id_niv        String    @db.VarChar(10)
+  fec_ingreso   DateTime  @default(dbgenerated("CURRENT_DATE")) @db.Date
+  fec_egreso    DateTime? @db.Date
+  est_activo    Int       @default(1) @db.SmallInt
+  observaciones String?
+  nivel         nivel     @relation(fields: [id_niv], references: [id_niv], onDelete: Cascade)
+  usuarios      usuarios  @relation(fields: [id_usu], references: [id_usu], onDelete: Cascade)
+
+  @@unique([id_usu, id_niv, fec_ingreso], map: "estudiantes_unico_activo")
+  @@index([est_activo], map: "idx_estudiantes_activo")
+  @@index([fec_ingreso, fec_egreso], map: "idx_estudiantes_fechas")
+  @@index([id_niv], map: "idx_estudiantes_nivel")
+  @@index([id_usu], map: "idx_estudiantes_usuario")
 }
