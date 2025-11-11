@@ -142,17 +142,22 @@ const EventsPage: React.FC = () => {
         <button
           onClick={() => setShowAddModal(true)}
           className="flex items-center justify-center gap-2 bg-[#581517] text-white px-4 py-2 rounded-lg hover:bg-[#6d1a1a] transition"
+          disabled={isLoading}
         >
           <Plus size={18} /> Añadir curso
         </button>
       </div>
 
       {/* Lista de cursos */}
-      {filteredEvents.length > 0 ? (
+      {isLoading ? (
+        <div className="text-center py-12">
+          <p className="text-gray-500">Cargando eventos...</p>
+        </div>
+      ) : filteredEvents.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredEvents.map((event) => (
             <div
-              key={event.id}
+              key={event.realId || event.id}
               className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition rounded-xl p-5 flex flex-col justify-between"
             >
               <div>
