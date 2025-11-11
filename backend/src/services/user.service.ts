@@ -1,5 +1,5 @@
 //Se actualizo la ruta y las carpetas del user
-import prisma from '@/config/prismaClient'; // crea este client.ts si no lo tienes aún
+import prisma from '@/config/database';
 
 export class UserService {
   async getAll() {
@@ -9,7 +9,7 @@ export class UserService {
         nom_usu: true,
         ape_usu: true,
         cor_usu: true,
-        img_perfil: true,
+        img_perfil: true, // 🔥 texto base64
       },
     });
   }
@@ -22,13 +22,25 @@ export class UserService {
   }
 
   async create(data: any) {
-    return await prisma.usuarios.create({ data });
+    return await prisma.usuarios.create({
+      data: {
+        nom_usu: data.nom_usu,
+        ape_usu: data.ape_usu,
+        cor_usu: data.cor_usu,
+        img_perfil: data.img_perfil || null, // 🔥 base64 o null
+      },
+    });
   }
 
   async update(id: number, data: any) {
     return await prisma.usuarios.update({
       where: { id_usu: id },
-      data,
+      data: {
+        nom_usu: data.nom_usu,
+        ape_usu: data.ape_usu,
+        cor_usu: data.cor_usu,
+        img_perfil: data.img_perfil ?? undefined,
+      },
     });
   }
 
@@ -56,4 +68,5 @@ export class UserService {
     });
   }
 }
+
 //Capa de aplicación (use cases + lógica del negocio)
