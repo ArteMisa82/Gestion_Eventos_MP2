@@ -1,7 +1,7 @@
 //Se actualizo la ruta y las carpetas del user para controles
 // Se actualizó la ruta y estructura del controlador User
 import { Request, Response } from 'express';
-import { UserService } from '../services/user.service'; // 👈 corregido: ruta relativa segura
+import { UserService } from '../services/user.service';
 
 const userService = new UserService();
 
@@ -32,7 +32,15 @@ export class UserController {
 
   async create(req: Request, res: Response): Promise<Response> {
     try {
-      const user = await userService.create(req.body);
+      const { nom_usu, ape_usu, cor_usu, img_perfil } = req.body;
+
+      const user = await userService.create({
+        nom_usu,
+        ape_usu,
+        cor_usu,
+        img_perfil: img_perfil || null, // 🔥 texto base64
+      });
+
       return res.status(201).json(user);
     } catch (error) {
       console.error('❌ Error al crear usuario:', error);
@@ -43,7 +51,15 @@ export class UserController {
   async update(req: Request, res: Response): Promise<Response> {
     try {
       const id = Number(req.params.id);
-      const updated = await userService.update(id, req.body);
+      const { nom_usu, ape_usu, cor_usu, img_perfil } = req.body;
+
+      const updated = await userService.update(id, {
+        nom_usu,
+        ape_usu,
+        cor_usu,
+        img_perfil: img_perfil ?? undefined,
+      });
+
       return res.json(updated);
     } catch (error) {
       console.error('❌ Error al actualizar usuario:', error);
@@ -74,5 +90,6 @@ export class UserController {
     }
   }
 }
+
 
 //Controlador REST que conecta la API con la capa de servicio
