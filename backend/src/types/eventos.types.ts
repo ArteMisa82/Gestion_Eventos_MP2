@@ -7,6 +7,7 @@ export interface CreateEventoDto {
   mod_evt?: string; // Modalidad: PRESENCIAL, VIRTUAL
   tip_pub_evt?: string; // Tipo público: GENERAL, ESTUDIANTES, ADMINISTRATIVOS
   cos_evt?: string; // Costo: GRATUITO, DE PAGO
+  ima_evt?: string; // URL de imagen o Base64
   id_responsable: number; // Responsable asignado (OBLIGATORIO - todo evento debe tener responsable)
   // Detalles opcionales para crear en la misma petición (solo ADMIN)
   detalles?: Omit<CreateDetalleEventoDto, 'id_evt_per'>;
@@ -21,6 +22,7 @@ export interface UpdateEventoDto {
   cos_evt?: string;
   des_evt?: string;
   est_evt?: string; // Estado: EDITANDO, PLANIFICADO, EN CURSO, FINALIZADO, CANCELADO
+  ima_evt?: string; // URL de imagen o Base64
   id_responsable?: number; // Solo ADMIN puede cambiar el responsable
 }
 
@@ -39,6 +41,7 @@ export interface EventoResponse {
   cos_evt: string;
   des_evt: string;
   est_evt: string | null;
+  ima_evt: string | null;
   id_res_evt: number | null;
   responsable?: {
     id_usu: number;

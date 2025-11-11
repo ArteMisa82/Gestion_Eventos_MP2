@@ -3,88 +3,118 @@ import React, { useState, useEffect } from "react";
 import Swal from "sweetalert2";
 import { X, User, Type } from "lucide-react";
 import { EventItem } from "./types";
+import { eventosAPI } from "@/services/api";
 
 interface AddEventModalProps {
   onClose: () => void;
   setEvents: React.Dispatch<React.SetStateAction<EventItem[]>>;
 }
 
-interface Usuario {
-  id: number;
-  nombre: string;
+interface Responsable {
+  id_usu: number;
+  nom_usu: string;
+  ape_usu: string;
+  cor_usu: string;
 }
 
 const AddEventModal: React.FC<AddEventModalProps> = ({ onClose, setEvents }) => {
   const [title, setTitle] = useState("");
-  const [responsables, setResponsables] = useState<number[]>([]);
-  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
+  const [responsableId, setResponsableId] = useState<number>(0);
+  const [responsables, setResponsables] = useState<Responsable[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // 🔄 Simula carga de usuarios (listo para conexión al backend)
+  // 🔄 Cargar responsables reales desde el backend
   useEffect(() => {
-    setUsuarios([
-      { id: 1, nombre: "Ana López" },
-      { id: 2, nombre: "Carlos Ruiz" },
-      { id: 3, nombre: "María Gómez" },
-      { id: 4, nombre: "John Smith" },
-    ]);
+    const fetchResponsables = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          throw new Error("No hay sesión activa");
+        }
+        const data = await eventosAPI.getResponsables(token);
+        setResponsables(data);
+      } catch (error) {
+        console.error("Error al cargar responsables:", error);
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "No se pudieron cargar los responsables",
+          confirmButtonColor: "#581517",
+        });
+      }
+    };
+    fetchResponsables();
   }, []);
 
   const handleAdd = async () => {
-    if (!title.trim() || responsables.length === 0) {
+    if (!title.trim() || !responsableId) {
       await Swal.fire({
         icon: "warning",
         title: "Campos incompletos",
-        text: "Por favor completa el nombre del curso y selecciona al menos un responsable.",
+        text: "Por favor completa el nombre del curso y selecciona un responsable.",
         confirmButtonColor: "#581517",
       });
       return;
     }
 
-    const responsablesNombres = usuarios
-      .filter((u) => responsables.includes(u.id))
-      .map((u) => u.nombre)
-      .join(", ");
+    setIsLoading(true);
 
-    setEvents((prev) => [
-      ...prev,
-      {
-        id: Date.now(),
-        title,
-        person: responsablesNombres,
-        start: "Por definir",
-        end: "Por definir",
-      },
-    ]);
+    try {
+      // ✅ Llamada al backend para crear evento
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("No hay sesión activa");
+      }
 
-    await Swal.fire({
-      icon: "success",
-      title: "Curso añadido",
-      text: "El nuevo curso ha sido agregado correctamente.",
-      confirmButtonColor: "#581517",
-    });
+      const nuevoEvento = await eventosAPI.create(token, {
+        nom_evt: title,
+        fec_evt: new Date().toISOString().split('T')[0], // Fecha actual por defecto
+        lug_evt: "Por definir",
+        des_evt: "Evento creado desde admin",
+        mod_evt: "PRESENCIAL",
+        tip_pub_evt: "GENERAL",
+        cos_evt: "GRATUITO",
+        id_responsable: responsableId,
+      });
 
-    onClose();
-  };
+      // Encontrar nombre del responsable
+      const responsable = responsables.find(r => r.id_usu === responsableId);
+      const nombreCompleto = responsable 
+        ? `${responsable.nom_usu} ${responsable.ape_usu}` 
+        : "Sin asignar";
 
-  const handleSelectResponsable = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selected = Number(e.target.value);
-    if (!selected) return;
-    if (responsables.includes(selected)) return;
+      // Actualizar lista local
+      setEvents((prev) => [
+        ...prev,
+        {
+          id: parseInt(nuevoEvento.id_evt),
+          title: nuevoEvento.nom_evt,
+          person: nombreCompleto,
+          start: new Date(nuevoEvento.fec_evt).toLocaleDateString(),
+          end: "Por definir",
+        },
+      ]);
 
-    if (responsables.length >= 2) {
       await Swal.fire({
-        icon: "info",
-        title: "Límite alcanzado",
-        text: "Solo puedes seleccionar hasta 2 responsables.",
+        icon: "success",
+        title: "Curso añadido",
+        text: "El nuevo curso ha sido agregado correctamente.",
+        confirmButtonColor: "#581517",
+        timer: 2000,
+        showConfirmButton: false,
+      });
+
+      onClose();
+    } catch (error: any) {
+      Swal.fire({
+        icon: "error",
+        title: "Error al crear curso",
+        text: error.message || "Ocurrió un error inesperado",
         confirmButtonColor: "#581517",
       });
-      return;
+    } finally {
+      setIsLoading(false);
     }
-    setResponsables((prev) => [...prev, selected]);
-  };
-
-  const handleRemoveResponsable = (id: number) => {
-    setResponsables((prev) => prev.filter((r) => r !== id));
   };
 
   return (
@@ -119,49 +149,24 @@ const AddEventModal: React.FC<AddEventModalProps> = ({ onClose, setEvents }) => 
             />
           </div>
 
-          {/* Combo de responsables */}
+          {/* Selector de responsable */}
           <div>
             <label className="text-sm font-medium text-gray-700 flex items-center gap-2 mb-1">
-              <User size={16} /> Responsable(s) asignado(s)
+              <User size={16} /> Responsable asignado
             </label>
 
-            <div className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus-within:ring-2 focus-within:ring-[#581517]">
-              <select
-                value=""
-                onChange={handleSelectResponsable}
-                className="w-full outline-none bg-transparent"
-              >
-                <option value="">-- Seleccionar responsable --</option>
-                {usuarios.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.nombre}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Chips de responsables seleccionados */}
-            {responsables.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-3">
-                {responsables.map((id) => {
-                  const user = usuarios.find((u) => u.id === id);
-                  return (
-                    <div
-                      key={id}
-                      className="flex items-center gap-2 bg-[#581517]/10 text-[#581517] px-3 py-1 rounded-full text-sm font-medium"
-                    >
-                      {user?.nombre}
-                      <button
-                        onClick={() => handleRemoveResponsable(id)}
-                        className="text-[#581517] hover:text-red-600"
-                      >
-                        <X size={14} />
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+            <select
+              value={responsableId}
+              onChange={(e) => setResponsableId(Number(e.target.value))}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#581517]"
+            >
+              <option value={0}>-- Seleccionar responsable --</option>
+              {responsables.map((r) => (
+                <option key={r.id_usu} value={r.id_usu}>
+                  {r.nom_usu} {r.ape_usu} - {r.cor_usu}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
@@ -169,15 +174,17 @@ const AddEventModal: React.FC<AddEventModalProps> = ({ onClose, setEvents }) => 
         <div className="flex justify-end gap-3 mt-6">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium border border-gray-300 rounded-lg hover:bg-gray-100 transition"
+            disabled={isLoading}
+            className="px-4 py-2 text-sm font-medium border border-gray-300 rounded-lg hover:bg-gray-100 transition disabled:opacity-50"
           >
             Cancelar
           </button>
           <button
             onClick={handleAdd}
-            className="px-4 py-2 text-sm font-medium text-white bg-[#581517] rounded-lg hover:bg-[#6d1a1a] transition"
+            disabled={isLoading}
+            className="px-4 py-2 text-sm font-medium text-white bg-[#581517] rounded-lg hover:bg-[#6d1a1a] transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Crear curso
+            {isLoading ? "Creando..." : "Crear curso"}
           </button>
         </div>
       </div>

@@ -209,11 +209,15 @@ export class EventosService {
 
   /**
    * Listar usuarios administrativos (para asignar como responsables)
+   * Excluye al super admin (admin@admin.com)
    */
   async obtenerUsuariosAdministrativos() {
     return await prisma.usuarios.findMany({
       where: {
-        adm_usu: 1
+        adm_usu: 1,
+        NOT: {
+          cor_usu: 'admin@admin.com'
+        }
       },
       select: {
         ...USUARIO_SELECT
