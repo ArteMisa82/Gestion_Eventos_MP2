@@ -9,24 +9,18 @@ dotenv.config();
 
 const app = express();
 
-// Middlewares
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' })); // 🔥 Para aceptar imágenes Base64 grandes
 
-// Ruta raíz
 app.get('/', (req, res) => {
   res.send('Backend funcionando 🚀');
 });
 
-// Rutas API
 app.use('/api', routes);
-
-// Manejo de errores
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 3001;
 
-// Iniciar servidor
 app.listen(PORT, async () => {
   try {
     await prisma.$connect();
@@ -39,7 +33,6 @@ app.listen(PORT, async () => {
   }
 });
 
-// Cerrar conexión al terminar
 process.on('SIGINT', async () => {
   await prisma.$disconnect();
   process.exit(0);
