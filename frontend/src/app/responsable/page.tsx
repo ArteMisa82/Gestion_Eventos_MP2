@@ -75,34 +75,43 @@ export default function DashboardResponsable() {
       icon: "success",
       title: "Datos guardados",
       text: `El evento "${eventoActualizado.nombre}" fue actualizado correctamente.`,
-      confirmButtonColor: "#2563eb",
+      confirmButtonColor: "#581517",
     });
   };
 
   return (
-    <div className="p-6 bg-gray-100 min-h-screen">
-      <h1 className="text-3xl font-bold mb-6 text-blue-800">
+    <div className="p-8 font-sans text-gray-800 min-h-screen bg-white">
+      {/* Título principal */}
+      <h1 className="text-3xl font-semibold mb-6 tracking-tight text-center text-[#581517]">
         Eventos Asignados
       </h1>
 
-      <div className="grid md:grid-cols-3 gap-6">
+      {/* Contenedor de tarjetas */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {eventos.map((ev) => (
           <div
             key={ev.id}
-            className="bg-white rounded-2xl shadow-md p-5 hover:shadow-lg transition relative"
+            className="bg-white border border-gray-200 rounded-lg shadow-md p-5 hover:shadow-lg transition-all"
           >
-            <h2 className="text-lg font-semibold text-gray-800 mb-2">
-              {ev.nombre}
-            </h2>
-            <p className="text-sm text-gray-500 flex items-center">
-              <Calendar size={16} className="mr-1" />
-              No definido
+            <h2 className="text-lg font-semibold mb-2">{ev.nombre}</h2>
+            <p className="text-sm text-gray-600 flex items-center mb-1">
+              <Calendar size={16} className="mr-1 text-gray-500" />
+              {ev.fechaInicio && ev.fechaFin
+                ? `${ev.fechaInicio} - ${ev.fechaFin}`
+                : "Fechas no definidas"}
+            </p>
+            <p className="text-sm text-gray-600 mb-1">
+              <span className="font-medium">Modalidad:</span>{" "}
+              {ev.modalidad || "Por definir"}
+            </p>
+            <p className="text-sm text-gray-600 mb-3">
+              <span className="font-medium">Público:</span> {ev.publico}
             </p>
 
-            <div className="flex justify-end mt-4">
+            <div className="flex justify-end mt-2">
               <button
                 onClick={() => setEventoEditando(ev)}
-                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-sm transition"
+                className="flex items-center gap-2 text-[#581517] hover:text-[#7a1c1c] text-sm font-medium transition"
               >
                 <Edit size={16} /> Editar
               </button>
