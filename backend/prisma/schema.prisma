@@ -68,6 +68,7 @@ model eventos {
   id_res_evt      Int?
   est_evt         String?           @default("EDITANDO") @db.VarChar(20)
   ima_evt         String?
+  fec_fin_evt     DateTime?         @db.Date
   detalle_eventos detalle_eventos[]
   usuarios        usuarios?         @relation(fields: [id_res_evt], references: [id_usu], map: "fk_eventos_responsable")
   requerimientos  requerimientos[]

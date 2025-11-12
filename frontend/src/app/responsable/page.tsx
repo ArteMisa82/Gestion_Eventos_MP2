@@ -114,14 +114,14 @@ export default function DashboardResponsable() {
       tipoEvento: eventoActualizado.tipoEvento || "",
       camposExtra: eventoActualizado.camposExtra || {},
       docente: eventoActualizado.docente,
-      // Campos del backend
+      // Campos del backend - actualizar con los valores del modal
       id_evt: eventoActualizado.id_evt,
       nom_evt: eventoActualizado.nom_evt,
-      fec_evt: eventoActualizado.fec_evt,
+      fec_evt: eventoActualizado.fechaInicio,
       lug_evt: eventoActualizado.lug_evt,
-      mod_evt: eventoActualizado.mod_evt,
-      tip_pub_evt: eventoActualizado.tip_pub_evt,
-      cos_evt: eventoActualizado.cos_evt,
+      mod_evt: eventoActualizado.modalidad,
+      tip_pub_evt: eventoActualizado.publico === "General" ? "GENERAL" : "ESTUDIANTES",
+      cos_evt: eventoActualizado.pago === "Gratis" ? "GRATUITO" : "DE PAGO",
       des_evt: eventoActualizado.des_evt,
       est_evt: eventoActualizado.est_evt,
     };
@@ -131,12 +131,7 @@ export default function DashboardResponsable() {
     );
     setEventoEditando(null);
 
-    Swal.fire({
-      icon: "success",
-      title: "Datos guardados",
-      text: `El evento "${eventoCompleto.nombre}" fue actualizado correctamente.`,
-      confirmButtonColor: "#581517",
-    });
+    // El mensaje de éxito ya lo muestra el modal
   };
 
   return (
