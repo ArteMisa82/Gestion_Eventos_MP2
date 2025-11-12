@@ -190,6 +190,28 @@ export const eventosAPI = {
     });
     return handleResponse(response);
   },
+
+  /**
+   * Obtener eventos asignados al usuario autenticado (mis eventos)
+   * GET /api/eventos/mis-eventos
+   */
+  getMisEventos: async (token: string) => {
+    const response = await fetch(`${API_URL}/eventos/mis-eventos`, {
+      headers: getHeaders(token),
+    });
+    return handleResponse(response);
+  },
+
+  /**
+   * Obtener usuarios que son responsables activos de algún curso
+   * GET /api/eventos/usuarios/responsables-activos
+   */
+  getResponsablesActivos: async (token: string) => {
+    const response = await fetch(`${API_URL}/eventos/usuarios/responsables-activos`, {
+      headers: getHeaders(token),
+    });
+    return handleResponse(response);
+  },
 };
 
 // ==========================================
