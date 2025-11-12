@@ -229,6 +229,31 @@ export class EventosService {
   }
 
   /**
+   * Obtener usuarios que son responsables de al menos un curso/evento
+   */
+  async obtenerResponsablesActivos() {
+    // Obtener todos los usuarios que tienen al menos un evento asignado
+    return await prisma.usuarios.findMany({
+      where: {
+        eventos: {
+          some: {} // Tiene al menos un evento
+        }
+      },
+      select: {
+        ...USUARIO_SELECT,
+        _count: {
+          select: {
+            eventos: true // Contar cuántos eventos tiene asignados
+          }
+        }
+      },
+      orderBy: {
+        nom_usu: 'asc'
+      }
+    });
+  }
+
+  /**
    * Obtener eventos asignados a un responsable
    */
   async obtenerEventosPorResponsable(userId: number) {

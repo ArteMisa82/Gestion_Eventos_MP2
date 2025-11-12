@@ -8,6 +8,7 @@ const controller = new EventosController();
 // Rutas públicas (con autenticación)
 router.get('/', authMiddleware, controller.obtenerTodos.bind(controller));
 router.get('/usuarios/administrativos', authMiddleware, controller.obtenerUsuariosAdministrativos.bind(controller));
+router.get('/usuarios/responsables-activos', authMiddleware, controller.obtenerResponsablesActivos.bind(controller));
 router.get('/mis-eventos', authMiddleware, controller.obtenerMisEventos.bind(controller));
 router.get('/:id', authMiddleware, controller.obtenerPorId.bind(controller));
 

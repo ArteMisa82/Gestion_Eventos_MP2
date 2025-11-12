@@ -163,6 +163,22 @@ export class EventosController {
     }
   }
 
+  // GET /api/eventos/usuarios/responsables-activos - Listar usuarios que son responsables de algún curso
+  async obtenerResponsablesActivos(req: Request, res: Response) {
+    try {
+      const responsables = await eventosService.obtenerResponsablesActivos();
+      res.json({
+        success: true,
+        data: responsables
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Error al obtener responsables activos'
+      });
+    }
+  }
+
   // GET /api/eventos/mis-eventos - Obtener eventos asignados al usuario actual
   async obtenerMisEventos(req: Request, res: Response) {
     try {
