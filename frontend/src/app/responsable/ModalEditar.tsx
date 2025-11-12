@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { X } from "lucide-react";
 import Swal from "sweetalert2";
+import { eventosAPI } from "@/services/api";
 
 interface Evento {
   id: string;
@@ -95,7 +96,7 @@ export default function ModalEditarEvento({
     });
   };
 
-  const handleGuardar = () => {
+  const handleGuardar = async () => {
     if (!formData.fechaInicio || !formData.fechaFin) {
       Swal.fire({
         icon: "warning",
@@ -116,8 +117,46 @@ export default function ModalEditarEvento({
       return;
     }
 
-    onGuardar(formData);
-    onClose();
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("No hay sesión activa");
+      }
+
+      // Preparar datos para enviar al backend
+      const updateData: any = {
+        fec_evt: formData.fechaInicio,
+        fec_fin_evt: formData.fechaFin,
+        mod_evt: formData.modalidad,
+        tip_pub_evt: formData.publico === "General" ? "GENERAL" : "ESTUDIANTES",
+        cos_evt: formData.pago === "Gratis" ? "GRATUITO" : "DE PAGO",
+      };
+
+      // Actualizar en el backend
+      await eventosAPI.update(token, evento.id, updateData);
+
+      // Notificar al componente padre
+      onGuardar(formData);
+
+      await Swal.fire({
+        icon: "success",
+        title: "Evento actualizado",
+        text: "Los cambios se han guardado correctamente.",
+        confirmButtonColor: "#581517",
+        timer: 1500,
+        showConfirmButton: false,
+      });
+
+      onClose();
+    } catch (error: any) {
+      console.error("Error al actualizar evento:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: error.message || "No se pudo actualizar el evento",
+        confirmButtonColor: "#581517",
+      });
+    }
   };
 
   return (

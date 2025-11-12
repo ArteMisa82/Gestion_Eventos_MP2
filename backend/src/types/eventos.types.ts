@@ -2,6 +2,7 @@
 export interface CreateEventoDto {
   nom_evt: string;
   fec_evt: string | Date;
+  fec_fin_evt?: string | Date; // Fecha de finalización
   lug_evt: string;
   des_evt: string;
   mod_evt?: string; // Modalidad: PRESENCIAL, VIRTUAL
@@ -16,6 +17,7 @@ export interface CreateEventoDto {
 export interface UpdateEventoDto {
   nom_evt?: string;
   fec_evt?: string | Date;
+  fec_fin_evt?: string | Date; // Fecha de finalización
   lug_evt?: string;
   mod_evt?: string;
   tip_pub_evt?: string;
@@ -35,6 +37,7 @@ export interface EventoResponse {
   id_evt: string;
   nom_evt: string;
   fec_evt: Date;
+  fec_fin_evt?: Date | null; // Fecha de finalización
   lug_evt: string;
   mod_evt: string;
   tip_pub_evt: string;

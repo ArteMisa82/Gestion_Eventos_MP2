@@ -180,12 +180,14 @@ export class EventosService {
       data: {
         nom_evt: data.nom_evt,
         fec_evt: data.fec_evt ? new Date(data.fec_evt) : undefined,
+        fec_fin_evt: data.fec_fin_evt ? new Date(data.fec_fin_evt) : undefined,
         lug_evt: data.lug_evt,
         mod_evt: data.mod_evt?.toUpperCase(),
         tip_pub_evt: data.tip_pub_evt?.toUpperCase(),
         cos_evt: data.cos_evt?.toUpperCase(),
         des_evt: data.des_evt,
         est_evt: data.est_evt?.toUpperCase(),
+        ima_evt: data.ima_evt,
         // Solo admin puede cambiar responsable
         ...(esAdmin && data.id_responsable !== undefined && {
           id_res_evt: data.id_responsable
