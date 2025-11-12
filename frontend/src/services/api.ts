@@ -212,6 +212,28 @@ export const eventosAPI = {
     });
     return handleResponse(response);
   },
+
+  /**
+   * Obtener eventos publicados (PÚBLICO - sin token)
+   * GET /api/eventos/publicos
+   */
+  getPublicados: async (filters?: {
+    mod_evt?: string;
+    tip_pub_evt?: string;
+    cos_evt?: string;
+    busqueda?: string;
+  }) => {
+    const params = new URLSearchParams();
+    if (filters?.mod_evt) params.append('mod_evt', filters.mod_evt);
+    if (filters?.tip_pub_evt) params.append('tip_pub_evt', filters.tip_pub_evt);
+    if (filters?.cos_evt) params.append('cos_evt', filters.cos_evt);
+    if (filters?.busqueda) params.append('busqueda', filters.busqueda);
+    
+    const response = await fetch(`${API_URL}/eventos/publicos?${params}`, {
+      headers: getHeaders(), // Sin token - es público
+    });
+    return handleResponse(response);
+  },
 };
 
 // ==========================================
@@ -337,6 +359,22 @@ export const inscripcionesAPI = {
     id_reg_evt: string;
   }) => {
     const response = await fetch(`${API_URL}/inscripciones`, {
+      method: 'POST',
+      headers: getHeaders(token),
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  },
+
+  /**
+   * Validar si un usuario puede inscribirse
+   * POST /api/inscripciones/validar
+   */
+  validar: async (token: string, data: {
+    id_usu: number;
+    id_reg_evt: string;
+  }) => {
+    const response = await fetch(`${API_URL}/inscripciones/validar`, {
       method: 'POST',
       headers: getHeaders(token),
       body: JSON.stringify(data),
