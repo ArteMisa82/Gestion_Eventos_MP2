@@ -336,4 +336,32 @@ export class EventosController {
       });
     }
   }
+
+  // ==========================================
+  // ENDPOINTS PÚBLICOS (SIN AUTENTICACIÓN)
+  // ==========================================
+
+  // GET /api/eventos/publicos - PÚBLICO: Obtener eventos publicados
+  async obtenerEventosPublicados(req: Request, res: Response) {
+    try {
+      const filtros = {
+        mod_evt: req.query.mod_evt as string | undefined,
+        tip_pub_evt: req.query.tip_pub_evt as string | undefined,
+        cos_evt: req.query.cos_evt as string | undefined,
+        busqueda: req.query.busqueda as string | undefined,
+      };
+
+      const eventos = await eventosService.obtenerEventosPublicados(filtros);
+      
+      res.json({
+        success: true,
+        data: eventos
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Error al obtener eventos publicados'
+      });
+    }
+  }
 }

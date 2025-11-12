@@ -5,6 +5,14 @@ import { authMiddleware, adminMiddleware } from '../middlewares/auth.middleware'
 const router = Router();
 const controller = new EventosController();
 
+// ==========================================
+// RUTAS PÚBLICAS (SIN AUTENTICACIÓN)
+// ==========================================
+router.get('/publicos', controller.obtenerEventosPublicados.bind(controller));
+
+// ==========================================
+// RUTAS AUTENTICADAS
+// ==========================================
 // Rutas públicas (con autenticación)
 router.get('/', authMiddleware, controller.obtenerTodos.bind(controller));
 router.get('/usuarios/administrativos', authMiddleware, controller.obtenerUsuariosAdministrativos.bind(controller));

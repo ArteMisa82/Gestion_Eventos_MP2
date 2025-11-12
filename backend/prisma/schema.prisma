@@ -14,6 +14,10 @@ model autoridades {
   ced_per  String   @db.VarChar(10)
   dir_aut  String   @db.VarChar(30)
   car_aut  String   @db.VarChar(20)
+  uni_aut  String?  @db.VarChar(50)
+  img_aut  String?
+  ord_aut  Int?     @default(0)
+  act_aut  Boolean? @default(true)
   personas personas @relation(fields: [ced_per], references: [ced_per], onDelete: Cascade)
 }
 
@@ -241,4 +245,56 @@ model estudiantes {
   @@index([fec_ingreso, fec_egreso], map: "idx_estudiantes_fechas")
   @@index([id_niv], map: "idx_estudiantes_nivel")
   @@index([id_usu], map: "idx_estudiantes_usuario")
+}
+
+/// Tabla para gestionar el contenido de la sección INICIO
+model contenido_inicio {
+  id_inicio         Int                   @id @default(autoincrement())
+  img_hero          String?
+  fec_actualizacion DateTime?             @default(now()) @updatedAt @db.Timestamp(6)
+  activo            Boolean?              @default(true)
+  estadisticas      estadisticas_inicio[]
+}
+
+/// Estadísticas que se muestran en la página de inicio
+model estadisticas_inicio {
+  id_estadistica   Int              @id @default(autoincrement())
+  id_inicio        Int
+  valor            String           @db.VarChar(50)
+  etiqueta         String           @db.VarChar(100)
+  orden            Int?             @default(0)
+  contenido_inicio contenido_inicio @relation(fields: [id_inicio], references: [id_inicio], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([id_inicio], map: "idx_estadisticas_inicio")
+}
+
+/// Tabla para gestionar el contenido de la sección NOSOTROS
+model contenido_nosotros {
+  id_nosotros       Int       @id @default(autoincrement())
+  img_banner        String?
+  mision            String
+  vision            String
+  fec_actualizacion DateTime? @default(now()) @updatedAt @db.Timestamp(6)
+  activo            Boolean?  @default(true)
+}
+
+/// Tabla para gestionar el contenido de la sección CURSOS
+model contenido_cursos {
+  id_cursos         Int       @id @default(autoincrement())
+  img_default       String?
+  descripcion       String
+  fec_actualizacion DateTime? @default(now()) @updatedAt @db.Timestamp(6)
+  activo            Boolean?  @default(true)
+}
+
+/// Tabla para gestionar el contenido de la sección CONTACTO
+model contenido_contacto {
+  id_contacto       Int       @id @default(autoincrement())
+  img_banner        String?
+  titulo            String    @db.VarChar(100)
+  email             String    @db.VarChar(100)
+  telefono          String?   @db.VarChar(20)
+  direccion         String?
+  fec_actualizacion DateTime? @default(now()) @updatedAt @db.Timestamp(6)
+  activo            Boolean?  @default(true)
 }

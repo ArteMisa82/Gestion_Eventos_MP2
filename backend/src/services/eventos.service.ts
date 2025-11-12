@@ -272,4 +272,63 @@ export class EventosService {
       }
     });
   }
+
+  /**
+   * PÚBLICO: Obtener eventos publicados (sin autenticación)
+   * Para mostrar en la página de cursos
+   */
+  async obtenerEventosPublicados(filtros?: {
+    mod_evt?: string;  // PRESENCIAL, VIRTUAL, A DISTANCIA
+    tip_pub_evt?: string;  // GENERAL, ESTUDIANTES, ADMINISTRATIVOS
+    cos_evt?: string;  // GRATUITO, DE PAGO
+    busqueda?: string;
+  }) {
+    const whereConditions: any = {
+      est_evt: 'PUBLICADO'  // Solo eventos publicados
+    };
+
+    // Aplicar filtros si existen
+    if (filtros?.mod_evt) {
+      whereConditions.mod_evt = filtros.mod_evt.toUpperCase();
+    }
+
+    if (filtros?.tip_pub_evt) {
+      whereConditions.tip_pub_evt = filtros.tip_pub_evt.toUpperCase();
+    }
+
+    if (filtros?.cos_evt) {
+      whereConditions.cos_evt = filtros.cos_evt.toUpperCase();
+    }
+
+    // Búsqueda por nombre
+    if (filtros?.busqueda) {
+      whereConditions.nom_evt = {
+        contains: filtros.busqueda,
+        mode: 'insensitive'
+      };
+    }
+
+    return await prisma.eventos.findMany({
+      where: whereConditions,
+      include: {
+        detalle_eventos: {
+          include: {
+            detalle_instructores: {
+              include: {
+                usuarios: {
+                  select: USUARIO_SELECT
+                }
+              }
+            }
+          }
+        },
+        usuarios: {
+          select: USUARIO_SELECT
+        }
+      },
+      orderBy: {
+        fec_evt: 'desc'
+      }
+    });
+  }
 }
