@@ -1,7 +1,9 @@
 import { Request, Response } from 'express';
 import { AuthService } from '../services/auth.service';
 import { successResponse } from '../utils/response.util';
+import { PasswordService } from '../services/password.service';
 
+const passwordService = new PasswordService();
 const authService = new AuthService();
 
 export class AuthController {
@@ -118,6 +120,160 @@ export class AuthController {
       });
     } catch (error) {
       console.error('Error en logout:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error interno del servidor'
+      });
+    }
+  }
+  
+  async forgotPassword(req: Request, res: Response) {
+    try {
+      const { email } = req.body;
+
+      if (!email) {
+        return res.status(400).json({
+          success: false,
+          message: 'Email es requerido'
+        });
+      }
+
+      const result = await passwordService.requestPasswordReset(email);
+
+      if (!result.success) {
+        return res.status(400).json({
+          success: false,
+          message: result.message
+        });
+      }
+
+      res.json(successResponse(
+        { resetToken: result.resetToken }, // Solo para testing
+        result.message
+      ));
+    } catch (error) {
+      console.error('Error en forgot password:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error interno del servidor'
+      });
+    }
+  }
+
+  async resetPassword(req: Request, res: Response) {
+    try {
+      const { token, newPassword } = req.body;
+
+      if (!token || !newPassword) {
+        return res.status(400).json({
+          success: false,
+          message: 'Token y nueva contraseña son requeridos'
+        });
+      }
+
+      if (newPassword.length < 6) {
+        return res.status(400).json({
+          success: false,
+          message: 'La contraseña debe tener al menos 6 caracteres'
+        });
+      }
+
+      const result = await passwordService.resetPassword(token, newPassword);
+
+      if (!result.success) {
+        return res.status(400).json({
+          success: false,
+          message: result.message
+        });
+      }
+
+      res.json(successResponse(null, result.message));
+    } catch (error) {
+      console.error('Error en reset password:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error interno del servidor'
+      });
+    }
+  }
+
+  async verifyResetToken(req: Request, res: Response) {
+    try {
+      const { token } = req.body;
+
+      if (!token) {
+        return res.status(400).json({
+          success: false,
+          message: 'Token es requerido'
+        });
+      }
+
+      const isValid = await passwordService.verifyResetToken(token);
+
+      if (!isValid) {
+        return res.status(400).json({
+          success: false,
+          message: 'Token inválido o expirado'
+        });
+      }
+
+      res.json(successResponse(null, 'Token válido'));
+    } catch (error) {
+      console.error('Error verificando token:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error interno del servidor'
+      });
+    }
+  }
+
+  async sendVerificationEmail(req: Request, res: Response) {
+    try {
+      const userId = (req as any).userId;
+
+      const result = await authService.sendVerificationEmail(userId);
+
+      if (!result.success) {
+        return res.status(400).json({
+          success: false,
+          message: result.message
+        });
+      }
+
+      res.json(successResponse(null, result.message));
+    } catch (error) {
+      console.error('Error enviando verificación:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error interno del servidor'
+      });
+    }
+  }
+
+  async verifyEmail(req: Request, res: Response) {
+    try {
+      const userId = (req as any).userId;
+      const { code } = req.body;
+
+      if (!code) {
+        return res.status(400).json({
+          success: false,
+          message: 'Código de verificación es requerido'
+        });
+      }
+
+      const result = await authService.verifyEmail(userId, code);
+
+      if (!result.success) {
+        return res.status(400).json({
+          success: false,
+          message: result.message
+        });
+      }
+
+      res.json(successResponse(null, result.message));
+    } catch (error) {
+      console.error('Error verificando email:', error);
       res.status(500).json({
         success: false,
         message: 'Error interno del servidor'
