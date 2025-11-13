@@ -27,7 +27,7 @@ export default function LoginModal({
   const [isRecoverOpen, setIsRecoverOpen] = useState(false);
   const [showRegister, setShowRegister] = useState(initialRegister);
 
-  // Bloquear scroll cuando el modal esté abierto
+  // Bloquear scroll cuando el modal está abierto
   useEffect(() => {
     document.body.style.overflow = isOpen ? "hidden" : "auto";
     return () => {
@@ -35,22 +35,19 @@ export default function LoginModal({
     };
   }, [isOpen]);
 
-  // Cambiar entre login / registro según prop inicial
   useEffect(() => {
     if (isOpen) setShowRegister(initialRegister);
   }, [isOpen, initialRegister]);
 
-  // 🔐 Lógica de login simulada (sin backend aún)
+  // 🔐 Lógica de login con verificación de dominio
   const handleLogin = async () => {
     try {
       const adminEmail = "admin@admin.uta.edu.ec";
       const adminPassword = "admin123";
-      const userEmail = "usuario@uta.edu.ec";
-      const userPassword = "usuario123";
 
       let userData = null;
 
-      // --- ADMIN ---
+      // 🔹 Caso ADMIN
       if (email === adminEmail && password === adminPassword) {
         userData = { name: "Administrador", role: "admin", email };
         Swal.fire({
@@ -60,22 +57,37 @@ export default function LoginModal({
         });
         router.push("/admin");
 
-      // --- USUARIO ---
-      } else if (email === userEmail && password === userPassword) {
-        userData = { name: "Usuario", role: "usuario", email };
+      // 🔹 Caso DOCENTE (correo institucional UTA)
+      } else if (email.endsWith("@uta.edu.ec") && password.length > 0) {
+        userData = { name: email.split("@")[0], role: "usuario", email };
+        Swal.fire({
+          title: "Bienvenido Docente 👨‍🏫",
+          text: "Accediendo a su panel de docente.",
+          icon: "success",
+          confirmButtonColor: "#581517",
+        });
+        router.push("/usuarios/cursos");
+
+      // 🔹 Caso USUARIO normal (gmail o hotmail)
+      } else if (
+        (email.endsWith("@gmail.com") || email.endsWith("@hotmail.com")) &&
+        password.length > 0
+      ) {
+        userData = { name: email.split("@")[0], role: "usuario", email };
         Swal.fire({
           title: "Inicio de sesión exitoso ✅",
+          text: "Bienvenido a la plataforma.",
           icon: "success",
           confirmButtonColor: "#581517",
         });
         router.push("/usuarios");
 
-      // --- ERROR ---
+      // 🔹 Caso no válido
       } else {
         throw new Error("Correo o contraseña incorrectos ❌");
       }
 
-      // Limpiar campos
+      // 🔹 Limpieza y callback al navbar
       setEmail("");
       setPassword("");
 
@@ -103,6 +115,7 @@ export default function LoginModal({
           exit={{ opacity: 0 }}
           className="fixed inset-0 bg-black/40 backdrop-blur-sm flex justify-center items-center z-50"
         >
+          {/* Modal principal */}
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -123,7 +136,7 @@ export default function LoginModal({
               <Image src={logo} alt="Logo" width={90} height={90} />
             </div>
 
-            {/* Contenido animado: Login / Registro */}
+            {/* Contenido animado */}
             <AnimatePresence mode="wait">
               {!showRegister ? (
                 <motion.div
@@ -195,8 +208,7 @@ export default function LoginModal({
                       type="submit"
                       className="w-full py-3 mt-2 rounded-lg text-white font-semibold shadow-md transition-transform transform hover:-translate-y-1 hover:shadow-lg"
                       style={{
-                        background:
-                          "linear-gradient(to right, #581517, #7a2022)",
+                        background: "linear-gradient(to right, #581517, #7a2022)",
                       }}
                     >
                       Iniciar sesión
