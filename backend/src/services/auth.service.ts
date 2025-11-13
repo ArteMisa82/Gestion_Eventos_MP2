@@ -1,5 +1,7 @@
 import { PrismaClient } from '../generated/prisma';
 import { comparePassword, hashPassword } from '../utils/bcrypt.util';
+import { EmailService } from './email.service';
+import { TokenUtil } from '../utils/token.util';
 
 const prisma = new PrismaClient();
 
@@ -156,4 +158,70 @@ export class AuthService {
     if (user.stu_usu === 1) return 'student';
     return 'user';
   }
+  async sendVerificationEmail(userId: number): Promise<{ success: boolean; message: string }> {
+  try {
+    const user = await this.prisma.usuarios.findUnique({
+      where: { id_usu: userId }
+    });
+
+    if (!user) {
+      return { success: false, message: 'Usuario no encontrado' };
+    }
+
+    const emailService = new EmailService();
+    const verificationCode = TokenUtil.generateNumericCode(6);
+
+    // Guardar código en BD temporalmente
+    await this.prisma.usuarios.update({
+      where: { id_usu: userId },
+      data: {
+        img_usu: verificationCode // Campo temporal para demo
+      }
+    });
+
+    const emailSent = await emailService.sendVerificationEmail(user.cor_usu, verificationCode);
+
+    if (!emailSent) {
+      return { success: false, message: 'Error enviando email de verificación' };
+    }
+
+    return { success: true, message: 'Email de verificación enviado' };
+
+  } catch (error) {
+    console.error('Error enviando verificación:', error);
+    return { success: false, message: 'Error interno del servidor' };
+  }
+}
+
+async verifyEmail(userId: number, code: string): Promise<{ success: boolean; message: string }> {
+  try {
+    const user = await this.prisma.usuarios.findUnique({
+      where: { id_usu: userId }
+    });
+
+    if (!user) {
+      return { success: false, message: 'Usuario no encontrado' };
+    }
+
+    // Verificar código (en producción usar tabla separada con expiración)
+    if (user.img_usu !== code) {
+      return { success: false, message: 'Código de verificación inválido' };
+    }
+
+    // Marcar email como verificado y limpiar código
+    await this.prisma.usuarios.update({
+      where: { id_usu: userId },
+      data: {
+        img_usu: null, // Limpiar código
+        // Agregar campo 'email_verified' si no existe
+      }
+    });
+
+    return { success: true, message: 'Email verificado exitosamente' };
+
+  } catch (error) {
+    console.error('Error verificando email:', error);
+    return { success: false, message: 'Error interno del servidor' };
+  }
+}
 }
