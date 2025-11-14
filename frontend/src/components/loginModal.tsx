@@ -40,71 +40,80 @@ export default function LoginModal({
   }, [isOpen, initialRegister]);
 
   // 🔐 Lógica de login con verificación de dominio
-  const handleLogin = async () => {
-    try {
-      const adminEmail = "admin@admin.uta.edu.ec";
-      const adminPassword = "admin123";
+const handleLogin = async () => {
+  try {
+    const adminEmail = "admin@admin.uta.edu.ec";
+    const adminPassword = "admin123";
 
-      let userData = null;
+    let userData = null;
 
-      // 🔹 Caso ADMIN
-      if (email === adminEmail && password === adminPassword) {
-        userData = { name: "Administrador", role: "admin", email };
-        Swal.fire({
-          title: "Bienvenido Administrador 👑",
-          icon: "success",
-          confirmButtonColor: "#581517",
-        });
-        router.push("/admin");
-
-      // 🔹 Caso DOCENTE (correo institucional UTA)
-      } else if (email.endsWith("@uta.edu.ec") && password.length > 0) {
-        userData = { name: email.split("@")[0], role: "usuario", email };
-        Swal.fire({
-          title: "Inicio de sesión exitodos",
-          text: "Bienvenido a la plataforma.",
-          icon: "success",
-          confirmButtonColor: "#581517",
-        });
-        router.push("/usuarios/cursos");
-
-      // 🔹 Caso USUARIO normal (gmail o hotmail)
-      } else if (
-        (email.endsWith("@gmail.com") || email.endsWith("@hotmail.com")) &&
-        password.length > 0
-      ) {
-        userData = { name: email.split("@")[0], role: "usuario", email };
-        Swal.fire({
-          title: "Inicio de sesión exitoso ✅",
-          text: "Bienvenido a la plataforma.",
-          icon: "success",
-          confirmButtonColor: "#581517",
-        });
-        router.push("/usuarios/cursos");
-
-      // 🔹 Caso no válido
-      } else {
-        throw new Error("Correo o contraseña incorrectos ❌");
-      }
-
-      // 🔹 Limpieza y callback al navbar
-      setEmail("");
-      setPassword("");
-
-      if (userData && onLoginSuccess) {
-        onLoginSuccess(userData);
-      }
-
-      onClose();
-    } catch (error: any) {
+    // 🔹 Caso ADMIN
+    if (email === adminEmail && password === adminPassword) {
+      userData = { name: "Administrador", role: "admin", email };
       Swal.fire({
-        title: "Error",
-        text: error.message || "Error al iniciar sesión",
-        icon: "error",
+        title: "Bienvenido Administrador 👑",
+        icon: "success",
         confirmButtonColor: "#581517",
       });
+
+    // 🔹 Caso DOCENTE UTA
+    } else if (email.endsWith("@uta.edu.ec") && password.length > 0) {
+      userData = { name: email.split("@")[0], role: "usuario", email };
+      Swal.fire({
+        title: "Inicio de sesión exitoso",
+        text: "Bienvenido a la plataforma.",
+        icon: "success",
+        confirmButtonColor: "#581517",
+      });
+
+    // 🔹 Caso USUARIO Gmail / Hotmail
+    } else if (
+      (email.endsWith("@gmail.com") || email.endsWith("@hotmail.com")) &&
+      password.length > 0
+    ) {
+      userData = { name: email.split("@")[0], role: "usuario", email };
+      Swal.fire({
+        title: "Inicio de sesión exitoso",
+        text: "Bienvenido a la plataforma.",
+        icon: "success",
+        confirmButtonColor: "#581517",
+      });
+
+    } else {
+      throw new Error("Correo o contraseña incorrectos ❌");
     }
-  };
+
+    // 🧼 Limpieza
+    setEmail("");
+    setPassword("");
+
+    // 📌 Guardar usuario en el Navbar
+    if (userData && onLoginSuccess) {
+      onLoginSuccess(userData);
+    }
+
+    // 👁‍🗨 Cerrar modal
+    onClose();
+
+    // 🚀 REDIRECCIÓN DESPUÉS DE ACTUALIZAR NAVBAR
+    setTimeout(() => {
+      if (userData.role === "admin") {
+        router.push("/admin");
+      } else {
+        router.push("/usuarios/cursos");
+      }
+    }, 300);
+
+  } catch (error: any) {
+    Swal.fire({
+      title: "Error",
+      text: error.message || "Error al iniciar sesión",
+      icon: "error",
+      confirmButtonColor: "#581517",
+    });
+  }
+};
+
 
   return (
     <AnimatePresence>
