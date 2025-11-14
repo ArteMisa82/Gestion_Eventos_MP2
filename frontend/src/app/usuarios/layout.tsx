@@ -1,10 +1,24 @@
 "use client";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChevronDown } from "lucide-react";
 
 export default function UsuariosLayout({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
+
+  // 🔹 Estos valores deben venir del backend o del JWT
+  const [esResponsable, setEsResponsable] = useState(false);
+  const [esDocente, setEsDocente] = useState(false);
+
+  useEffect(() => {
+    // Aquí debes reemplazar con tus datos reales del usuario logueado
+    // Ejemplo de lectura desde localStorage o API:
+
+    const rolGuardado = JSON.parse(localStorage.getItem("ROL_USUARIO") || "{}");
+
+    setEsResponsable(rolGuardado.esResponsable || false);
+    setEsDocente(rolGuardado.esDocente || false);
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -30,24 +44,33 @@ export default function UsuariosLayout({ children }: { children: React.ReactNode
                 >
                   Mi Perfil
                 </Link>
+
                 <Link
                   href="/usuarios/cursos"
                   className="block px-3 py-2 rounded-md hover:bg-gray-200"
                 >
                   Mis Cursos
                 </Link>
-                <Link
-                  href="/responsable"
-                  className="block px-3 py-2 rounded-md hover:bg-gray-200"
-                >
-                  Panel Responsable
-                </Link>
-                <Link
-                  href="/docente"
-                  className="block px-3 py-2 rounded-md hover:bg-gray-200"
-                >
-                  Panel Docente
-                </Link>
+
+                {/* 🔹 Panel Responsable solo si fue asignado por el ADMINISTRADOR */}
+                {esResponsable && (
+                  <Link
+                    href="/responsable"
+                    className="block px-3 py-2 rounded-md hover:bg-gray-200"
+                  >
+                    Panel Responsable
+                  </Link>
+                )}
+
+                {/* 🔹 Panel Docente solo si fue asignado por el RESPONSABLE */}
+                {esDocente && (
+                  <Link
+                    href="/cursos/docente"
+                    className="block px-3 py-2 rounded-md hover:bg-gray-200"
+                  >
+                    Panel Docente
+                  </Link>
+                )}
               </div>
             )}
           </div>

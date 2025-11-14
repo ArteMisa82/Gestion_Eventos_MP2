@@ -61,8 +61,8 @@ export default function LoginModal({
       } else if (email.endsWith("@uta.edu.ec") && password.length > 0) {
         userData = { name: email.split("@")[0], role: "usuario", email };
         Swal.fire({
-          title: "Bienvenido Docente 👨‍🏫",
-          text: "Accediendo a su panel de docente.",
+          title: "Inicio de sesión exitodos",
+          text: "Bienvenido a la plataforma.",
           icon: "success",
           confirmButtonColor: "#581517",
         });
@@ -80,7 +80,7 @@ export default function LoginModal({
           icon: "success",
           confirmButtonColor: "#581517",
         });
-        router.push("/usuarios");
+        router.push("/usuarios/cursos");
 
       // 🔹 Caso no válido
       } else {

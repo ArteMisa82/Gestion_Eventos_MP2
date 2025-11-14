@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { Calendar, Edit } from "lucide-react";
+import { Calendar, Edit, ArrowLeft } from "lucide-react";
+import { useRouter } from "next/navigation";
 import ModalEditarEvento from "./ModalEditar";
 import Swal from "sweetalert2";
 
@@ -21,15 +22,11 @@ interface Evento {
 }
 
 export default function DashboardResponsable() {
+  const router = useRouter();
   const [eventos, setEventos] = useState<Evento[]>([]);
   const [eventoEditando, setEventoEditando] = useState<Evento | null>(null);
 
   useEffect(() => {
-    // 🔜 Aquí se conectará con el backend
-    // fetch("/api/eventos-responsable?id_usuario=123")
-    //   .then(res => res.json())
-    //   .then(data => setEventos(data));
-
     const mockEventos: Evento[] = [
       {
         id: "EVT001",
@@ -81,6 +78,16 @@ export default function DashboardResponsable() {
 
   return (
     <div className="p-8 font-sans text-gray-800 min-h-screen bg-white">
+
+      {/* 🔙 Flecha para regresar */}
+      <button
+        onClick={() => router.push("/usuarios/cursos")}
+        className="flex items-center gap-2 text-[#581517] hover:text-[#7a1c1c] mb-4 transition"
+      >
+        <ArrowLeft size={20} />
+        Regresar
+      </button>
+
       {/* Título principal */}
       <h1 className="text-3xl font-semibold mb-6 tracking-tight text-center text-[#581517]">
         Eventos Asignados
