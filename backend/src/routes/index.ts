@@ -8,6 +8,8 @@ import estudiantesRoutes from './estudiantes.routes';
 import carrerasRoutes from './carreras.routes';
 import nivelesRoutes from './niveles.routes';
 
+import certificadosRoutes from './certificados.routes';
+
 const router = Router();
 
 router.use('/auth', authRoutes);
@@ -18,5 +20,7 @@ router.use('/inscripciones', inscripcionesRoutes);
 router.use('/estudiantes', estudiantesRoutes);
 router.use('/carreras', carrerasRoutes);
 router.use('/niveles', nivelesRoutes);
+
+router.use('/certificados', certificadosRoutes);
 
 export default router;
