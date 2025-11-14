@@ -7,6 +7,7 @@ import inscripcionesRoutes from './inscripciones.routes';
 import estudiantesRoutes from './estudiantes.routes';
 import carrerasRoutes from './carreras.routes';
 import nivelesRoutes from './niveles.routes';
+import pagosRoutes from './pagos.routes';
 
 const router = Router();
 
@@ -18,5 +19,6 @@ router.use('/inscripciones', inscripcionesRoutes);
 router.use('/estudiantes', estudiantesRoutes);
 router.use('/carreras', carrerasRoutes);
 router.use('/niveles', nivelesRoutes);
+router.use('/pagos', pagosRoutes);
 
 export default router;
