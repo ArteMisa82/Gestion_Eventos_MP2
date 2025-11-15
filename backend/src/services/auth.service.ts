@@ -218,6 +218,14 @@ export class AuthService {
       return { success: false, message: 'Usuario no encontrado' };
     }
 
+    // Validar que no sea email @uta.edu.ec
+    if (user.cor_usu.toLowerCase().endsWith('@uta.edu.ec')) {
+      return { 
+        success: false, 
+        message: 'No es posible enviar códigos de verificación a correos institucionales (@uta.edu.ec). Por favor, notifica a la DTIC para verificar tu correo.' 
+      };
+    }
+
     const emailService = new EmailService();
     const verificationCode = TokenUtil.generateNumericCode(6);
 

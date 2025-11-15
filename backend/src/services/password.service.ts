@@ -16,6 +16,14 @@ export class PasswordService {
   // Solicitar recuperación de contraseña
   async requestPasswordReset(email: string): Promise<PasswordResetResult> {
     try {
+      // Validar que no sea email @uta.edu.ec
+      if (email.toLowerCase().endsWith('@uta.edu.ec')) {
+        return {
+          success: false,
+          message: 'No es posible recuperar la contraseña para correos institucionales (@uta.edu.ec). Por favor, notifica a la DTIC para recuperar tu contraseña.'
+        };
+      }
+
       // Verificar si usuario existe
       const user = await prisma.usuarios.findUnique({
         where: { cor_usu: email }
