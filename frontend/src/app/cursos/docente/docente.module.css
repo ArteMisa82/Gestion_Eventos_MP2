@@ -86,3 +86,57 @@
   .card { grid-column: span 12; } /* 1 por fila en tablet/móvil */
   .thumb { height: 160px; }
 }
+
+.titleLeft {
+  text-align: left;
+  color: #333;
+  font-size: 22px;
+  font-weight: 700;
+  margin: 20px 0 10px 10px;
+}
+
+.eventsGrid {
+  max-width: 1100px;
+  margin: 10px auto 40px;
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 24px;
+}
+
+.eventCard {
+  grid-column: span 4;
+  background: #f9f9fb;
+  border-radius: 12px;
+  overflow: hidden;
+  padding-bottom: 15px;
+  border: 1px solid #e6e6e6;
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+
+.eventCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 24px rgba(0,0,0,.12);
+}
+
+.eventCard img {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+}
+
+.eventCard h3 {
+  margin: 12px 12px 6px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.eventCard p {
+  margin: 0 12px;
+  color: #666;
+}
+
+/* Responsivo */
+@media (max-width: 1024px) {
+  .eventCard { grid-column: span 12; }
+}
+
