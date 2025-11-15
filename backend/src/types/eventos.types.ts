@@ -80,8 +80,9 @@ export interface CreateDetalleEventoDto {
   are_det: string; // Área
   cat_det: string; // Categoría
   tip_evt: string; // Tipo de evento
-  not_evt_det?: number; // Nota mínima
-  asi_evt_det?: number; // Asistencia mínima
+  not_min_evt?: number; // Nota mínima (antes not_evt_det)
+  not_fin_evt?: number; // Nota final (NUEVO)
+  asi_evt_det?: number; // Porcentaje de asistencia 0-100 (antes era decimal)
   cer_evt_det?: number; // Certificado (0 o 1)
   apr_evt_det?: number; // Aprobado (0 o 1)
 }
@@ -93,8 +94,9 @@ export interface UpdateDetalleEventoDto {
   are_det?: string;
   cat_det?: string;
   tip_evt?: string;
-  not_evt_det?: number;
-  asi_evt_det?: number;
+  not_min_evt?: number; // Nota mínima (antes not_evt_det)
+  not_fin_evt?: number; // Nota final (NUEVO)
+  asi_evt_det?: number; // Porcentaje de asistencia 0-100 (antes era decimal)
   cer_evt_det?: number;
   apr_evt_det?: number;
   est_evt_det?: string; // Estado: INSCRIPCIONES, EN CURSO, FINALIZADO, etc.
