@@ -15,14 +15,40 @@ export const requireAuth = (req: Request, res: Response, next: NextFunction) => 
   }
 };
 
-export const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
+export const requireAdministrativo = (req: Request, res: Response, next: NextFunction) => {
   const userRole = (req as any).userRole || req.session.userRole;
-  if (userRole === 'admin' || userRole === 'Administrador') {
+  if (userRole === 'administrativo' || userRole === 'Administrador') {
     next();
   } else {
     res.status(403).json({
       success: false,
-      error: 'Se requieren permisos de administrador'
+      error: 'Se requieren permisos de administrativo o administrador'
+    });
+  }
+};
+
+// ACTUALIZAR requireAdmin para solo Administrador
+export const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
+  const userRole = (req as any).userRole || req.session.userRole;
+  if (userRole === 'Administrador') {
+    next();
+  } else {
+    res.status(403).json({
+      success: false,
+      error: 'Se requieren permisos de Administrador'
+    });
+  }
+};
+
+// Middleware para estudiantes
+export const requireStudent = (req: Request, res: Response, next: NextFunction) => {
+  const userRole = (req as any).userRole || req.session.userRole;
+  if (userRole === 'estudiante') {
+    next();
+  } else {
+    res.status(403).json({
+      success: false,
+      error: 'Se requieren permisos de estudiante'
     });
   }
 };
