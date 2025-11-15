@@ -139,6 +139,8 @@ model registro_personas {
   id_usu          Int
   id_reg_evt      String          @db.VarChar(10)
   fec_reg_per     DateTime        @default(dbgenerated("CURRENT_DATE")) @db.Date
+  not_fin_evt     Decimal?        @db.Decimal(4, 2)
+  asi_evt_det     Int?            @db.SmallInt
   informes        informes[]
   pagos           pagos[]
   registro_evento registro_evento @relation(fields: [id_reg_evt], references: [id_reg_evt], onDelete: Cascade)
@@ -146,6 +148,7 @@ model registro_personas {
 
   @@index([fec_reg_per], map: "idx_registro_personas_fecha")
   @@index([id_usu], map: "idx_registro_personas_usuario")
+  @@index([id_reg_evt, not_fin_evt, asi_evt_det], map: "idx_registro_personas_calificaciones")
 }
 
 model requerimientos {
