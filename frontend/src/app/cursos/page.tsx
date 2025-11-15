@@ -116,6 +116,12 @@ export default function CursosPage() {
           </span>
         </header>
 
+        <p className={styles.subtitle}>
+          Explora los cursos de la Facultad de Ingeniería en Sistemas, Electrónica e Industrial:
+          programas diseñados para potenciar tu desarrollo profesional.
+        </p>
+
+
         <div className={styles.grid}>
           {filtered.map((c) => (
             <Link
