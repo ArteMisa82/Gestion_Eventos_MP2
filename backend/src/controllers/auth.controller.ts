@@ -28,9 +28,16 @@ export class AuthController {
       // CREAR SESIÓN después del registro
       req.session.userId = result.user!.id_usu;
       req.session.userEmail = result.user!.cor_usu;
-      req.session.userRole = result.user!.Administrador ? 'Administrador' : 
-                            result.user!.adm_usu === 1 ? 'admin' : 'user';
+
+      let userRole = 'user';
+      if (result.user!.Administrador) userRole = 'Administrador';
+      else if (result.user!.adm_usu === 1) userRole = 'administrativo';
+      else if (result.user!.stu_usu === 1) userRole = 'estudiante';
+
+      req.session.userRole = userRole;
       req.session.isAuthenticated = true;
+
+      console.log(`Sesión creada para: ${result.user!.cor_usu} (Rol: ${userRole})`);
 
       res.json(successResponse({
         user: result.user
@@ -60,11 +67,16 @@ export class AuthController {
       // CREAR SESIÓN después del login
       req.session.userId = result.user!.id_usu;
       req.session.userEmail = result.user!.cor_usu;
-      req.session.userRole = result.user!.Administrador ? 'Administrador' : 
-                            result.user!.adm_usu === 1 ? 'admin' : 'user';
+      
+      let userRole = 'user';
+      if (result.user!.Administrador) userRole = 'Administrador';
+      else if (result.user!.adm_usu === 1) userRole = 'administrativo';
+      else if (result.user!.stu_usu === 1) userRole = 'estudiante';
+
+      req.session.userRole = userRole;
       req.session.isAuthenticated = true;
 
-      console.log(`✅ Sesión creada para: ${result.user!.cor_usu}`);
+      console.log(`Sesión creada para: ${result.user!.cor_usu} (Rol: ${userRole})`);
 
       res.json(successResponse({
         user: result.user
