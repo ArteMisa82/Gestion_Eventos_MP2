@@ -52,6 +52,13 @@ export default function UsuariosLayout({ children }: { children: React.ReactNode
                   Mis Cursos
                 </Link>
 
+                <Link
+                  href="/usuarios/eventos"
+                  className="block px-3 py-2 rounded-md hover:bg-gray-200"
+                >
+                  Mis Eventos
+                </Link>
+
                 {/* 🔹 Panel Responsable solo si fue asignado por el ADMINISTRADOR */}
                 {esResponsable && (
                   <Link

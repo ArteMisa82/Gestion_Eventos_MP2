@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import NavbarUsuario from "../../../components/NavbarUsuarios";
 import Image from "next/image";
 
@@ -23,8 +24,15 @@ const CURSOS_EN_PROCESO = [
 ];
 
 export default function MisCursos() {
+  const router = useRouter(); 
+
+  const irAlCurso = (id: number) => {
+    router.push(`/usuarios/cursos/${id}`);
+  };
+
   return (
-    <div className="min-h-screen"> {/* ← Fondo limpio */}
+    <div className="min-h-screen">
+      {/* <NavbarUsuario /> si lo usas */}
 
       <main className="max-w-6xl mx-auto px-4 py-8">
         <header className="mb-6 flex items-center justify-between">
@@ -42,7 +50,7 @@ export default function MisCursos() {
               key={curso.id}
               className="bg-white rounded-xl shadow hover:shadow-xl transition-all duration-200 border border-gray-200 overflow-hidden"
             >
-              {/* COVER */}
+              {/* Cover */}
               <div className="relative h-40 w-full">
                 <Image
                   src={curso.cover}
@@ -55,7 +63,7 @@ export default function MisCursos() {
                 </div>
               </div>
 
-              {/* BODY */}
+              {/* Body */}
               <div className="p-4">
                 <h2 className="font-bold text-lg text-gray-900 line-clamp-2">
                   {curso.title}
@@ -65,7 +73,7 @@ export default function MisCursos() {
                   Duración: {curso.hours} horas
                 </p>
 
-                {/* PROGRESS BAR */}
+                {/* Progress */}
                 <div className="mt-4">
                   <div className="h-2 bg-gray-200 rounded-full">
                     <div
@@ -78,7 +86,9 @@ export default function MisCursos() {
                   </p>
                 </div>
 
+                {/* Botón */}
                 <button
+                  onClick={() => irAlCurso(curso.id)}
                   className="mt-4 w-full bg-[#7f1d1d] text-white py-2 rounded-lg font-semibold hover:bg-[#991b1b] transition"
                 >
                   Continuar →
