@@ -22,7 +22,6 @@ export default function UsuariosLayout({ children }: { children: React.ReactNode
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* NAVBAR SUPERIOR */}
       <nav className="w-full bg-[#7f1d1d] text-white shadow-md">
         <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
           <h1 className="text-xl font-bold">Panel de Usuario</h1>
