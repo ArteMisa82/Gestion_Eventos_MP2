@@ -185,3 +185,22 @@ model tarifas_evento {
 
   @@index([id_evt], map: "idx_tarifas_evento")
 }
+
+model usuarios {
+  id_usu       Int      @id @default(autoincrement())
+  cor_usu      String
+  pas_usu      String
+  ced_usu      String?  @unique
+  nom_usu      String
+  nom_seg_usu  String?
+  ape_usu      String
+  ape_seg_usu  String?
+  tel_usu      String?
+  img_usu      String?
+  pdf_ced_usu  String?
+  stu_usu      Int?
+  niv_usu      String?
+  adm_usu      Int       @default(0)
+  Administrador Boolean  @default(false)
+}
+

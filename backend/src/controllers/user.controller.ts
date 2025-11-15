@@ -1,6 +1,7 @@
 //Se actualizo la ruta y las carpetas del user para controles
 // Se actualizó la ruta y estructura del controlador User
 import { Request, Response } from 'express';
+import fs from 'fs';
 import { UserService } from '../services/user.service';
 
 const userService = new UserService();
@@ -19,13 +20,34 @@ export class UserController {
   }
 
   async create(req: Request, res: Response) {
-    const user = await userService.create(req.body);
+    console.log("➡ BODY RECIBIDO:", req.body);
+
+    let imgBase64: string | null = null;
+    if (req.file) {
+      const fileData = fs.readFileSync(req.file.path, { encoding: 'base64' });
+      imgBase64 = `data:${req.file.mimetype};base64,${fileData}`;
+      fs.unlinkSync(req.file.path); // borrar archivo temporal
+    }
+
+    const userData = { ...req.body, img_usu: imgBase64 };
+    const user = await userService.create(userData);
     return res.status(201).json(user);
   }
 
   async update(req: Request, res: Response) {
     const ced = req.params.ced;
-    const user = await userService.update(ced, req.body);
+
+    let imgBase64: string | null = null;
+    if (req.file) {
+      const fileData = fs.readFileSync(req.file.path, { encoding: 'base64' });
+      imgBase64 = `data:${req.file.mimetype};base64,${fileData}`;
+      fs.unlinkSync(req.file.path);
+    }
+
+    const userData = { ...req.body };
+    if (imgBase64) userData.img_usu = imgBase64; // actualizar solo si envían imagen
+
+    const user = await userService.update(ced, userData);
     return res.json(user);
   }
 
