@@ -6,16 +6,13 @@ import { UserController } from '../controllers/user.controller';
 const router = Router();
 const controller = new UserController();
 
-// CRUD de usuarios
 router.get('/', controller.getAll.bind(controller));
-router.get('/:id', controller.getById.bind(controller));
+router.get('/:ced', controller.getByCedula.bind(controller));
 router.post('/', controller.create.bind(controller));
-router.put('/:id', controller.update.bind(controller));
-router.delete('/:id', controller.delete.bind(controller));
-
-// Panel con cursos (en proceso y completados)
-router.get('/:id/panel', controller.getPanelCursos.bind(controller));
+router.put('/:ced', controller.update.bind(controller));
+router.delete('/:ced', controller.delete.bind(controller));
 
 export default router;
+
 
 //Aquí definimos las rutas REST:

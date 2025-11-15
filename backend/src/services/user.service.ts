@@ -3,68 +3,51 @@ import prisma from '@/config/database';
 
 export class UserService {
   async getAll() {
-    return await prisma.usuarios.findMany({
+    return prisma.personas.findMany({
       select: {
-        id_usu: true,
-        nom_usu: true,
-        ape_usu: true,
-        cor_usu: true,
-        img_perfil: true, // 🔥 texto base64
+        ced_per: true,
+        nom_per: true,
+        ape_per: true,
+        tel_per: true,
+        img_perfil: true, // base64
       },
     });
   }
 
-  async getById(id: number) {
-    return await prisma.usuarios.findUnique({
-      where: { id_usu: id },
-      include: { cursos: true },
+  async getByCedula(cedula: string) {
+    return prisma.personas.findUnique({
+      where: { ced_per: cedula },
+      include: { credenciales: true },
     });
   }
 
   async create(data: any) {
-    return await prisma.usuarios.create({
+    return prisma.personas.create({
       data: {
-        nom_usu: data.nom_usu,
-        ape_usu: data.ape_usu,
-        cor_usu: data.cor_usu,
-        img_perfil: data.img_perfil || null, // 🔥 base64 o null
+        ced_per: data.ced_per,
+        nom_per: data.nom_per,
+        ape_per: data.ape_per,
+        tel_per: data.tel_per,
+        img_perfil: data.img_perfil || null,
       },
     });
   }
 
-  async update(id: number, data: any) {
-    return await prisma.usuarios.update({
-      where: { id_usu: id },
+  async update(cedula: string, data: any) {
+    return prisma.personas.update({
+      where: { ced_per: cedula },
       data: {
-        nom_usu: data.nom_usu,
-        ape_usu: data.ape_usu,
-        cor_usu: data.cor_usu,
+        nom_per: data.nom_per,
+        ape_per: data.ape_per,
+        tel_per: data.tel_per,
         img_perfil: data.img_perfil ?? undefined,
       },
     });
   }
 
-  async delete(id: number) {
-    return await prisma.usuarios.delete({
-      where: { id_usu: id },
-    });
-  }
-
-  async getCursosEnProceso(userId: number) {
-    return await prisma.cursos.findMany({
-      where: {
-        usuarioId: userId,
-        estado: 'en_proceso',
-      },
-    });
-  }
-
-  async getCursosCompletos(userId: number) {
-    return await prisma.cursos.findMany({
-      where: {
-        usuarioId: userId,
-        estado: 'completado',
-      },
+  async delete(cedula: string) {
+    return prisma.personas.delete({
+      where: { ced_per: cedula },
     });
   }
 }

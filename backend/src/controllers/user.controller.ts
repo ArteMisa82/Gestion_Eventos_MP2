@@ -6,90 +6,34 @@ import { UserService } from '../services/user.service';
 const userService = new UserService();
 
 export class UserController {
-  async getAll(req: Request, res: Response): Promise<Response> {
-    try {
-      const users = await userService.getAll();
-      return res.json(users);
-    } catch (error) {
-      console.error('❌ Error al obtener usuarios:', error);
-      return res.status(500).json({ message: 'Error al obtener usuarios' });
-    }
+  async getAll(req: Request, res: Response) {
+    const data = await userService.getAll();
+    return res.json(data);
   }
 
-  async getById(req: Request, res: Response): Promise<Response> {
-    try {
-      const id = Number(req.params.id);
-      const user = await userService.getById(id);
-
-      if (!user) return res.status(404).json({ message: 'Usuario no encontrado' });
-
-      return res.json(user);
-    } catch (error) {
-      console.error('❌ Error al obtener usuario:', error);
-      return res.status(500).json({ message: 'Error interno del servidor' });
-    }
+  async getByCedula(req: Request, res: Response) {
+    const ced = req.params.ced;
+    const user = await userService.getByCedula(ced);
+    if (!user) return res.status(404).json({ msg: 'Usuario no encontrado' });
+    return res.json(user);
   }
 
-  async create(req: Request, res: Response): Promise<Response> {
-    try {
-      const { nom_usu, ape_usu, cor_usu, img_perfil } = req.body;
-
-      const user = await userService.create({
-        nom_usu,
-        ape_usu,
-        cor_usu,
-        img_perfil: img_perfil || null, // 🔥 texto base64
-      });
-
-      return res.status(201).json(user);
-    } catch (error) {
-      console.error('❌ Error al crear usuario:', error);
-      return res.status(400).json({ message: 'Error al crear usuario' });
-    }
+  async create(req: Request, res: Response) {
+    const user = await userService.create(req.body);
+    return res.status(201).json(user);
   }
 
-  async update(req: Request, res: Response): Promise<Response> {
-    try {
-      const id = Number(req.params.id);
-      const { nom_usu, ape_usu, cor_usu, img_perfil } = req.body;
-
-      const updated = await userService.update(id, {
-        nom_usu,
-        ape_usu,
-        cor_usu,
-        img_perfil: img_perfil ?? undefined,
-      });
-
-      return res.json(updated);
-    } catch (error) {
-      console.error('❌ Error al actualizar usuario:', error);
-      return res.status(400).json({ message: 'Error al actualizar usuario' });
-    }
+  async update(req: Request, res: Response) {
+    const ced = req.params.ced;
+    const user = await userService.update(ced, req.body);
+    return res.json(user);
   }
 
-  async delete(req: Request, res: Response): Promise<Response> {
-    try {
-      const id = Number(req.params.id);
-      await userService.delete(id);
-      return res.status(204).send();
-    } catch (error) {
-      console.error('❌ Error al eliminar usuario:', error);
-      return res.status(400).json({ message: 'Error al eliminar usuario' });
-    }
-  }
-
-  async getPanelCursos(req: Request, res: Response): Promise<Response> {
-    try {
-      const userId = Number(req.params.id);
-      const enProceso = await userService.getCursosEnProceso(userId);
-      const completados = await userService.getCursosCompletos(userId);
-      return res.json({ enProceso, completados });
-    } catch (error) {
-      console.error('❌ Error al obtener panel de cursos:', error);
-      return res.status(500).json({ message: 'Error al cargar panel de cursos' });
-    }
+  async delete(req: Request, res: Response) {
+    const ced = req.params.ced;
+    await userService.delete(ced);
+    return res.status(204).send();
   }
 }
-
 
 //Controlador REST que conecta la API con la capa de servicio
