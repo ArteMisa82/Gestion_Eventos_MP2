@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Swal from "sweetalert2";
 import styles from "./docentePanel.module.css";
+import Link from "next/link";
 
 type Alumno = {
   id: string;
@@ -97,6 +98,12 @@ export default function CursoDocentePanel({ courseId }: { courseId: string }) {
   return (
     <section className={styles.wrapper}>
       <h1 className={styles.title}></h1>
+
+      <div className={styles.backRow}>
+        <Link href="/cursos/docente" className={styles.backLink}>
+          <span className={styles.backIcon}>←</span> Regresar
+        </Link>
+      </div>
 
       {/* Tabs */}
       <div className={styles.tabs}>

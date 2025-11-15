@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Swal from "sweetalert2";
 import styles from "./docentePanel.module.css"; // reutilizamos el mismo CSS de cursos
+import Link from "next/link";
 
 type Attendee = { id: string; nombre: string; asistencia?: boolean };
 type Tab = "asistencia" | "material";
@@ -113,11 +114,18 @@ export default function EventPanel({ eventId }: { eventId: string }) {
     <section className={styles.wrapper}>
       <div className={styles.topBar}>
         <div className={styles.topBarInner}>
-          <h2>Panel del docente</h2>
+          <h2></h2>
         </div>
       </div>
 
       <div className={styles.container}>
+        
+        <div className={styles.backRow}>
+            <Link href="/cursos/docente" className={styles.backLink}>
+                <span className={styles.backIcon}>←</span> Regresar
+            </Link>
+        </div>
+
         {/* Encabezado del evento */}
         <div className={styles.eventHeader}>
           <div>
@@ -207,7 +215,7 @@ export default function EventPanel({ eventId }: { eventId: string }) {
         {/* MATERIAL (opcional) */}
         {tab === "material" && (
           <div className={styles.card}>
-            <h3 className={styles.cardTitle}>Materiales disponibles</h3>
+            <h3 className={styles.cardTitle}></h3>
 
             <table className={styles.table}>
               <thead>
