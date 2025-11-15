@@ -1,6 +1,8 @@
 // backend/src/services/certificado.service.ts
 
 import prisma from '../config/database'; 
+import PDFDocument from 'pdfkit'; 
+import { Writable } from 'stream'; 
 
 export class CertificadoService {
 
@@ -40,9 +42,7 @@ export class CertificadoService {
         return data;
     }
 
-    // Requisito 4: Guarda la URL del certificado en detalle_informe.pdf_cer
     async saveCertificateUrl(registrationId: number, certificateUrl: string) {
-        // 1. Buscamos o creamos el Informe (FK a registro_personas)
         let informe = await prisma.informes.findFirst({
             where: { num_reg_per: registrationId },
         });
@@ -53,12 +53,9 @@ export class CertificadoService {
             });
         }
         
-        // 2. Insertamos el registro en detalle_informe con la URL del certificado.
-        // CORRECCIÓN: Usamos 'detalle_informe' ya que así se llama el modelo en el schema.
         const detalle = await prisma.detalle_informe.create({ 
             data: {
                 num_inf: informe.num_inf, 
-                // Asumiendo que la nota es obligatoria, usa un valor por defecto
                 not_det: 0.0, 
                 pdf_cer: certificateUrl
             }
@@ -67,10 +64,88 @@ export class CertificadoService {
         return detalle;
     }
 
-    // Requisito 2: Lógica para generar el PDF (se implementa después con librerías como pdfkit)
     async generateCertificate(data: any): Promise<Buffer> {
-        // Lógica de generación del PDF (Placeholder)
-        // Por ahora, solo devuelve un Buffer vacío o un mensaje de error
-        throw new Error("La generación del PDF no está implementada aún.");
+        return new Promise((resolve, reject) => {
+            
+            const doc = new PDFDocument({ 
+                layout: 'landscape', 
+                size: 'A4' 
+            });
+
+            const buffers: Buffer[] = [];
+            
+            doc.on('data', (chunk: Buffer) => {
+                buffers.push(chunk);
+            });
+
+            doc.on('end', () => {
+                const pdfBuffer = Buffer.concat(buffers);
+                resolve(pdfBuffer);
+            });
+
+            doc.on('error', (err) => {
+                reject(err);
+            });
+
+
+            const fullName = `${data.usuarios.nom_usu} ${data.usuarios.ape_usu}`;
+            const eventDetails = data.registro_evento.detalle_eventos; 
+            const eventName = eventDetails.eventos.nom_evt;
+            const eventHours = eventDetails.hor_det;
+            const eventDate = new Date(eventDetails.eventos.fec_evt).toLocaleDateString('es-ES', { 
+                year: 'numeric', month: 'long', day: 'numeric' 
+            });
+
+            const pageWidth = doc.page.width;
+            const textCenter = pageWidth / 2;
+
+            doc
+                .font('Helvetica-Bold')
+                .fontSize(28)
+                .fillColor('#333')
+                .text('CERTIFICADO DE PARTICIPACIÓN', 0, 100, { align: 'center' })
+                .moveDown(1.5);
+
+            doc
+                .font('Helvetica')
+                .fontSize(16)
+                .text('Otorgado a:', { align: 'center' })
+                .moveDown(0.5);
+
+            doc
+                .font('Helvetica-Bold')
+                .fontSize(36)
+                .fillColor('#0056b3')
+                .text(fullName.toUpperCase(), { align: 'center' })
+                .moveDown(1.5);
+            
+            doc
+                .font('Helvetica')
+                .fontSize(16)
+                .fillColor('#333')
+                .text(`Por su valiosa participación en el evento:`, { align: 'center' })
+                .moveDown(0.5)
+                .font('Helvetica-Bold')
+                .fontSize(20)
+                .text(eventName.toUpperCase(), { align: 'center' })
+                .moveDown(0.5);
+
+            doc
+                .font('Helvetica')
+                .fontSize(14)
+                .text(`Con una duración de ${eventHours} horas, realizado el día ${eventDate}.`, { align: 'center' })
+                .moveDown(3);
+
+            // Líneas de firma (opcional)
+            const signatureY = doc.y;
+            doc.moveTo(textCenter - 100, signatureY)
+               .lineTo(textCenter + 100, signatureY)
+               .stroke();
+            
+            doc.font('Helvetica').fontSize(12)
+               .text('Firma del Responsable', textCenter - 100, signatureY + 5, { width: 200, align: 'center' });
+
+            doc.end();
+        });
     }
 }
