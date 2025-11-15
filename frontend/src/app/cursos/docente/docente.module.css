@@ -1,7 +1,7 @@
 .wrapper {
   padding: 24px 32px;
   min-height: 100%;
-  background: var(--panel-bg, #ffffff); /* gris del mock */
+  background: var(--panel-bg, #ffffff);
 }
 
 .title {
@@ -12,6 +12,7 @@
   margin: 8px 0 24px;
 }
 
+/* (se mantiene por compatibilidad, pero ya no lo usamos) */
 .grid {
   max-width: 1100px;
   margin: 0 auto;
@@ -20,8 +21,17 @@
   gap: 24px;
 }
 
+/* === NUEVO: grid para cursos (3 por fila) === */
+.coursesGrid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 22px;
+  margin-bottom: 30px;
+}
+
+/* 3 cards por fila en desktop (antes: span 6) */
 .card {
-  grid-column: span 6; /* 2 cards por fila en desktop */
+  grid-column: span 4;
   background: #f4f4f7;
   border-radius: 10px;
   padding: 10px 14px 18px;
@@ -95,12 +105,13 @@
   margin: 20px 0 10px 10px;
 }
 
+/* === AJUSTE: eventos dentro del contenedor === */
 .eventsGrid {
-  max-width: 1100px;
-  margin: 10px auto 40px;
+  width: 100%;
   display: grid;
   grid-template-columns: repeat(12, 1fr);
   gap: 24px;
+  margin: 10px 0 40px; /* sin max-width ni auto, para alinearse al container */
 }
 
 .eventCard {
@@ -140,3 +151,40 @@
   .eventCard { grid-column: span 12; }
 }
 
+/* Barra superior interna */
+.topBar {
+  background: #7a1e1e;   /* rojo institucional */
+  color: #fff;
+  padding: 14px 0;
+  margin-bottom: 10px;
+}
+.topBarInner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.topBarInner h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+/* Contenedor para alinear títulos y grids */
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 12px;
+}
+
+/* === NUEVO: título de sección dentro del container === */
+.sectionTitle {
+  text-align: left;
+  color: #333;
+  font-size: 22px;
+  font-weight: 800;
+  margin: 16px 0 12px;
+  letter-spacing: .3px;
+}
