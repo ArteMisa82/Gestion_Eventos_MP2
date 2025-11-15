@@ -150,6 +150,14 @@ export class AuthController {
         });
       }
 
+      // Validar estructura de email
+      if (email.toLowerCase().endsWith('@uta.edu.ec')) {
+        return res.status(403).json({
+          success: false,
+          message: 'No es posible recuperar la contraseña para correos institucionales (@uta.edu.ec). Por favor, notifica a la DTIC para recuperar tu contraseña.'
+        });
+      }
+
       const result = await passwordService.requestPasswordReset(email);
 
       if (!result.success) {
@@ -242,6 +250,27 @@ export class AuthController {
   async sendVerificationEmail(req: Request, res: Response) {
     try {
       const userId = (req as any).userId;
+
+      // Obtener usuario para validar email
+      const authService = new AuthService();
+      const user = await (authService as any).prisma.usuarios.findUnique({
+        where: { id_usu: userId }
+      });
+
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'Usuario no encontrado'
+        });
+      }
+
+      // Validar estructura de email
+      if (user.cor_usu.toLowerCase().endsWith('@uta.edu.ec')) {
+        return res.status(403).json({
+          success: false,
+          message: 'No es posible enviar códigos de verificación a correos institucionales (@uta.edu.ec). Por favor, notifica a la DTIC para verificar tu correo.'
+        });
+      }
 
       const result = await authService.sendVerificationEmail(userId);
 
