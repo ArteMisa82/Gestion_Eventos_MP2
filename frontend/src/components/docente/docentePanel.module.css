@@ -172,7 +172,7 @@
   margin: 6px 0 10px;
 }
 .eventName { font-size: 18px; font-weight: 800; color: #232323; }
-.muted { color: #777; font-size: 13px; }
+.muted { color: #777; font-size: 12px; }
 .lockBadge {
   background: #b33434; color: #fff; padding: 6px 10px; border-radius: 999px; font-weight: 700;
 }
