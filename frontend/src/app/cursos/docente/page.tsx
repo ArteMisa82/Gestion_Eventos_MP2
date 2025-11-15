@@ -83,23 +83,23 @@ export default async function DocenteCursosPage() {
         <h1 className={styles.sectionTitle}>EVENTOS</h1>
 
         <div className={styles.eventsGrid}>
-          <div className={styles.eventCard}>
-            <img src="/images/evento1.jpg" alt="Evento 1" />
+          <Link href="/cursos/docente/eventos/evento-1" className={styles.eventCard}>
+            <img src="/home/evento1.jpg" alt="Evento 1" />
             <h3>Congreso de Innovación Educativa</h3>
             <p>15 Febrero 2024</p>
-          </div>
+          </Link>
 
-          <div className={styles.eventCard}>
-            <img src="/images/evento2.jpg" alt="Evento 2" />
+          <Link href="/cursos/docente/eventos/evento-2" className={styles.eventCard}>
+            <img src="/home/evento2.jpg" alt="Evento 2" />
             <h3>Taller de Transformación Digital</h3>
             <p>20 Febrero 2024</p>
-          </div>
+          </Link>
 
-          <div className={styles.eventCard}>
-            <img src="/images/evento3.jpg" alt="Evento 3" />
+          <Link href="/cursos/docente/eventos/evento-3" className={styles.eventCard}>
+            <img src="/home/evento3.jpg" alt="Evento 3" />
             <h3>Seminario de IA en Educación</h3>
             <p>25 Febrero 2024</p>
-          </div>
+          </Link>
         </div>
       </div>
     </section>

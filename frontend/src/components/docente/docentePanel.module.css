@@ -164,3 +164,23 @@
   margin-top: 4px;
 }
 
+/* Encabezado del evento */
+.eventHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 6px 0 10px;
+}
+.eventName { font-size: 18px; font-weight: 800; color: #232323; }
+.muted { color: #777; font-size: 13px; }
+.lockBadge {
+  background: #b33434; color: #fff; padding: 6px 10px; border-radius: 999px; font-weight: 700;
+}
+.openBadge {
+  background: #2e7d32; color: #fff; padding: 6px 10px; border-radius: 999px; font-weight: 700;
+}
+.disabledRow { opacity: .6; }
+
+/* (ya existen, pero por si acaso) */
+.cardTitle { margin: 0 0 8px; }
+
