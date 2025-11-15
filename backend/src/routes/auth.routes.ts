@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { AuthController } from '../controllers/auth.controller';
 import { requireAuth } from '../middlewares/session.middleware';
+import { authMiddleware } from '../middlewares/auth.middleware';
 
 const router = Router();
 const controller = new AuthController();
@@ -20,5 +21,9 @@ router.post('/logout', requireAuth, controller.logout.bind(controller));
 // Email verification (protected)
 router.post('/send-verification', requireAuth, controller.sendVerificationEmail.bind(controller));
 router.post('/verify-email', requireAuth, controller.verifyEmail.bind(controller));
+
+export default router;
+// Rutas protegidas
+router.get('/profile', authMiddleware, controller.getProfile.bind(controller));
 
 export default router;
