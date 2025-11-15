@@ -82,17 +82,22 @@ export class AuthService {
 
       const hashedPassword = await hashPassword(userData.password);
 
+      // DETERMINAR ROL AUTOMATICAMENTE POR EMAIL
+      const { esEstudiante, esAdministrativo, esAdmin } = this.determinarRolPorEmail(userData.email);
+
       const newUser = await this.prisma.usuarios.create({
         data: {
           cor_usu: userData.email,
           pas_usu: hashedPassword,
           nom_usu: userData.nombre,
           ape_usu: userData.apellido,
-          stu_usu: 0,
-          adm_usu: 0,
-          Administrador: false
+          stu_usu: esEstudiante ? 1 : 0,           // 1 si es estudiante
+          adm_usu: esAdministrativo ? 1 : 0,       // 1 si es administrativo
+          Administrador: esAdmin                   // true solo si es admin@admin.com
         }
       });
+
+      console.log(`Nuevo usuario registrado: ${newUser.cor_usu} (Rol: ${this.determineUserRole(newUser)})`);
 
       return {
         success: true,
@@ -154,10 +159,55 @@ export class AuthService {
 
   private determineUserRole(user: any): string {
     if (user.Administrador) return 'Administrador';
-    if (user.adm_usu === 1) return 'admin';
-    if (user.stu_usu === 1) return 'student';
+    if (user.adm_usu === 1) return 'administrativo';
+    if (user.stu_usu === 1) return 'estudiante';
     return 'user';
   }
+
+  // NUEVO METODO: Determinar rol automaticamente por email
+  private determinarRolPorEmail(email: string): { esEstudiante: boolean; esAdministrativo: boolean; esAdmin: boolean } {
+    const emailLower = email.toLowerCase();
+    
+    // 1. Verificar si es ADMIN (admin@admin.com)
+    if (emailLower === 'admin@admin.com') {
+      return {
+        esEstudiante: false,
+        esAdministrativo: false, 
+        esAdmin: true
+      };
+    }
+
+    // 2. Verificar si es ESTUDIANTE UTA (tiene 4 numeros antes del @)
+    if (emailLower.endsWith('@uta.edu.ec')) {
+      const usuarioPart = emailLower.split('@')[0]; // parte antes del @
+      
+      // Buscar 4 numeros consecutivos en el username
+      const tiene4Numeros = /\d{4}/.test(usuarioPart);
+      
+      if (tiene4Numeros) {
+        return {
+          esEstudiante: true,
+          esAdministrativo: false,
+          esAdmin: false
+        };
+      } else {
+        // Si es @uta.edu.ec pero sin 4 numeros => ADMINISTRATIVO
+        return {
+          esEstudiante: false,
+          esAdministrativo: true,
+          esAdmin: false
+        };
+      }
+    }
+
+    // 3. Usuario EXTERNO (por defecto)
+    return {
+      esEstudiante: false,
+      esAdministrativo: false,
+      esAdmin: false
+    };
+  }
+
   async sendVerificationEmail(userId: number): Promise<{ success: boolean; message: string }> {
   try {
     const user = await this.prisma.usuarios.findUnique({
