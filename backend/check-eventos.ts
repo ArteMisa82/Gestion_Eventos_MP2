@@ -14,7 +14,7 @@ async function checkEventos() {
     
     eventos.forEach((evento: any) => {
       console.log(`Nombre: ${evento.nom_evt}`);
-      console.log(`ID: ${evento.id_evt_per}`);
+      console.log(`ID: ${evento.id_evt}`);
       console.log(`Estado: ${evento.est_evt}`);
       console.log(`Modalidad: ${evento.mod_evt}`);
       console.log(`Tipo Público: ${evento.tip_pub_evt}`);
@@ -23,10 +23,12 @@ async function checkEventos() {
       
       if (evento.detalle_eventos.length > 0) {
         evento.detalle_eventos.forEach((detalle: any) => {
-          console.log(`  - Detalle ID: ${detalle.id_evt_det}`);
+          console.log(`  - Detalle ID: ${detalle.id_det}`);
           console.log(`    Estado: ${detalle.est_evt_det}`);
           console.log(`    Cupo: ${detalle.cup_det}`);
+          console.log(`    Horas: ${detalle.hor_det}`);
           console.log(`    Área: ${detalle.are_det}`);
+          console.log(`    Tipo: ${detalle.tip_evt}`);
         });
       }
       console.log('---\n');

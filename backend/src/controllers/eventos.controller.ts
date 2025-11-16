@@ -112,11 +112,13 @@ export class EventosController {
       const userId = (req as any).userId;
       const data: UpdateEventoDto = req.body;
 
-      const evento = await eventosService.actualizarEvento(
-        req.params.id,
-        data,
-        userId
-      );
+      // Si se envían detalles en el body, usar actualización completa
+      const tieneDetalles = data.detalles && 
+        (data.detalles.cup_det || data.detalles.hor_det || data.detalles.cat_det);
+
+      const evento = tieneDetalles 
+        ? await eventosService.actualizarEventoCompleto(req.params.id, data, userId)
+        : await eventosService.actualizarEvento(req.params.id, data, userId);
 
       res.json({
         success: true,

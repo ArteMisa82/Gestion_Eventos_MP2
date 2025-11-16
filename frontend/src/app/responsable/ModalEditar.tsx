@@ -74,11 +74,14 @@ export default function ModalEditarEvento({
     "10mo semestre",
   ];
   const tiposEventos = [
-    "CONFERENCIA",
     "CURSO",
-    "WEBINAR",
     "CONGRESO",
+    "WEBINAR",
+    "CONFERENCIAS",
+    "SOCIALIZACIONES",
     "CASAS ABIERTAS",
+    "SEMINARIOS",
+    "OTROS"
   ];
 
   const handleChange = (
@@ -143,6 +146,13 @@ export default function ModalEditarEvento({
         mod_evt: formData.modalidad,
         tip_pub_evt: formData.publico === "General" ? "GENERAL" : "ESTUDIANTES",
         cos_evt: formData.pago === "Gratis" ? "GRATUITO" : "DE PAGO",
+        // Agregar detalles del evento
+        detalles: {
+          cup_det: Number(formData.capacidad) || 30,
+          hor_det: Number(formData.horas) || 40,
+          cat_det: formData.tipoEvento, // Usar tipoEvento como categoría
+          are_det: "TECNOLOGIA E INGENIERIA",
+        }
       };
 
       // Actualizar en el backend

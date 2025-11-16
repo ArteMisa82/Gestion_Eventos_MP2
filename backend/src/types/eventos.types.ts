@@ -26,6 +26,12 @@ export interface UpdateEventoDto {
   est_evt?: string; // Estado: EDITANDO, PLANIFICADO, EN CURSO, FINALIZADO, CANCELADO
   ima_evt?: string; // URL de imagen o Base64
   id_responsable?: number; // Solo ADMIN puede cambiar el responsable
+  detalles?: {
+    cup_det?: number;
+    hor_det?: number;
+    cat_det?: string;  // Usar cat_det en lugar de tip_evt
+    are_det?: string;
+  };
 }
 
 export interface AsignarResponsableDto {

@@ -198,6 +198,70 @@ export class EventosService {
   }
 
   /**
+   * RESPONSABLE: Actualizar evento completo con detalles
+   * Usado desde el modal del responsable para actualizar evento Y crear/actualizar su detalle
+   */
+  async actualizarEventoCompleto(
+    idEvento: string, 
+    data: UpdateEventoDto & { 
+      detalles?: {
+        cup_det?: number;
+        hor_det?: number;
+        tip_evt?: string;
+        are_det?: string;
+        cat_det?: string;
+      } 
+    }, 
+    userId: number
+  ) {
+    // Actualizar el evento primero
+    const evento = await this.actualizarEvento(idEvento, data, userId);
+
+    // Si se proporcionan detalles, crear o actualizar
+    if (data.detalles && (data.detalles.cup_det || data.detalles.hor_det || data.detalles.tip_evt)) {
+      // Verificar si ya existe un detalle para este evento
+      const detalleExistente = await prisma.detalle_eventos.findFirst({
+        where: { id_evt_per: idEvento }
+      });
+
+      const detalleData: any = {
+        cup_det: Number(data.detalles.cup_det) || 30,
+        hor_det: Number(data.detalles.hor_det) || 40,
+        are_det: data.detalles.are_det || 'TECNOLOGIA E INGENIERIA',
+        cat_det: data.detalles.cat_det?.toUpperCase() || 'CURSO',
+        tip_evt: data.detalles.cat_det?.toUpperCase() || 'CURSO', // Usar el mismo valor que cat_det
+      };
+
+      if (detalleExistente) {
+        // Actualizar detalle existente
+        await prisma.detalle_eventos.update({
+          where: { id_det: detalleExistente.id_det },
+          data: detalleData
+        });
+      } else {
+        // Crear nuevo detalle
+        const { generateDetalleId } = await import('../utils/id-generator.util');
+        const id_det = await generateDetalleId();
+        
+        await prisma.detalle_eventos.create({
+          data: {
+            id_det,
+            id_evt_per: idEvento,
+            ...detalleData,
+            est_evt_det: 'INSCRIPCIONES'
+          }
+        });
+      }
+    }
+
+    // Retornar evento actualizado con detalles
+    return await prisma.eventos.findUnique({
+      where: { id_evt: idEvento },
+      include: EVENTO_INCLUDES.full
+    });
+  }
+
+  /**
    * ADMIN: Eliminar evento
    */
   async eliminarEvento(idEvento: string, adminId: number) {
