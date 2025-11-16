@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Lock, Mail, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import RecuperarModal from "@/app/login/RecuperarModal";
+import VerifyEmailModal from "@/app/login/VerifyEmailModal";
 import RegisterForm from "@/app/login/registroForm";
 import logo from "../../public/logo_UTA.png";
 import { authAPI } from "@/services/api";
@@ -26,6 +27,7 @@ export default function LoginModal({
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isRecoverOpen, setIsRecoverOpen] = useState(false);
+  const [isVerifyOpen, setIsVerifyOpen] = useState(false);
   const [showRegister, setShowRegister] = useState(initialRegister);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -60,17 +62,21 @@ export default function LoginModal({
       // ✅ Llamada real al backend
       const response = await authAPI.login(email, password);
       
-      // handleResponse ya extrae data: { token, usuario }
-      const { token, usuario } = response;
-      
-      // Validar que token y usuario existan
-      if (!token || !usuario) {
+      // El backend responde con el usuario en la propiedad `user` (o directamente data.user)
+      const usuario = response?.user || response?.usuario || response;
+
+      if (!usuario) {
         throw new Error("Respuesta inválida del servidor");
       }
       
-      // ✅ Guardar en localStorage
-      localStorage.setItem("token", token);
+      // No hay token (usamos sesiones). Guardamos solo el usuario localmente.
       localStorage.setItem("user", JSON.stringify(usuario));
+      
+      // Si necesitas el id o propiedades de sesión, úsalas desde `usuario`.
+      // Mantén el resto del flujo (mensajes, redirección, verificación de email):
+      if (usuario && usuario.email_verified === false) {
+        setIsVerifyOpen(true);
+      }
       
       // ✅ Determinar mensaje y ruta según rol del usuario
       let mensaje = "";
@@ -272,6 +278,8 @@ export default function LoginModal({
               })
             }
           />
+          {/* Modal de verificación de email */}
+          <VerifyEmailModal isOpen={isVerifyOpen} onClose={() => setIsVerifyOpen(false)} />
         </motion.div>
       )}
     </AnimatePresence>
