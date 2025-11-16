@@ -278,34 +278,62 @@ export class EventosService {
    * Para mostrar en la página de cursos
    */
   async obtenerEventosPublicados(filtros?: {
-    mod_evt?: string;  // PRESENCIAL, VIRTUAL, A DISTANCIA
-    tip_pub_evt?: string;  // GENERAL, ESTUDIANTES, ADMINISTRATIVOS
-    cos_evt?: string;  // GRATUITO, DE PAGO
+    mod_evt?: string | string[];  // PRESENCIAL, VIRTUAL, A DISTANCIA
+    tip_pub_evt?: string | string[];  // GENERAL, ESTUDIANTES, ADMINISTRATIVOS
+    cos_evt?: string | string[];  // GRATUITO, DE PAGO
     busqueda?: string;
   }) {
     const whereConditions: any = {
       est_evt: 'PUBLICADO'  // Solo eventos publicados
     };
 
-    // Aplicar filtros si existen
+    // Aplicar filtros si existen (soporta valores múltiples)
     if (filtros?.mod_evt) {
-      whereConditions.mod_evt = filtros.mod_evt.toUpperCase();
+      const valores = Array.isArray(filtros.mod_evt) 
+        ? filtros.mod_evt.map(v => v.toUpperCase())
+        : [filtros.mod_evt.toUpperCase()];
+      
+      whereConditions.mod_evt = valores.length === 1 
+        ? valores[0] 
+        : { in: valores };
     }
 
     if (filtros?.tip_pub_evt) {
-      whereConditions.tip_pub_evt = filtros.tip_pub_evt.toUpperCase();
+      const valores = Array.isArray(filtros.tip_pub_evt) 
+        ? filtros.tip_pub_evt.map(v => v.toUpperCase())
+        : [filtros.tip_pub_evt.toUpperCase()];
+      
+      whereConditions.tip_pub_evt = valores.length === 1 
+        ? valores[0] 
+        : { in: valores };
     }
 
     if (filtros?.cos_evt) {
-      whereConditions.cos_evt = filtros.cos_evt.toUpperCase();
+      const valores = Array.isArray(filtros.cos_evt) 
+        ? filtros.cos_evt.map(v => v.toUpperCase())
+        : [filtros.cos_evt.toUpperCase()];
+      
+      whereConditions.cos_evt = valores.length === 1 
+        ? valores[0] 
+        : { in: valores };
     }
 
-    // Búsqueda por nombre
+    // Búsqueda por nombre y descripción
     if (filtros?.busqueda) {
-      whereConditions.nom_evt = {
-        contains: filtros.busqueda,
-        mode: 'insensitive'
-      };
+      whereConditions.OR = [
+        {
+          nom_evt: {
+            contains: filtros.busqueda,
+            mode: 'insensitive'
+          }
+        },
+        {
+          des_evt: {
+            contains: filtros.busqueda,
+            mode: 'insensitive'
+          }
+        }
+      ];
     }
 
     return await prisma.eventos.findMany({

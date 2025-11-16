@@ -344,10 +344,19 @@ export class EventosController {
   // GET /api/eventos/publicos - PÚBLICO: Obtener eventos publicados
   async obtenerEventosPublicados(req: Request, res: Response) {
     try {
+      // Parsear filtros que pueden ser arrays (separados por coma)
+      const parseFiltro = (value: any): string | string[] | undefined => {
+        if (!value) return undefined;
+        if (typeof value === 'string' && value.includes(',')) {
+          return value.split(',').map(v => v.trim());
+        }
+        return value as string;
+      };
+
       const filtros = {
-        mod_evt: req.query.mod_evt as string | undefined,
-        tip_pub_evt: req.query.tip_pub_evt as string | undefined,
-        cos_evt: req.query.cos_evt as string | undefined,
+        mod_evt: parseFiltro(req.query.mod_evt),
+        tip_pub_evt: parseFiltro(req.query.tip_pub_evt),
+        cos_evt: parseFiltro(req.query.cos_evt),
         busqueda: req.query.busqueda as string | undefined,
       };
 

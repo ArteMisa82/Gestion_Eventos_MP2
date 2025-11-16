@@ -16,6 +16,7 @@ interface EventoPublico {
   tip_pub_evt: 'GENERAL' | 'ESTUDIANTES' | 'ADMINISTRATIVOS';
   cos_evt: 'GRATUITO' | 'DE PAGO';
   des_evt: string;
+  est_evt?: string; // Estado del evento
   ima_evt?: string | null;
   detalle_eventos?: Array<{
     id_det: string;
@@ -23,6 +24,7 @@ interface EventoPublico {
     tip_evt: string;
     cup_det: number;
     are_det: string;
+    est_evt_det?: string; // Estado del detalle
   }>;
 }
 
@@ -57,7 +59,15 @@ export default function CursosPage() {
     async function cargarEventos() {
       try {
         setLoading(true);
-        const data = await eventosAPI.getPublicados();
+        
+        // Construir filtros para el backend
+        const filters: any = {};
+        if (modalidad) filters.mod_evt = modalidad;
+        if (selectedPublico.length > 0) filters.tip_pub_evt = selectedPublico.join(',');
+        if (selectedCosto.length > 0) filters.cos_evt = selectedCosto.join(',');
+        if (q.trim()) filters.busqueda = q.trim();
+        
+        const data = await eventosAPI.getPublicados(filters);
         setEventos(data);
       } catch (error) {
         console.error('Error al cargar eventos:', error);
@@ -67,24 +77,29 @@ export default function CursosPage() {
       }
     }
     cargarEventos();
-  }, []);
+  }, [modalidad, selectedPublico, selectedCosto, q]); // Recargar cuando cambien los filtros
 
   const filtered = useMemo(() => {
     return eventos.filter((evento) => {
+      // Filtro por modalidad
       const byModalidad = modalidad ? evento.mod_evt === modalidad : true;
       
+      // Filtro por público (DIRIGIDO A)
       const byPublico =
         selectedPublico.length > 0 
           ? selectedPublico.includes(evento.tip_pub_evt) 
           : true;
       
+      // Filtro por costo
       const byCosto =
         selectedCosto.length > 0 
           ? selectedCosto.includes(evento.cos_evt) 
           : true;
       
+      // Filtro por búsqueda de texto
       const bySearch = q
-        ? evento.nom_evt.toLowerCase().includes(q.trim().toLowerCase())
+        ? evento.nom_evt.toLowerCase().includes(q.trim().toLowerCase()) ||
+          evento.des_evt.toLowerCase().includes(q.trim().toLowerCase())
         : true;
       
       return byModalidad && byPublico && byCosto && bySearch;
@@ -224,8 +239,12 @@ export default function CursosPage() {
               const detalle = evento.detalle_eventos?.[0];
               const horas = detalle?.hor_det || 0;
               const area = detalle?.are_det || 'General';
+              const estadoDetalle = detalle?.est_evt_det || 'EDITANDO';
               const imagenCurso = evento.ima_evt || '/Default_Image.png';
               const modalidadInfo = MODALIDAD_MAP[evento.mod_evt] || { label: evento.mod_evt, showBadge: false };
+              
+              // Determinar si está abierto a inscripciones
+              const estaAbierto = estadoDetalle === 'INSCRIPCIONES';
               
               return (
                 <Link
@@ -245,7 +264,15 @@ export default function CursosPage() {
                       priority
                     />
                     <div className={styles.badges}>
-                      <span className={styles.badgeOpen}>ABIERTO</span>
+                      {estaAbierto ? (
+                        <span className={styles.badgeOpen}>ABIERTO</span>
+                      ) : (
+                        <span className={styles.badgeClosed}>
+                          {estadoDetalle === 'EN CURSO' ? 'EN CURSO' : 
+                           estadoDetalle === 'FINALIZADO' ? 'FINALIZADO' : 
+                           'CERRADO'}
+                        </span>
+                      )}
                       {modalidadInfo.showBadge && (
                         <span className={styles.badgeDistance}>{modalidadInfo.label}</span>
                       )}
