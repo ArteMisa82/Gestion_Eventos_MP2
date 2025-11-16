@@ -7,15 +7,11 @@ type TeacherCourse = {
   titulo: string;
   estado: "ABIERTO" | "CERRADO";
   horas: number;
-  portada: string;   // url de imagen
+  portada: string;
 };
 
 async function getTeacherCourses(): Promise<TeacherCourse[]> {
-  // 🔧 TODO: reemplazar por fetch a tu API (no-store para datos vivos)
-  // const res = await fetch(`${process.env.NEXT_PUBLIC_API}/docente/cursos`, { cache: "no-store" });
-  // return await res.json();
-
-  // Mock para diseño:
+  // Aquí luego cambiarás por tu fetch real a la API
   return [
     {
       id: "arduino",
@@ -32,13 +28,12 @@ async function getTeacherCourses(): Promise<TeacherCourse[]> {
       portada: "/home/RRHH.jpg",
     },
     {
-      id: "ley-datos",
+      id: "Ley-datos",
       titulo: "La Ley de Protección de Datos en el Ecuador",
       estado: "ABIERTO",
       horas: 32,
       portada: "/home/datos.jpg",
     },
-    
   ];
 }
 
@@ -51,9 +46,12 @@ export default async function DocenteCursosPage() {
 
       <div className={styles.grid}>
         {cursos.map((c) => (
-          <Link key={c.id} href={`/cursos/docente/${c.id}`} className={styles.card}>
+          <Link
+            key={c.id}
+            href={`/cursos/docente/${c.id}`}
+            className={styles.card}
+          >
             <div className={styles.thumb}>
-              {/* Usa <img> para no tocar tu configuración de <Image/> */}
               <img src={c.portada} alt={c.titulo} />
             </div>
 

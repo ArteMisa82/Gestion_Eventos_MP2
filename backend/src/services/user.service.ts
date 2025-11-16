@@ -1,4 +1,6 @@
 //Se actualizo la ruta y las carpetas del user
+// src/services/user.service.ts
+
 import prisma from '../config/database';
 
 export class UserService {
@@ -16,10 +18,17 @@ export class UserService {
     });
   }
 
-  // Buscar por cédula (findFirst porque NO es UNIQUE)
+  // Buscar por cédula
   async getByCedula(cedula: string) {
     return prisma.usuarios.findFirst({
       where: { ced_usu: cedula }
+    });
+  }
+
+  // 🔥 Nuevo: buscar por ID
+  async getById(id: number) {
+    return prisma.usuarios.findUnique({
+      where: { id_usu: id }
     });
   }
 
@@ -35,7 +44,7 @@ export class UserService {
         ape_usu: data.ape_usu,
         ape_seg_usu: data.ape_seg_usu || null,
         tel_usu: data.tel_usu || null,
-        img_usu: data.img_usu || null, // base64
+        img_usu: data.img_usu || null,
         pdf_ced_usu: data.pdf_ced_usu || null,
         stu_usu: data.stu_usu ?? 1,
         niv_usu: data.niv_usu || null,
@@ -74,6 +83,5 @@ export class UserService {
     });
   }
 }
-
 
 //Capa de aplicación (use cases + lógica del negocio)

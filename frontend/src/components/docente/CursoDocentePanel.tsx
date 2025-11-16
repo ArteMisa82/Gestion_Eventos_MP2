@@ -7,8 +7,8 @@ import styles from "./docentePanel.module.css";
 type Alumno = {
   id: string;
   nombre: string;
-  nota?: number;        // 0–10 | undefined => En progreso
-  asistencia?: boolean; // true/false
+  nota?: number;
+  asistencia?: boolean;
 };
 
 type Material = {
@@ -20,50 +20,57 @@ type Material = {
 type Tab = "material" | "notas" | "asistencia";
 
 export default function CursoDocentePanel({ courseId }: { courseId: string }) {
-  // MOCKS (reemplaza por fetchs reales luego)
+  // MOCKS (reemplazar por fetch real)
   const [alumnos, setAlumnos] = useState<Alumno[]>([
     { id: "1", nombre: "Estudiante 1", nota: 6.5, asistencia: true },
     { id: "2", nombre: "Estudiante 2", nota: 9.2, asistencia: false },
-    { id: "3", nombre: "Estudiante 3", /* sin nota => En progreso */ asistencia: true },
+    { id: "3", nombre: "Estudiante 3", asistencia: true },
   ]);
+
   const [materiales, setMateriales] = useState<Material[]>([
     { id: "m1", nombre: "Diapositiva clase 1.pdf", visible: false },
   ]);
 
   const [tab, setTab] = useState<Tab>("material");
 
-  // --- Material: controles de subida (al pie)
+  // Subida de material
   const [nuevoArchivo, setNuevoArchivo] = useState<File | null>(null);
 
-  // --- Búsquedas y filtros
+  // Buscadores
   const [qNotas, setQNotas] = useState("");
-  const [filtroNotas, setFiltroNotas] = useState<"Todos" | "Aprobado" | "Reprobado" | "En Progreso">("Todos");
+  const [filtroNotas, setFiltroNotas] = useState<
+    "Todos" | "Aprobado" | "Reprobado" | "En Progreso"
+  >("Todos");
 
   const [qAsistencia, setQAsistencia] = useState("");
 
   // Helpers
   const estadoDe = (a: Alumno): "Aprobado" | "Reprobado" | "En Progreso" => {
-    if (a.nota === undefined || a.nota === null || Number.isNaN(a.nota)) return "En Progreso";
+    if (a.nota === undefined || a.nota === null || Number.isNaN(a.nota))
+      return "En Progreso";
     return a.nota >= 7 ? "Aprobado" : "Reprobado";
   };
 
-  // Filtrados
+  // Filtros — NOTAS
   const alumnosNotas = useMemo(() => {
-    return alumnos.filter(a => {
-      const byName = a.nombre.toLowerCase().includes(qNotas.toLowerCase().trim());
+    return alumnos.filter((a) => {
+      const byName = a.nombre
+        .toLowerCase()
+        .includes(qNotas.toLowerCase().trim());
       const est = estadoDe(a);
       const byFilter = filtroNotas === "Todos" ? true : est === filtroNotas;
       return byName && byFilter;
     });
   }, [alumnos, qNotas, filtroNotas]);
 
+  // Filtros — ASISTENCIA
   const alumnosAsistencia = useMemo(() => {
-    return alumnos.filter(a =>
+    return alumnos.filter((a) =>
       a.nombre.toLowerCase().includes(qAsistencia.toLowerCase().trim())
     );
   }, [alumnos, qAsistencia]);
 
-  // Acciones SWEETALERT
+  // --- Acciones con SweetAlert ---
   const subirMaterial = async () => {
     if (!nuevoArchivo) {
       Swal.fire("Atención", "Selecciona un archivo para subir", "warning");
@@ -74,23 +81,23 @@ export default function CursoDocentePanel({ courseId }: { courseId: string }) {
       nombre: nuevoArchivo.name,
       visible: true,
     };
-    setMateriales(prev => [...prev, nuevo]);
+    setMateriales((prev) => [...prev, nuevo]);
     setNuevoArchivo(null);
     Swal.fire("Éxito", "Material subido correctamente", "success");
   };
 
   const toggleVisibilidad = async (id: string) => {
-    setMateriales(prev => prev.map(m => (m.id === id ? { ...m, visible: !m.visible } : m)));
+    setMateriales((prev) =>
+      prev.map((m) => (m.id === id ? { ...m, visible: !m.visible } : m))
+    );
     Swal.fire("Actualizado", "Estado de visibilidad cambiado", "info");
   };
 
   const guardarNotas = async () => {
-    // TODO: POST notas
     Swal.fire("Guardado", "Las notas fueron registradas correctamente", "success");
   };
 
   const guardarAsistencia = async () => {
-    // TODO: POST asistencia
     Swal.fire("Guardado", "La asistencia fue registrada correctamente", "success");
   };
 
@@ -101,19 +108,27 @@ export default function CursoDocentePanel({ courseId }: { courseId: string }) {
       {/* Tabs */}
       <div className={styles.tabs}>
         <button
-          className={`${styles.tab} ${tab === "material" ? styles.activeTabRed : ""}`}
+          className={`${styles.tab} ${
+            tab === "material" ? styles.activeTabRed : ""
+          }`}
           onClick={() => setTab("material")}
         >
           MATERIAL PEDAGÓGICO
         </button>
+
         <button
-          className={`${styles.tab} ${tab === "notas" ? styles.activeTabBlue : ""}`}
+          className={`${styles.tab} ${
+            tab === "notas" ? styles.activeTabBlue : ""
+          }`}
           onClick={() => setTab("notas")}
         >
           NOTAS
         </button>
+
         <button
-          className={`${styles.tab} ${tab === "asistencia" ? styles.activeTabBlue : ""}`}
+          className={`${styles.tab} ${
+            tab === "asistencia" ? styles.activeTabBlue : ""
+          }`}
           onClick={() => setTab("asistencia")}
         >
           ASISTENCIA
@@ -139,7 +154,10 @@ export default function CursoDocentePanel({ courseId }: { courseId: string }) {
                   <td>{m.nombre}</td>
                   <td>{m.visible ? "Visible" : "No visible"}</td>
                   <td>
-                    <button className={styles.btnLight} onClick={() => toggleVisibilidad(m.id)}>
+                    <button
+                      className={styles.btnLight}
+                      onClick={() => toggleVisibilidad(m.id)}
+                    >
                       Cambiar
                     </button>
                   </td>
@@ -147,13 +165,15 @@ export default function CursoDocentePanel({ courseId }: { courseId: string }) {
               ))}
               {materiales.length === 0 && (
                 <tr>
-                  <td colSpan={3} className={styles.emptyCell}>No hay materiales aún.</td>
+                  <td colSpan={3} className={styles.emptyCell}>
+                    No hay materiales aún.
+                  </td>
                 </tr>
               )}
             </tbody>
           </table>
 
-          {/* Barra de subida al pie */}
+          {/* Barra inferior de subida */}
           <div className={styles.uploadBar}>
             <div className={styles.fileBox}>
               <input
@@ -162,18 +182,18 @@ export default function CursoDocentePanel({ courseId }: { courseId: string }) {
                 accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt"
                 onChange={(e) => setNuevoArchivo(e.target.files?.[0] || null)}
               />
+
               <label htmlFor="fileInput" className={styles.btnOutline}>
                 Seleccionar archivo
               </label>
+
               <span className={styles.fileName}>
                 {nuevoArchivo ? nuevoArchivo.name : "Ningún archivo seleccionado"}
               </span>
 
-              {/* leyenda de tipos */}
               <small className={styles.fileHelp}>
-                Se permiten: PDF, DOC, DOCX, PPT, PPTX, XLS, XLSX, TXT (máx. 10&nbsp;MB).
+                Se permiten: PDF, DOC, DOCX, PPT, PPTX, XLS, XLSX, TXT (máx. 10 MB).
               </small>
- 
             </div>
 
             <button className={styles.btnPrimary} onClick={subirMaterial}>
@@ -186,7 +206,6 @@ export default function CursoDocentePanel({ courseId }: { courseId: string }) {
       {/* NOTAS */}
       {tab === "notas" && (
         <div className={styles.card}>
-          {/* Filtro + búsqueda */}
           <div className={styles.toolbarRow}>
             <div className={styles.searchBox}>
               <input
@@ -195,16 +214,24 @@ export default function CursoDocentePanel({ courseId }: { courseId: string }) {
                 onChange={(e) => setQNotas(e.target.value)}
               />
             </div>
+
             <div className={styles.filterGroup}>
-              <select value={filtroNotas} onChange={(e) => setFiltroNotas(e.target.value as any)}>
+              <select
+                value={filtroNotas}
+                onChange={(e) => setFiltroNotas(e.target.value as any)}
+              >
                 <option value="Todos">Todos</option>
                 <option value="Aprobado">Aprobados</option>
                 <option value="Reprobado">Reprobados</option>
                 <option value="En Progreso">En progreso</option>
               </select>
+
               <button
                 className={styles.btnLight}
-                onClick={() => { setQNotas(""); setFiltroNotas("Todos"); }}
+                onClick={() => {
+                  setQNotas("");
+                  setFiltroNotas("Todos");
+                }}
               >
                 Limpiar filtros
               </button>
@@ -219,6 +246,7 @@ export default function CursoDocentePanel({ courseId }: { courseId: string }) {
                 <th>Estado</th>
               </tr>
             </thead>
+
             <tbody>
               {alumnosNotas.map((a) => (
                 <tr key={a.id}>
@@ -233,10 +261,13 @@ export default function CursoDocentePanel({ courseId }: { courseId: string }) {
                       value={a.nota ?? ""}
                       onChange={(e) => {
                         const raw = e.target.value;
-                        setAlumnos(prev =>
-                          prev.map(x =>
+                        setAlumnos((prev) =>
+                          prev.map((x) =>
                             x.id === a.id
-                              ? { ...x, nota: raw === "" ? undefined : Number(raw) }
+                              ? {
+                                  ...x,
+                                  nota: raw === "" ? undefined : Number(raw),
+                                }
                               : x
                           )
                         );
@@ -246,8 +277,13 @@ export default function CursoDocentePanel({ courseId }: { courseId: string }) {
                   <td>{estadoDe(a)}</td>
                 </tr>
               ))}
+
               {alumnosNotas.length === 0 && (
-                <tr><td colSpan={3} className={styles.emptyCell}>Sin resultados.</td></tr>
+                <tr>
+                  <td colSpan={3} className={styles.emptyCell}>
+                    Sin resultados.
+                  </td>
+                </tr>
               )}
             </tbody>
           </table>
@@ -261,7 +297,6 @@ export default function CursoDocentePanel({ courseId }: { courseId: string }) {
       {/* ASISTENCIA */}
       {tab === "asistencia" && (
         <div className={styles.card}>
-          {/* Búsqueda */}
           <div className={styles.toolbarRow}>
             <div className={styles.searchBox}>
               <input
@@ -270,8 +305,12 @@ export default function CursoDocentePanel({ courseId }: { courseId: string }) {
                 onChange={(e) => setQAsistencia(e.target.value)}
               />
             </div>
+
             <div className={styles.filterGroup}>
-              <button className={styles.btnLight} onClick={() => setQAsistencia("")}>
+              <button
+                className={styles.btnLight}
+                onClick={() => setQAsistencia("")}
+              >
                 Limpiar búsqueda
               </button>
             </div>
@@ -284,6 +323,7 @@ export default function CursoDocentePanel({ courseId }: { courseId: string }) {
                 <th>Asistencia</th>
               </tr>
             </thead>
+
             <tbody>
               {alumnosAsistencia.map((a) => (
                 <tr key={a.id}>
@@ -294,9 +334,11 @@ export default function CursoDocentePanel({ courseId }: { courseId: string }) {
                         type="checkbox"
                         checked={a.asistencia ?? false}
                         onChange={(e) =>
-                          setAlumnos(prev =>
-                            prev.map(x =>
-                              x.id === a.id ? { ...x, asistencia: e.target.checked } : x
+                          setAlumnos((prev) =>
+                            prev.map((x) =>
+                              x.id === a.id
+                                ? { ...x, asistencia: e.target.checked }
+                                : x
                             )
                           )
                         }
@@ -306,8 +348,13 @@ export default function CursoDocentePanel({ courseId }: { courseId: string }) {
                   </td>
                 </tr>
               ))}
+
               {alumnosAsistencia.length === 0 && (
-                <tr><td colSpan={2} className={styles.emptyCell}>Sin resultados.</td></tr>
+                <tr>
+                  <td colSpan={2} className={styles.emptyCell}>
+                    Sin resultados.
+                  </td>
+                </tr>
               )}
             </tbody>
           </table>
@@ -320,4 +367,3 @@ export default function CursoDocentePanel({ courseId }: { courseId: string }) {
     </section>
   );
 }
-

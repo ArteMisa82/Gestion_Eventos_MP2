@@ -1,7 +1,9 @@
 import express from 'express';
+import session from 'express-session';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import routes from './routes';
+import { sessionConfig } from './utils/session.util';
 import prisma from './config/database';
 import { errorHandler } from './middlewares/errorHandler.middleware';
 
@@ -12,6 +14,7 @@ const app = express();
 // 🔥 Para permitir imágenes Base64 grandes
 app.use(express.json({ limit: '10mb' }));
 app.use(cors());
+app.use(session(sessionConfig)); // ← SESIONES ACTIVADAS
 
 // ✔ Ruta base de prueba
 app.get('/', (req, res) => {
@@ -26,7 +29,7 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 3001;
 
-// 🚀 Arrancar servidor + conectar a la base de datos
+// 🚀 Arrancar servidor + conectar a BD
 app.listen(PORT, async () => {
   try {
     await prisma.$connect();
