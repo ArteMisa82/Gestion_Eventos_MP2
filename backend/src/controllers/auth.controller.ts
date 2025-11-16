@@ -2,22 +2,22 @@ import { Request, Response } from 'express';
 import { AuthService } from '../services/auth.service';
 import { successResponse } from '../utils/response.util';
 import { PasswordService } from '../services/password.service';
-import { generateToken } from '../utils/jwt.util';
 
 const passwordService = new PasswordService();
-
 const authService = new AuthService();
 
 export class AuthController {
   async register(req: Request, res: Response) {
     try {
-      const { email, password, nombre, apellido } = req.body;
+      // Frontend envía: cor_usu, pas_usu, nom_usu, ape_usu
+      // Transformar a la estructura que espera el service
+      const { cor_usu, pas_usu, nom_usu, ape_usu } = req.body;
       
       const result = await authService.register({
-        email,
-        password,
-        nombre,
-        apellido
+        email: cor_usu,
+        password: pas_usu,
+        nombre: nom_usu,
+        apellido: ape_usu
       });
 
       if (!result.success) {
@@ -55,9 +55,7 @@ export class AuthController {
 
   async login(req: Request, res: Response) {
     try {
-      // Soportar ambos formatos: { email, password } y { cor_usu, pas_usu }
-      const email = req.body.email || req.body.cor_usu;
-      const password = req.body.password || req.body.pas_usu;
+      const { email, password } = req.body;
       
       const result = await authService.login({ email, password });
 
@@ -82,16 +80,8 @@ export class AuthController {
 
       console.log(`Sesión creada para: ${result.user!.cor_usu} (Rol: ${userRole})`);
 
-      // Generar token JWT
-      const token = generateToken({
-        id_usu: result.user!.id_usu,
-        cor_usu: result.user!.cor_usu,
-        adm_usu: result.user!.adm_usu
-      });
-
       res.json(successResponse({
-        token,
-        usuario: result.user
+        user: result.user
       }, 'Login exitoso'));
     } catch (error) {
       console.error('Error en login:', error);
