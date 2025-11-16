@@ -124,15 +124,6 @@ export default function ModalEditarEvento({
       return;
     }
 
-<<<<<<< HEAD
-    const eventoFinal ={
-      ...formData,
-      imagen: formData.imagen || imageDefault,
-    }
-
-    onGuardar(formData);
-    onClose();
-=======
     try {
       const token = localStorage.getItem("token");
       if (!token) {
@@ -180,7 +171,6 @@ export default function ModalEditarEvento({
         confirmButtonColor: "#581517",
       });
     }
->>>>>>> 2480942 (Cambios en el eschema y la BD para permitir la edicion al responsable)
   };
 
   return (

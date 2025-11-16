@@ -1,11 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
-<<<<<<< HEAD
-import { Calendar, Edit, ArrowLeft } from "lucide-react";
-import { useRouter } from "next/navigation";
-=======
 import { Calendar, Edit, Loader2 } from "lucide-react";
->>>>>>> f2be8d2 (Creacion de  rutas para manejo de cursos por resposnables y carga e datos en el front)
 import ModalEditarEvento from "./ModalEditar";
 import Swal from "sweetalert2";
 import { eventosAPI } from "@/services/api";
