@@ -83,6 +83,41 @@ router.post('/validar', authMiddleware, async (req, res, next) => {
 });
 
 /**
+ * POST /api/registro-personas/validar-completo
+ * Validación COMPLETA pre-inscripción
+ * Verifica: datos personales, documentos, permisos, cupo, costo
+ * 
+ * Body:
+ * {
+ *   "id_reg_evt": "REG001"
+ * }
+ */
+router.post('/validar-completo', authMiddleware, async (req, res, next) => {
+  try {
+    const userId = (req as any).userId;
+
+    if (!userId) {
+      throw new AppError('Usuario no autenticado', 401);
+    }
+
+    const { id_reg_evt } = req.body;
+
+    if (!id_reg_evt) {
+      throw new AppError('El campo id_reg_evt es requerido', 400);
+    }
+
+    const validacion = await registroService.validarPreInscripcion(userId, id_reg_evt);
+
+    res.json({
+      success: true,
+      data: validacion,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
  * GET /api/registro-personas/mis-registros
  * Obtener todos los registros del usuario autenticado
  */

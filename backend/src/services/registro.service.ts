@@ -25,6 +25,37 @@ export interface RegistroPersonaResponse {
   };
 }
 
+export interface ValidacionPreInscripcionResult {
+  puede_inscribirse: boolean;
+  motivo_bloqueo?: string;
+  datos_personales: {
+    completos: boolean;
+    faltantes: string[];
+  };
+  documentos_requeridos: {
+    completos: boolean;
+    requeridos: Array<{
+      id_rec: string;
+      descripcion: string;
+      tiene_documento: boolean;
+    }>;
+    faltantes: string[];
+  };
+  curso_info: {
+    nombre: string;
+    costo: string; // GRATIS, PAGADO
+    cupo_disponible: boolean;
+    estado: string; // INSCRIPCIONES, EN CURSO, etc.
+  };
+  permisos: {
+    cumple_nivel: boolean;
+    cumple_tipo_publico: boolean;
+    no_es_instructor: boolean;
+    no_esta_inscrito: boolean;
+  };
+  requiere_pago: boolean;
+}
+
 export class RegistroService {
   /**
    * Verificar si un usuario puede registrarse en un curso
@@ -389,5 +420,243 @@ export class RegistroService {
       console.error('Error al cancelar registro:', error);
       throw new AppError('Error al cancelar el registro', 500);
     }
+  }
+
+  /**
+   * VALIDACIÓN COMPLETA PRE-INSCRIPCIÓN
+   * Verifica: datos personales, documentos requeridos, permisos, cupo, costo
+   */
+  async validarPreInscripcion(
+    id_usu: number,
+    id_reg_evt: string
+  ): Promise<ValidacionPreInscripcionResult> {
+    try {
+      // 1. Obtener datos del curso y evento
+      const registroEvento = await prisma.registro_evento.findUnique({
+        where: { id_reg_evt },
+        include: {
+          detalle_eventos: {
+            include: {
+              eventos: {
+                include: {
+                  requerimientos: true, // Documentos requeridos
+                },
+              },
+            },
+          },
+          nivel: {
+            include: {
+              carreras: true,
+            },
+          },
+          registro_personas: true,
+        },
+      });
+
+      if (!registroEvento) {
+        throw new AppError('Curso no encontrado', 404);
+      }
+
+      const evento = registroEvento.detalle_eventos.eventos;
+      const detalle = registroEvento.detalle_eventos;
+
+      // 2. Obtener datos del usuario
+      const usuario = await prisma.usuarios.findUnique({
+        where: { id_usu },
+      });
+
+      if (!usuario) {
+        throw new AppError('Usuario no encontrado', 404);
+      }
+
+      // ===== VALIDAR DATOS PERSONALES =====
+      const datosCompletos: boolean[] = [];
+      const datosFaltantes: string[] = [];
+
+      if (!usuario.nom_usu) {
+        datosCompletos.push(false);
+        datosFaltantes.push('Nombre');
+      }
+      if (!usuario.ape_usu) {
+        datosCompletos.push(false);
+        datosFaltantes.push('Apellido');
+      }
+      if (!usuario.cor_usu) {
+        datosCompletos.push(false);
+        datosFaltantes.push('Correo electrónico');
+      }
+      if (!usuario.tel_usu) {
+        datosCompletos.push(false);
+        datosFaltantes.push('Teléfono/Celular');
+      }
+
+      const datosPersonalesCompletos = datosFaltantes.length === 0;
+
+      // ===== VALIDAR DOCUMENTOS REQUERIDOS =====
+      const requerimientos = evento.requerimientos || [];
+      const documentosRequeridos = [];
+      const documentosFaltantes: string[] = [];
+
+      for (const req of requerimientos) {
+        const tieneDocumento = this.verificarDocumentoUsuario(usuario, req.des_rec);
+
+        documentosRequeridos.push({
+          id_rec: req.id_rec,
+          descripcion: req.des_rec,
+          tiene_documento: tieneDocumento,
+        });
+
+        if (!tieneDocumento) {
+          documentosFaltantes.push(req.des_rec);
+        }
+      }
+
+      const documentosCompletos = documentosFaltantes.length === 0;
+
+      // ===== VALIDAR PERMISOS =====
+      const esEstudiante = usuario.stu_usu === 1;
+      const esAdministrativo = usuario.adm_usu === 1 || usuario.Administrador === true;
+      const tipoPublico = evento.tip_pub_evt;
+
+      // Verificar tipo de público
+      let cumpleTipoPublico = true;
+      if (tipoPublico === 'ESTUDIANTES' && !esEstudiante) {
+        cumpleTipoPublico = false;
+      }
+      if (tipoPublico === 'ADMINISTRATIVOS' && !esAdministrativo) {
+        cumpleTipoPublico = false;
+      }
+
+      // Verificar nivel (solo para estudiantes)
+      let cumpleNivel = true;
+      if (tipoPublico === 'ESTUDIANTES') {
+        const estudianteEnNivel = await prisma.estudiantes.findFirst({
+          where: {
+            id_usu,
+            id_niv: registroEvento.id_niv,
+            est_activo: 1,
+          },
+        });
+        cumpleNivel = !!estudianteEnNivel;
+      }
+
+      // Verificar que no sea instructor
+      const esInstructor = await prisma.detalle_instructores.findFirst({
+        where: {
+          id_det: detalle.id_det,
+          id_usu,
+        },
+      });
+      const noEsInstructor = !esInstructor;
+
+      // Verificar que no sea responsable
+      const esResponsable = evento.id_res_evt === id_usu;
+      const noEsResponsable = !esResponsable;
+
+      // Verificar que no esté ya inscrito
+      const yaInscrito = await prisma.registro_personas.findFirst({
+        where: {
+          id_usu,
+          id_reg_evt,
+        },
+      });
+      const noEstaInscrito = !yaInscrito;
+
+      // ===== VALIDAR CUPO Y ESTADO =====
+      const inscritos = registroEvento.registro_personas?.length || 0;
+      const cupoMaximo = detalle.cup_det;
+      const cupoDisponible = inscritos < cupoMaximo;
+      const estadoAbierto = detalle.est_evt_det === 'INSCRIPCIONES';
+
+      // ===== DETERMINAR SI REQUIERE PAGO =====
+      const costo = evento.cos_evt; // GRATIS, PAGADO
+      const requierePago = costo === 'PAGADO';
+
+      // ===== DETERMINAR SI PUEDE INSCRIBIRSE =====
+      const puedeInscribirse =
+        datosPersonalesCompletos &&
+        documentosCompletos &&
+        cumpleTipoPublico &&
+        cumpleNivel &&
+        noEsInstructor &&
+        noEsResponsable &&
+        noEstaInscrito &&
+        cupoDisponible &&
+        estadoAbierto;
+
+      // Determinar motivo de bloqueo
+      let motivoBloqueo: string | undefined;
+      if (!datosPersonalesCompletos) {
+        motivoBloqueo = `Completa tu perfil. Faltan: ${datosFaltantes.join(', ')}`;
+      } else if (!documentosCompletos) {
+        motivoBloqueo = `Debes cargar los siguientes documentos en tu perfil: ${documentosFaltantes.join(', ')}`;
+      } else if (!cumpleTipoPublico) {
+        motivoBloqueo =
+          tipoPublico === 'ESTUDIANTES'
+            ? 'Este curso es exclusivo para estudiantes'
+            : 'Este curso es exclusivo para personal administrativo';
+      } else if (!cumpleNivel) {
+        motivoBloqueo = `Este curso es para ${registroEvento.nivel?.carreras.nom_car} - ${registroEvento.nivel?.nom_niv}`;
+      } else if (!noEsInstructor) {
+        motivoBloqueo = 'No puedes inscribirte en un curso donde eres instructor';
+      } else if (!noEsResponsable) {
+        motivoBloqueo = 'No puedes inscribirte en un evento donde eres responsable';
+      } else if (!noEstaInscrito) {
+        motivoBloqueo = 'Ya estás inscrito en este curso';
+      } else if (!cupoDisponible) {
+        motivoBloqueo = 'No hay cupo disponible';
+      } else if (!estadoAbierto) {
+        motivoBloqueo = 'Las inscripciones están cerradas';
+      }
+
+      return {
+        puede_inscribirse: puedeInscribirse,
+        motivo_bloqueo: motivoBloqueo,
+        datos_personales: {
+          completos: datosPersonalesCompletos,
+          faltantes: datosFaltantes,
+        },
+        documentos_requeridos: {
+          completos: documentosCompletos,
+          requeridos: documentosRequeridos,
+          faltantes: documentosFaltantes,
+        },
+        curso_info: {
+          nombre: evento.nom_evt,
+          costo: costo,
+          cupo_disponible: cupoDisponible,
+          estado: detalle.est_evt_det || 'DESCONOCIDO',
+        },
+        permisos: {
+          cumple_nivel: cumpleNivel,
+          cumple_tipo_publico: cumpleTipoPublico,
+          no_es_instructor: noEsInstructor,
+          no_esta_inscrito: noEstaInscrito,
+        },
+        requiere_pago: requierePago,
+      };
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      console.error('Error en validación pre-inscripción:', error);
+      throw new AppError('Error al validar la inscripción', 500);
+    }
+  }
+
+  /**
+   * Verificar si el usuario tiene un documento específico
+   * (Basado en el campo pdf_ced_usu o futuros campos de documentos)
+   */
+  private verificarDocumentoUsuario(usuario: any, descripcionDoc: string): boolean {
+    // Por ahora, solo verificamos si tiene cédula PDF cuando se requiere cédula
+    const descLower = descripcionDoc.toLowerCase();
+
+    if (descLower.includes('cédula') || descLower.includes('cedula') || descLower.includes('identificación')) {
+      return !!usuario.pdf_ced_usu;
+    }
+
+    // Para otros documentos, asumimos que el usuario los tiene cargados
+    // (esto dependerá de cómo la persona de perfil implemente la carga de documentos)
+    // Por ahora retornamos true si no es cédula
+    return true;
   }
 }
