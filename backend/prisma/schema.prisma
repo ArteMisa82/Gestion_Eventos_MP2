@@ -101,6 +101,7 @@ model nivel {
   carreras        carreras          @relation(fields: [id_car], references: [id_car], onDelete: Cascade)
   registro_evento registro_evento[]
   usuarios        usuarios[]
+  estudiantes     estudiantes[]
 }
 
 model pagos {
