@@ -10,4 +10,3 @@ router.use('/eventos', eventosRoutes);
 router.use('/users', userRoutes);
 
 export default router;
-
