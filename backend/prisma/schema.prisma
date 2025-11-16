@@ -142,14 +142,17 @@ model registro_personas {
   fec_reg_per     DateTime        @default(dbgenerated("CURRENT_DATE")) @db.Date
   not_fin_evt     Decimal?        @db.Decimal(4, 2)
   asi_evt_det     Int?            @db.SmallInt
+  id_est          Int?
   informes        informes[]
   pagos           pagos[]
+  estudiantes     estudiantes?    @relation(fields: [id_est], references: [id_est], onUpdate: NoAction, map: "fk_registro_personas_estudiante")
   registro_evento registro_evento @relation(fields: [id_reg_evt], references: [id_reg_evt], onDelete: Cascade)
   usuarios        usuarios        @relation(fields: [id_usu], references: [id_usu], onDelete: Cascade)
 
   @@index([fec_reg_per], map: "idx_registro_personas_fecha")
   @@index([id_usu], map: "idx_registro_personas_usuario")
   @@index([id_reg_evt, not_fin_evt, asi_evt_det], map: "idx_registro_personas_calificaciones")
+  @@index([id_est], map: "idx_registro_personas_estudiante")
 }
 
 model requerimientos {
@@ -237,15 +240,16 @@ model detalle_instructores {
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model estudiantes {
-  id_est        Int       @id @default(autoincrement())
-  id_usu        Int
-  id_niv        String    @db.VarChar(10)
-  fec_ingreso   DateTime  @default(dbgenerated("CURRENT_DATE")) @db.Date
-  fec_egreso    DateTime? @db.Date
-  est_activo    Int       @default(1) @db.SmallInt
-  observaciones String?
-  nivel         nivel     @relation(fields: [id_niv], references: [id_niv], onDelete: Cascade)
-  usuarios      usuarios  @relation(fields: [id_usu], references: [id_usu], onDelete: Cascade)
+  id_est            Int                 @id @default(autoincrement())
+  id_usu            Int
+  id_niv            String              @db.VarChar(10)
+  fec_ingreso       DateTime            @default(dbgenerated("CURRENT_DATE")) @db.Date
+  fec_egreso        DateTime?           @db.Date
+  est_activo        Int                 @default(1) @db.SmallInt
+  observaciones     String?
+  nivel             nivel               @relation(fields: [id_niv], references: [id_niv], onDelete: Cascade)
+  usuarios          usuarios            @relation(fields: [id_usu], references: [id_usu], onDelete: Cascade)
+  registro_personas registro_personas[]
 
   @@unique([id_usu, id_niv, fec_ingreso], map: "estudiantes_unico_activo")
   @@index([est_activo], map: "idx_estudiantes_activo")
