@@ -1,229 +1,285 @@
-import prisma from '../config/database';
-import { hashPassword, comparePassword } from '../utils/bcrypt.util';
-import { generateToken } from '../utils/jwt.util';
+import { PrismaClient } from '../generated/prisma';
+import { comparePassword, hashPassword } from '../utils/bcrypt.util';
+import { EmailService } from './email.service';
+import { TokenUtil } from '../utils/token.util';
 
-interface RegisterDto {
-  cor_usu: string;
-  pas_usu: string;
-  nom_usu: string;
-  ape_usu: string;
-  nom_seg_usu?: string;
-  ape_seg_usu?: string;
-  tel_usu?: string;
-  ced_usu?: string;
-  niv_usu?: string;
-}
+const prisma = new PrismaClient();
 
-interface LoginDto {
-  cor_usu: string;
-  pas_usu: string;
+export interface AuthResult {
+  success: boolean;
+  user?: {
+    id_usu: number;
+    cor_usu: string;
+    nom_usu: string;
+    ape_usu: string;
+    adm_usu: number | null;
+    stu_usu: number | null;
+    "Administrador": boolean;
+    niv_usu?: string | null;
+  };
+  error?: string;
 }
 
 export class AuthService {
-  /**
-   * Detecta el tipo de usuario basado en el correo institucional
-   * IMPORTANTE: Solo existe UN administrador en el sistema (admin@admin.com)
-   * NO se permite crear más administradores mediante registro
-   * @param email - Correo del usuario
-   * @returns { isStudent: boolean, isAdministrativo: boolean, isAdministrador: boolean }
-   */
-  private detectUserType(email: string): { isStudent: boolean; isAdministrativo: boolean; isAdministrador: boolean } {
-    // BLOQUEAR registro de administradores
-    // El único administrador es admin@admin.com que ya existe en la BD
-    if (
-      email === 'admin@uta.edu.ec' || 
-      email === 'administrador@uta.edu.ec' ||
-      email === 'admin@admin.com'
-    ) {
-      throw new Error('No se permite crear nuevos administradores. El administrador del sistema ya existe.');
-    }
+  private prisma: PrismaClient;
 
-    // Verificar si termina en @uta.edu.ec
-    if (!email.endsWith('@uta.edu.ec')) {
-      // Correo externo
-      return { isStudent: false, isAdministrativo: false, isAdministrador: false };
-    }
-
-    // Extraer la parte antes del @
-    const localPart = email.split('@')[0];
-
-    // Verificar si contiene exactamente 4 dígitos consecutivos
-    const fourDigitsMatch = localPart.match(/\d{4}/);
-
-    if (fourDigitsMatch) {
-      // Tiene 4 números consecutivos -> Es estudiante
-      return { isStudent: true, isAdministrativo: false, isAdministrador: false };
-    }
-
-    // Verificar si NO contiene ningún número
-    const hasNoNumbers = !/\d/.test(localPart);
-
-    if (hasNoNumbers) {
-      // No tiene números -> Es usuario administrativo (profesor, secretaría)
-      return { isStudent: false, isAdministrativo: true, isAdministrador: false };
-    }
-
-    // Tiene @uta.edu.ec pero no cumple ninguna de las condiciones anteriores
-    return { isStudent: false, isAdministrativo: false, isAdministrador: false };
+  constructor() {
+    this.prisma = new PrismaClient();
   }
 
-  async register(data: RegisterDto) {
-    // Verificar si el correo ya existe
-    const existingUser = await prisma.usuarios.findUnique({
-      where: { cor_usu: data.cor_usu }
-    });
-
-    if (existingUser) {
-      throw new Error('El correo ya está registrado');
-    }
-
-    // Si se proporciona cédula, verificar que no exista
-    if (data.ced_usu) {
-      const existingCedula = await prisma.usuarios.findFirst({
-        where: { ced_usu: data.ced_usu }
+  async identifyUser(email: string, password: string): Promise<AuthResult> {
+    try {
+      const user = await this.prisma.usuarios.findUnique({
+        where: { cor_usu: email }
       });
 
-      if (existingCedula) {
-        throw new Error('La cédula ya está registrada');
+      if (!user) {
+        return { success: false, error: 'Usuario no encontrado' };
       }
-    }
 
-    // Detectar tipo de usuario por correo
-    const { isStudent, isAdministrativo, isAdministrador } = this.detectUserType(data.cor_usu);
-
-    // Si se detecta como estudiante pero no se proporciona nivel, lanzar error
-    if (isStudent && !data.niv_usu) {
-      throw new Error('Los estudiantes deben especificar un nivel académico');
-    }
-
-    // Verificar que el nivel existe (si se proporciona)
-    if (data.niv_usu) {
-      const nivelExists = await prisma.nivel.findUnique({
-        where: { id_niv: data.niv_usu }
-      });
-
-      if (!nivelExists) {
-        throw new Error('El nivel especificado no existe');
+      const isPasswordValid = await comparePassword(password, user.pas_usu);
+      if (!isPasswordValid) {
+        return { success: false, error: 'Credenciales inválidas' };
       }
-    }
 
-    // Hashear contraseña
-    const hashedPassword = await hashPassword(data.pas_usu);
-
-    // Crear usuario con tipo detectado automáticamente
-    const newUser = await prisma.usuarios.create({
-      data: {
-        cor_usu: data.cor_usu,
-        pas_usu: hashedPassword,
-        nom_usu: data.nom_usu,
-        ape_usu: data.ape_usu,
-        nom_seg_usu: data.nom_seg_usu,
-        ape_seg_usu: data.ape_seg_usu,
-        tel_usu: data.tel_usu,
-        ced_usu: data.ced_usu,
-        niv_usu: data.niv_usu,
-        stu_usu: isStudent ? 1 : 0,
-        adm_usu: isAdministrativo ? 1 : 0,
-        Administrador: isAdministrador
-      },
-      select: {
-        id_usu: true,
-        cor_usu: true,
-        nom_usu: true,
-        ape_usu: true,
-        adm_usu: true,
-        stu_usu: true,
-        Administrador: true
-      }
-    });
-
-    // Generar token
-    const token = generateToken({
-      id_usu: newUser.id_usu,
-      cor_usu: newUser.cor_usu,
-      adm_usu: newUser.adm_usu
-    });
-
-    return { token, usuario: newUser };
-  }
-
-  async login(data: LoginDto) {
-    // Buscar usuario por correo
-    const user = await prisma.usuarios.findUnique({
-      where: { cor_usu: data.cor_usu },
-      select: {
-        id_usu: true,
-        cor_usu: true,
-        pas_usu: true,
-        nom_usu: true,
-        ape_usu: true,
-        adm_usu: true,
-        stu_usu: true,
-        Administrador: true
-      }
-    });
-
-    if (!user) {
-      throw new Error('Credenciales inválidas');
-    }
-
-    // Verificar contraseña
-    const isPasswordValid = await comparePassword(data.pas_usu, user.pas_usu);
-
-    if (!isPasswordValid) {
-      throw new Error('Credenciales inválidas');
-    }
-
-    // Generar token
-    const token = generateToken({
-      id_usu: user.id_usu,
-      cor_usu: user.cor_usu,
-      adm_usu: user.adm_usu
-    });
-
-    // Excluir password de la respuesta
-    const { pas_usu, ...userWithoutPassword } = user;
-
-    return { token, usuario: userWithoutPassword };
-  }
-
-  async getProfile(userId: number) {
-    const user = await prisma.usuarios.findUnique({
-      where: { id_usu: userId },
-      select: {
-        id_usu: true,
-        cor_usu: true,
-        nom_usu: true,
-        nom_seg_usu: true,
-        ape_usu: true,
-        ape_seg_usu: true,
-        tel_usu: true,
-        ced_usu: true,
-        img_usu: true,
-        stu_usu: true,
-        adm_usu: true,
-        Administrador: true,
-        niv_usu: true,
-        nivel: {
-          select: {
-            id_niv: true,
-            nom_niv: true,
-            org_cur_niv: true,
-            carreras: {
-              select: {
-                id_car: true,
-                nom_car: true
-              }
-            }
-          }
+      return {
+        success: true,
+        user: {
+          id_usu: user.id_usu,
+          cor_usu: user.cor_usu,
+          nom_usu: user.nom_usu,
+          ape_usu: user.ape_usu,
+          adm_usu: user.adm_usu,
+          stu_usu: user.stu_usu,
+          "Administrador": user.Administrador,
+          niv_usu: user.niv_usu
         }
+      };
+    } catch (error) {
+      console.error('Error en identificación:', error);
+      return { success: false, error: 'Error interno del servidor' };
+    }
+  }
+
+  async login(loginData: { email: string; password: string }): Promise<AuthResult> {
+    return await this.identifyUser(loginData.email, loginData.password);
+  }
+
+  async register(userData: {
+    email: string;
+    password: string;
+    nombre: string;
+    apellido: string;
+  }): Promise<AuthResult> {
+    try {
+      const existingUser = await this.prisma.usuarios.findUnique({
+        where: { cor_usu: userData.email }
+      });
+
+      if (existingUser) {
+        return { success: false, error: 'El usuario ya existe' };
       }
+
+      const hashedPassword = await hashPassword(userData.password);
+
+      // DETERMINAR ROL AUTOMATICAMENTE POR EMAIL
+      const { esEstudiante, esAdministrativo, esAdmin } = this.determinarRolPorEmail(userData.email);
+
+      const newUser = await this.prisma.usuarios.create({
+        data: {
+          cor_usu: userData.email,
+          pas_usu: hashedPassword,
+          nom_usu: userData.nombre,
+          ape_usu: userData.apellido,
+          stu_usu: esEstudiante ? 1 : 0,           // 1 si es estudiante
+          adm_usu: esAdministrativo ? 1 : 0,       // 1 si es administrativo
+          Administrador: esAdmin                   // true solo si es admin@admin.com
+        }
+      });
+
+      console.log(`Nuevo usuario registrado: ${newUser.cor_usu} (Rol: ${this.determineUserRole(newUser)})`);
+
+      return {
+        success: true,
+        user: {
+          id_usu: newUser.id_usu,
+          cor_usu: newUser.cor_usu,
+          nom_usu: newUser.nom_usu,
+          ape_usu: newUser.ape_usu,
+          adm_usu: newUser.adm_usu,
+          stu_usu: newUser.stu_usu,
+          "Administrador": newUser.Administrador,
+          niv_usu: newUser.niv_usu
+        }
+      };
+    } catch (error) {
+      console.error('Error en registro:', error);
+      return { success: false, error: 'Error al registrar usuario' };
+    }
+  }
+
+  async getProfile(userId: number): Promise<AuthResult> {
+    try {
+      const user = await this.prisma.usuarios.findUnique({
+        where: { id_usu: userId },
+        select: {
+          id_usu: true,
+          cor_usu: true,
+          nom_usu: true,
+          ape_usu: true,
+          adm_usu: true,
+          stu_usu: true,
+          Administrador: true,
+          niv_usu: true
+        }
+      });
+
+      if (!user) {
+        return { success: false, error: 'Usuario no encontrado' };
+      }
+
+      return {
+        success: true,
+        user: {
+          id_usu: user.id_usu,
+          cor_usu: user.cor_usu,
+          nom_usu: user.nom_usu,
+          ape_usu: user.ape_usu,
+          adm_usu: user.adm_usu,
+          stu_usu: user.stu_usu,
+          "Administrador": user.Administrador,
+          niv_usu: user.niv_usu
+        }
+      };
+    } catch (error) {
+      console.error('Error obteniendo perfil:', error);
+      return { success: false, error: 'Error al obtener perfil' };
+    }
+  }
+
+  private determineUserRole(user: any): string {
+    if (user.Administrador) return 'Administrador';
+    if (user.adm_usu === 1) return 'administrativo';
+    if (user.stu_usu === 1) return 'estudiante';
+    return 'user';
+  }
+
+  // NUEVO METODO: Determinar rol automaticamente por email
+  private determinarRolPorEmail(email: string): { esEstudiante: boolean; esAdministrativo: boolean; esAdmin: boolean } {
+    const emailLower = email.toLowerCase();
+    
+    // 1. Verificar si es ADMIN (admin@admin.com)
+    if (emailLower === 'admin@admin.com') {
+      return {
+        esEstudiante: false,
+        esAdministrativo: false, 
+        esAdmin: true
+      };
+    }
+
+    // 2. Verificar si es ESTUDIANTE UTA (tiene 4 numeros antes del @)
+    if (emailLower.endsWith('@uta.edu.ec')) {
+      const usuarioPart = emailLower.split('@')[0]; // parte antes del @
+      
+      // Buscar 4 numeros consecutivos en el username
+      const tiene4Numeros = /\d{4}/.test(usuarioPart);
+      
+      if (tiene4Numeros) {
+        return {
+          esEstudiante: true,
+          esAdministrativo: false,
+          esAdmin: false
+        };
+      } else {
+        // Si es @uta.edu.ec pero sin 4 numeros => ADMINISTRATIVO
+        return {
+          esEstudiante: false,
+          esAdministrativo: true,
+          esAdmin: false
+        };
+      }
+    }
+
+    // 3. Usuario EXTERNO (por defecto)
+    return {
+      esEstudiante: false,
+      esAdministrativo: false,
+      esAdmin: false
+    };
+  }
+
+  async sendVerificationEmail(userId: number): Promise<{ success: boolean; message: string }> {
+  try {
+    const user = await this.prisma.usuarios.findUnique({
+      where: { id_usu: userId }
     });
 
     if (!user) {
-      throw new Error('Usuario no encontrado');
+      return { success: false, message: 'Usuario no encontrado' };
     }
 
-    return user;
+    // Validar que no sea email @uta.edu.ec
+    if (user.cor_usu.toLowerCase().endsWith('@uta.edu.ec')) {
+      return { 
+        success: false, 
+        message: 'No es posible enviar códigos de verificación a correos institucionales (@uta.edu.ec). Por favor, notifica a la DTIC para verificar tu correo.' 
+      };
+    }
+
+    const emailService = new EmailService();
+    const verificationCode = TokenUtil.generateNumericCode(6);
+
+    // Guardar código en BD temporalmente
+    await this.prisma.usuarios.update({
+      where: { id_usu: userId },
+      data: {
+        img_usu: verificationCode // Campo temporal para demo
+      }
+    });
+
+    const emailSent = await emailService.sendVerificationEmail(user.cor_usu, verificationCode);
+
+    if (!emailSent) {
+      return { success: false, message: 'Error enviando email de verificación' };
+    }
+
+    return { success: true, message: 'Email de verificación enviado' };
+
+  } catch (error) {
+    console.error('Error enviando verificación:', error);
+    return { success: false, message: 'Error interno del servidor' };
   }
+}
+
+async verifyEmail(userId: number, code: string): Promise<{ success: boolean; message: string }> {
+  try {
+    const user = await this.prisma.usuarios.findUnique({
+      where: { id_usu: userId }
+    });
+
+    if (!user) {
+      return { success: false, message: 'Usuario no encontrado' };
+    }
+
+    // Verificar código (en producción usar tabla separada con expiración)
+    if (user.img_usu !== code) {
+      return { success: false, message: 'Código de verificación inválido' };
+    }
+
+    // Marcar email como verificado y limpiar código
+    await this.prisma.usuarios.update({
+      where: { id_usu: userId },
+      data: {
+        img_usu: null, // Limpiar código
+        // Agregar campo 'email_verified' si no existe
+      }
+    });
+
+    return { success: true, message: 'Email verificado exitosamente' };
+
+  } catch (error) {
+    console.error('Error verificando email:', error);
+    return { success: false, message: 'Error interno del servidor' };
+  }
+}
 }

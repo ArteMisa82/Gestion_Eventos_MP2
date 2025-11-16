@@ -233,7 +233,7 @@ export class EventosService {
         id_res_evt: userId
       },
       include: {
-        detalle_eventos: true,
+        //detalle_eventos: true,
         tarifas_evento: true
       },
       orderBy: {

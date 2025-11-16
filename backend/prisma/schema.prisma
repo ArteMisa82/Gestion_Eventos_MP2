@@ -90,7 +90,6 @@ model nivel {
   nom_niv         String            @db.VarChar(10)
   org_cur_niv     String            @db.VarChar(10)
   id_car          String            @db.VarChar(10)
-  estudiantes     estudiantes[]
   carreras        carreras          @relation(fields: [id_car], references: [id_car], onDelete: Cascade)
   registro_evento registro_evento[]
   usuarios        usuarios[]
