@@ -13,12 +13,12 @@ export default function LoginModal({
   isOpen,
   onClose,
   initialRegister = false,
-  onLoginSuccess, // ✅ nueva prop
+  onLoginSuccess,
 }: {
   isOpen: boolean;
   onClose: () => void;
   initialRegister?: boolean;
-  onLoginSuccess?: (userData: any) => void; // ✅ callback al Navbar
+  onLoginSuccess?: (userData: any) => void;
 }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -27,7 +27,7 @@ export default function LoginModal({
   const [isRecoverOpen, setIsRecoverOpen] = useState(false);
   const [showRegister, setShowRegister] = useState(initialRegister);
 
-  // Bloquear scroll del fondo cuando el modal esté abierto
+  // Bloquear scroll cuando el modal está abierto
   useEffect(() => {
     document.body.style.overflow = isOpen ? "hidden" : "auto";
     return () => {
@@ -35,60 +35,85 @@ export default function LoginModal({
     };
   }, [isOpen]);
 
-  // Cambiar entre login / registro según prop inicial
   useEffect(() => {
     if (isOpen) setShowRegister(initialRegister);
   }, [isOpen, initialRegister]);
 
-  // 🔐 Lógica simulada de login (temporal hasta conectar backend)
-  const handleLogin = async () => {
-    try {
-      const adminEmail = "admin@admin.uta.edu.ec";
-      const adminPassword = "admin123";
-      const responsableEmail = "responsable@responsable.uta.edu.ec";
-      const responsablePassword = "resp123";
+  // 🔐 Lógica de login con verificación de dominio
+const handleLogin = async () => {
+  try {
+    const adminEmail = "admin@admin.uta.edu.ec";
+    const adminPassword = "admin123";
 
-      let userData = null;
+    let userData = null;
 
-      if (email === adminEmail && password === adminPassword) {
-        userData = { name: "Administrador", role: "admin", email };
-        Swal.fire({
-          title: "Bienvenido Administrador 👑",
-          icon: "success",
-          confirmButtonColor: "#581517",
-        });
-        router.push("/admin");
-
-      } else if (email.includes("@") && password.length > 0) {
-        userData = { name: email.split("@")[0], role: "usuario", email };
-        Swal.fire({
-          title: "Inicio de sesión exitoso ✅",
-          icon: "success",
-          confirmButtonColor: "#581517",
-        });
-        router.push("/home");
-      } else {
-        throw new Error("Correo o contraseña incorrectos ❌");
-      }
-
-      
-      setEmail("");
-      setPassword("");
-
-      if (userData && onLoginSuccess) {
-        onLoginSuccess(userData);
-      }
-
-      onClose();
-    } catch (error: any) {
+    // 🔹 Caso ADMIN
+    if (email === adminEmail && password === adminPassword) {
+      userData = { name: "Administrador", role: "admin", email };
       Swal.fire({
-        title: "Error",
-        text: error.message || "Error al iniciar sesión",
-        icon: "error",
+        title: "Bienvenido Administrador 👑",
+        icon: "success",
         confirmButtonColor: "#581517",
       });
+
+    // 🔹 Caso DOCENTE UTA
+    } else if (email.endsWith("@uta.edu.ec") && password.length > 0) {
+      userData = { name: email.split("@")[0], role: "usuario", email };
+      Swal.fire({
+        title: "Inicio de sesión exitoso",
+        text: "Bienvenido a la plataforma.",
+        icon: "success",
+        confirmButtonColor: "#581517",
+      });
+
+    // 🔹 Caso USUARIO Gmail / Hotmail
+    } else if (
+      (email.endsWith("@gmail.com") || email.endsWith("@hotmail.com")) &&
+      password.length > 0
+    ) {
+      userData = { name: email.split("@")[0], role: "usuario", email };
+      Swal.fire({
+        title: "Inicio de sesión exitoso",
+        text: "Bienvenido a la plataforma.",
+        icon: "success",
+        confirmButtonColor: "#581517",
+      });
+
+    } else {
+      throw new Error("Correo o contraseña incorrectos ❌");
     }
-  };
+
+    // 🧼 Limpieza
+    setEmail("");
+    setPassword("");
+
+    // 📌 Guardar usuario en el Navbar
+    if (userData && onLoginSuccess) {
+      onLoginSuccess(userData);
+    }
+
+    // 👁‍🗨 Cerrar modal
+    onClose();
+
+    // 🚀 REDIRECCIÓN DESPUÉS DE ACTUALIZAR NAVBAR
+    setTimeout(() => {
+      if (userData.role === "admin") {
+        router.push("/admin");
+      } else {
+        router.push("/usuarios/cursos");
+      }
+    }, 300);
+
+  } catch (error: any) {
+    Swal.fire({
+      title: "Error",
+      text: error.message || "Error al iniciar sesión",
+      icon: "error",
+      confirmButtonColor: "#581517",
+    });
+  }
+};
+
 
   return (
     <AnimatePresence>
@@ -99,7 +124,7 @@ export default function LoginModal({
           exit={{ opacity: 0 }}
           className="fixed inset-0 bg-black/40 backdrop-blur-sm flex justify-center items-center z-50"
         >
-          {/* Contenedor del modal principal */}
+          {/* Modal principal */}
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -120,7 +145,7 @@ export default function LoginModal({
               <Image src={logo} alt="Logo" width={90} height={90} />
             </div>
 
-            {/* Contenido animado: Login o Registro */}
+            {/* Contenido animado */}
             <AnimatePresence mode="wait">
               {!showRegister ? (
                 <motion.div
@@ -192,8 +217,7 @@ export default function LoginModal({
                       type="submit"
                       className="w-full py-3 mt-2 rounded-lg text-white font-semibold shadow-md transition-transform transform hover:-translate-y-1 hover:shadow-lg"
                       style={{
-                        background:
-                          "linear-gradient(to right, #581517, #7a2022)",
+                        background: "linear-gradient(to right, #581517, #7a2022)",
                       }}
                     >
                       Iniciar sesión

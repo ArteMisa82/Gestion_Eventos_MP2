@@ -1,6 +1,6 @@
 "use client";
-import React, { useState } from "react";
-import { X } from "lucide-react";
+import React, { useRef, useState } from "react";
+import { X, Upload, Image as ImageIcon } from "lucide-react";
 import Swal from "sweetalert2";
 
 interface Evento {
@@ -17,6 +17,7 @@ interface Evento {
   semestres: string[];
   tipoEvento: string;
   docente?: string;
+  imagen?: string;
 }
 
 interface ModalEditarEventoProps {
@@ -30,10 +31,10 @@ export default function ModalEditarEvento({
   onClose,
   onGuardar,
 }: ModalEditarEventoProps) {
-  // 🔒 Evita error si evento llega undefined
   if (!evento) return null;
 
   const hoy = new Date().toISOString().split("T")[0];
+  const imageDefault = "../../../public/Default_Image.png";
 
   const [formData, setFormData] = useState<Evento>({
     ...evento,
@@ -48,7 +49,10 @@ export default function ModalEditarEvento({
     semestres: evento.semestres || [],
     tipoEvento: evento.tipoEvento || "",
     docente: evento.docente || "",
+    imagen: evento.imagen || imageDefault,
   });
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const carrerasDisponibles = [
     "Software",
@@ -95,6 +99,17 @@ export default function ModalEditarEvento({
     });
   };
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData((prev) => ({ ...prev, imagen: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleGuardar = () => {
     if (!formData.fechaInicio || !formData.fechaFin) {
       Swal.fire({
@@ -116,6 +131,11 @@ export default function ModalEditarEvento({
       return;
     }
 
+    const eventoFinal ={
+      ...formData,
+      imagen: formData.imagen || imageDefault,
+    }
+
     onGuardar(formData);
     onClose();
   };
@@ -135,6 +155,45 @@ export default function ModalEditarEvento({
             <X size={24} className="text-gray-500 hover:text-[#581517]" />
           </button>
         </div>
+
+        {/* Imagen del Evento */}
+        <section className="mb-6">
+          <h3 className="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100">
+            Imagen del Evento
+          </h3>
+          <div className="flex items-center gap-6">
+            <div className="w-32 h-32 rounded-lg overflow-hidden border border-gray-300 bg-gray-50 flex items-center justify-center">
+              {formData.imagen ? (
+                <img
+                  src={formData.imagen}
+                  alt="Vista previa"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <ImageIcon className="text-gray-400 w-10 h-10" />
+              )}
+            </div>
+            <div>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center gap-2 px-4 py-2 bg-[#581517] text-white rounded-lg text-sm font-medium hover:bg-[#6e1c1e] transition-colors"
+              >
+                <Upload size={16} /> Subir Imagen
+              </button>
+              <input
+                type="file"
+                accept="image/*"
+                ref={fileInputRef}
+                onChange={handleImageChange}
+                className="hidden"
+              />
+              <p className="text-xs text-gray-500 mt-2">
+                Formatos permitidos: JPG, PNG, WEBP. Tamaño máx. 5MB
+              </p>
+            </div>
+          </div>
+        </section>
 
         {/* Formulario */}
         <div className="space-y-6">

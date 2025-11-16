@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
+import { Home } from "lucide-react"; 
 import styles from "./navbar.module.css";
 import LoginModal from "../components/loginModal";
 
@@ -35,16 +36,17 @@ export default function Navbar() {
     setIsLoginOpen(false);
   };
 
-  // 🚪 Cerrar sesión y redirigir al home
+  // 🚪 Cerrar sesión
   const handleLogout = () => {
     setUser(null);
     localStorage.removeItem("user");
     router.push("/home");
   };
 
-  return (
+ return (
     <header className={styles.header}>
       <nav className={styles.nav}>
+        
         {/* Marca institucional */}
         <Link href="/" className={styles.brand}>
           <Image
@@ -71,7 +73,7 @@ export default function Navbar() {
             </li>
           ))}
 
-          {/* 🔸 Mostrar "Panel" solo si el usuario es admin */}
+          {/* 🔸 ADMIN */}
           {user?.role === "admin" && (
             <li>
               <Link
@@ -80,17 +82,55 @@ export default function Navbar() {
                   pathname === "/admin" ? styles.activeLink : styles.link
                 }
               >
-                Panel
+                Panel Admin
+              </Link>
+            </li>
+          )}
+
+          {/* 🔹 RESPONSABLE */}
+          {user?.isResponsable && (
+            <li>
+              <Link
+                href="/responsable"
+                className={
+                  pathname === "/responsable" ? styles.activeLink : styles.link
+                }
+              >
+                Panel Responsable
+              </Link>
+            </li>
+          )}
+
+          {/* 🔹 DOCENTE */}
+          {user?.isDocente && (
+            <li>
+              <Link
+                href="/cursos/docente"
+                className={
+                  pathname === "/cursos/docente"
+                    ? styles.activeLink
+                    : styles.link
+                }
+              >
+                Panel Docente
               </Link>
             </li>
           )}
         </ul>
 
-        {/* Botones de acción */}
+        {/* Botones + Icono de Home si está logueado */}
         <div className={styles.actions}>
           {user ? (
             <>
-              <span className={styles.userName}>👋 {user.name}</span>
+              {/* 🏠 ICONO DE CASA */}
+              <button
+                onClick={() => router.push("/usuarios/cursos")}
+                className="mr-4 hover:scale-105 transition"
+              >
+                <Home size={26} className="text-[#7f1d1d] cursor-pointer" />
+              </button>
+
+              <span className={styles.userName}> {user.name}</span>
               <button onClick={handleLogout} className={styles.secondaryBtn}>
                 Cerrar sesión
               </button>
@@ -117,7 +157,7 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* Modal de Login / Registro */}
+      {/* Modal */}
       <LoginModal
         isOpen={isLoginOpen}
         onClose={() => {
