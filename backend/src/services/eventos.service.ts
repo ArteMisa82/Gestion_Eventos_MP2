@@ -224,12 +224,30 @@ export class EventosService {
         where: { id_evt_per: idEvento }
       });
 
+      // Mapear cat_det a tip_evt (tip_evt tiene valores más limitados)
+      const catDetValue = data.detalles.cat_det?.toUpperCase() || 'CURSO';
+      let tipEvtValue = 'CURSO'; // valor por defecto
+      
+      // Mapeo de cat_det a tip_evt según restricciones de la BD
+      const catDetToTipEvt: Record<string, string> = {
+        'CURSO': 'CURSO',
+        'CONGRESO': 'CONGRESO',
+        'WEBINAR': 'WEBINAR',
+        'CONFERENCIAS': 'CONFERENCIA', // singular en tip_evt
+        'SOCIALIZACIONES': 'CURSO',    // mapear a CURSO
+        'CASAS ABIERTAS': 'CASAS ABIERTAS',
+        'SEMINARIOS': 'CURSO',         // mapear a CURSO
+        'OTROS': 'CURSO'               // mapear a CURSO
+      };
+      
+      tipEvtValue = catDetToTipEvt[catDetValue] || 'CURSO';
+
       const detalleData: any = {
         cup_det: Number(data.detalles.cup_det) || 30,
         hor_det: Number(data.detalles.hor_det) || 40,
         are_det: data.detalles.are_det || 'TECNOLOGIA E INGENIERIA',
-        cat_det: data.detalles.cat_det?.toUpperCase() || 'CURSO',
-        tip_evt: data.detalles.cat_det?.toUpperCase() || 'CURSO', // Usar el mismo valor que cat_det
+        cat_det: catDetValue,
+        tip_evt: tipEvtValue,
       };
 
       if (detalleExistente) {

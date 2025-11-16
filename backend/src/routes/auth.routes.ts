@@ -23,7 +23,3 @@ router.post('/send-verification', requireAuth, controller.sendVerificationEmail.
 router.post('/verify-email', requireAuth, controller.verifyEmail.bind(controller));
 
 export default router;
-// Rutas protegidas
-router.get('/profile', authMiddleware, controller.getProfile.bind(controller));
-
-export default router;

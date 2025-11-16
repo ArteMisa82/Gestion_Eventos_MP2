@@ -120,37 +120,7 @@ export default function LoginModal({
     } finally {
       setIsLoading(false);
     }
-
-    // 🧼 Limpieza
-    setEmail("");
-    setPassword("");
-
-    // 📌 Guardar usuario en el Navbar
-    if (userData && onLoginSuccess) {
-      onLoginSuccess(userData);
-    }
-
-    // 👁‍🗨 Cerrar modal
-    onClose();
-
-    // 🚀 REDIRECCIÓN DESPUÉS DE ACTUALIZAR NAVBAR
-    setTimeout(() => {
-      if (userData.role === "admin") {
-        router.push("/admin");
-      } else {
-        router.push("/usuarios/cursos");
-      }
-    }, 300);
-
-  } catch (error: any) {
-    Swal.fire({
-      title: "Error",
-      text: error.message || "Error al iniciar sesión",
-      icon: "error",
-      confirmButtonColor: "#581517",
-    });
-  }
-};
+  };
 
 
   return (

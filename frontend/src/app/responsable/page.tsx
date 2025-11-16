@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { Calendar, Edit, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Calendar, Edit, Loader2, ArrowLeft } from "lucide-react";
 import ModalEditarEvento from "./ModalEditar";
 import Swal from "sweetalert2";
 import { eventosAPI } from "@/services/api";
