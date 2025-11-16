@@ -136,7 +136,6 @@
   font-weight: 700;
   transition: transform .12s ease, box-shadow .2s ease, background-color .2s ease, border-color .2s ease;
 }
-
 .btnPrimary { background: #810b0b; color: #fcfbfb; }
 .btnDanger  { background: #810b0b; color: #fff; }
 .btnLight   { background: #7c7b7b; border: 1px solid #dcdce2; color: #fff; }
@@ -149,7 +148,6 @@
   transform: translateY(-1px);
   box-shadow: 0 8px 20px rgba(22, 22, 22, 0.16);
 }
-
 .btnPrimary:active,
 .btnDanger:active,
 .btnLight:active,
@@ -184,7 +182,6 @@
 .fileName {
   color: #666;
 }
-
 .fileHelp {
   display: block;
   font-size: 12px;
@@ -192,6 +189,7 @@
   margin-top: 4px;
 }
 
+/* Responsive */
 @media (max-width: 900px) {
   .toolbarRow {
     grid-template-columns: 1fr;
@@ -201,3 +199,29 @@
     align-items: stretch;
   }
 }
+
+/* Encabezados y badges */
+.eventHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 6px 0 10px;
+}
+.eventName { font-size: 18px; font-weight: 800; color: #232323; }
+.muted { color: #777; font-size: 12px; }
+.lockBadge { background: #b33434; color: #fff; padding: 6px 10px; border-radius: 999px; font-weight: 700; }
+.openBadge { background: #2e7d32; color: #fff; padding: 6px 10px; border-radius: 999px; font-weight: 700; }
+.disabledRow { opacity: .6; }
+
+/* Back link */
+.backRow { margin: 6px 0 8px; }
+.backLink {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  text-decoration: none;
+  color: #7a1e1e;
+  font-weight: 700;
+}
+.backLink:hover { text-decoration: underline; }
+.backIcon { font-size: 18px; line-height: 1; }
