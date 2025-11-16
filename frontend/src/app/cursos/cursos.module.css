@@ -295,3 +295,12 @@
 .detailButton:hover {
   background: #991b1b;
 }
+
+.subtitle {
+  margin-top: -10px;
+  margin-bottom: 20px;
+  font-size: 16px;
+  color: #4b5563; /* gris suave */
+  text-align: left;
+  max-width: 900px;
+}

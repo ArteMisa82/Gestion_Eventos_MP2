@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Swal from "sweetalert2";
 import styles from "./docentePanel.module.css";
+import Link from "next/link";
 
 type Alumno = {
   id: string;
@@ -40,6 +41,10 @@ export default function CursoDocentePanel({ courseId }: { courseId: string }) {
   const [filtroNotas, setFiltroNotas] = useState<"Todos" | "Aprobado" | "Reprobado" | "En Progreso">("Todos");
 
   const [qAsistencia, setQAsistencia] = useState("");
+
+  // === NUEVO: bandera de curso finalizado (por ahora mock).
+  // Reemplaza esto cuando tengas la fecha real: const isFinished = new Date(finISO) < Date.now();
+  const [isFinished] = useState<boolean>(false);
 
   // Helpers
   const estadoDe = (a: Alumno): "Aprobado" | "Reprobado" | "En Progreso" => {
@@ -85,11 +90,19 @@ export default function CursoDocentePanel({ courseId }: { courseId: string }) {
   };
 
   const guardarNotas = async () => {
+    if (isFinished) {
+      Swal.fire("Curso finalizado", "No se pueden modificar las notas.", "info");
+      return;
+    }
     // TODO: POST notas
     Swal.fire("Guardado", "Las notas fueron registradas correctamente", "success");
   };
 
   const guardarAsistencia = async () => {
+    if (isFinished) {
+      Swal.fire("Curso finalizado", "No se puede modificar la asistencia.", "info");
+      return;
+    }
     // TODO: POST asistencia
     Swal.fire("Guardado", "La asistencia fue registrada correctamente", "success");
   };
@@ -97,6 +110,12 @@ export default function CursoDocentePanel({ courseId }: { courseId: string }) {
   return (
     <section className={styles.wrapper}>
       <h1 className={styles.title}></h1>
+
+      <div className={styles.backRow}>
+        <Link href="/cursos/docente" className={styles.backLink}>
+          <span className={styles.backIcon}>←</span> Regresar
+        </Link>
+      </div>
 
       {/* Tabs */}
       <div className={styles.tabs}>
@@ -173,7 +192,6 @@ export default function CursoDocentePanel({ courseId }: { courseId: string }) {
               <small className={styles.fileHelp}>
                 Se permiten: PDF, DOC, DOCX, PPT, PPTX, XLS, XLSX, TXT (máx. 10&nbsp;MB).
               </small>
- 
             </div>
 
             <button className={styles.btnPrimary} onClick={subirMaterial}>
@@ -193,10 +211,15 @@ export default function CursoDocentePanel({ courseId }: { courseId: string }) {
                 placeholder="Buscar estudiante..."
                 value={qNotas}
                 onChange={(e) => setQNotas(e.target.value)}
+                disabled={isFinished}
               />
             </div>
             <div className={styles.filterGroup}>
-              <select value={filtroNotas} onChange={(e) => setFiltroNotas(e.target.value as any)}>
+              <select
+                value={filtroNotas}
+                onChange={(e) => setFiltroNotas(e.target.value as any)}
+                disabled={isFinished}
+              >
                 <option value="Todos">Todos</option>
                 <option value="Aprobado">Aprobados</option>
                 <option value="Reprobado">Reprobados</option>
@@ -205,9 +228,11 @@ export default function CursoDocentePanel({ courseId }: { courseId: string }) {
               <button
                 className={styles.btnLight}
                 onClick={() => { setQNotas(""); setFiltroNotas("Todos"); }}
+                disabled={isFinished}
               >
                 Limpiar filtros
               </button>
+              {isFinished && <span className={styles.muted}>Edición bloqueada (curso finalizado)</span>}
             </div>
           </div>
 
@@ -232,6 +257,7 @@ export default function CursoDocentePanel({ courseId }: { courseId: string }) {
                       step={0.1}
                       value={a.nota ?? ""}
                       onChange={(e) => {
+                        if (isFinished) return;
                         const raw = e.target.value;
                         setAlumnos(prev =>
                           prev.map(x =>
@@ -241,6 +267,7 @@ export default function CursoDocentePanel({ courseId }: { courseId: string }) {
                           )
                         );
                       }}
+                      disabled={isFinished}
                     />
                   </td>
                   <td>{estadoDe(a)}</td>
@@ -252,7 +279,7 @@ export default function CursoDocentePanel({ courseId }: { courseId: string }) {
             </tbody>
           </table>
 
-          <button className={styles.btnDanger} onClick={guardarNotas}>
+          <button className={styles.btnDanger} onClick={guardarNotas} disabled={isFinished}>
             GUARDAR
           </button>
         </div>
@@ -268,12 +295,14 @@ export default function CursoDocentePanel({ courseId }: { courseId: string }) {
                 placeholder="Buscar estudiante..."
                 value={qAsistencia}
                 onChange={(e) => setQAsistencia(e.target.value)}
+                disabled={isFinished}
               />
             </div>
             <div className={styles.filterGroup}>
-              <button className={styles.btnLight} onClick={() => setQAsistencia("")}>
+              <button className={styles.btnLight} onClick={() => setQAsistencia("")} disabled={isFinished}>
                 Limpiar búsqueda
               </button>
+              {isFinished && <span className={styles.muted}>Edición bloqueada (curso finalizado)</span>}
             </div>
           </div>
 
@@ -286,7 +315,7 @@ export default function CursoDocentePanel({ courseId }: { courseId: string }) {
             </thead>
             <tbody>
               {alumnosAsistencia.map((a) => (
-                <tr key={a.id}>
+                <tr key={a.id} className={isFinished ? styles.disabledRow : ""}>
                   <td>{a.nombre}</td>
                   <td>
                     <label className={styles.switch}>
@@ -294,12 +323,14 @@ export default function CursoDocentePanel({ courseId }: { courseId: string }) {
                         type="checkbox"
                         checked={a.asistencia ?? false}
                         onChange={(e) =>
+                          !isFinished &&
                           setAlumnos(prev =>
                             prev.map(x =>
                               x.id === a.id ? { ...x, asistencia: e.target.checked } : x
                             )
                           )
                         }
+                        disabled={isFinished}
                       />
                       <span>{a.asistencia ? "Sí" : "No"}</span>
                     </label>
@@ -312,7 +343,7 @@ export default function CursoDocentePanel({ courseId }: { courseId: string }) {
             </tbody>
           </table>
 
-          <button className={styles.btnPrimary} onClick={guardarAsistencia}>
+          <button className={styles.btnPrimary} onClick={guardarAsistencia} disabled={isFinished}>
             GUARDAR
           </button>
         </div>
