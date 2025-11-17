@@ -45,13 +45,8 @@ export default function DashboardResponsable() {
   useEffect(() => {
     const fetchMisEventos = async () => {
       try {
-        const token = localStorage.getItem("token");
-        if (!token) {
-          throw new Error("No hay sesión activa");
-        }
-
-        // ✅ Llamar al endpoint de mis eventos
-        const data = await eventosAPI.getMisEventos(token);
+        // ✅ Llamar al endpoint de mis eventos (usa cookies de sesión)
+        const data = await eventosAPI.getMisEventos();
         
         // Transformar datos del backend al formato del frontend
         const eventosTransformados: Evento[] = data.map((evento: any) => ({
@@ -133,12 +128,42 @@ export default function DashboardResponsable() {
     // El mensaje de éxito ya lo muestra el modal
   };
 
-  const handleEstadoChange = (id: string, nuevoEstado: Evento["estado"]) => {
-    setEventos((prev) =>
-      prev.map((ev) =>
-        ev.id === id ? { ...ev, estado: nuevoEstado } : ev
-      )
-    );
+  const handleEstadoChange = async (id: string, nuevoEstado: Evento["estado"]) => {
+    try {
+      // Mapear el estado del frontend al backend
+      let estadoBackend = "EDITANDO";
+      if (nuevoEstado === "Publicado") estadoBackend = "PUBLICADO";
+      else if (nuevoEstado === "Cerrado") estadoBackend = "CERRADO";
+
+      // ✅ Enviar actualización al backend
+      await eventosAPI.update(id, {
+        est_evt: estadoBackend
+      });
+
+      // Actualizar estado local
+      setEventos((prev) =>
+        prev.map((ev) =>
+          ev.id === id ? { ...ev, estado: nuevoEstado, est_evt: estadoBackend } : ev
+        )
+      );
+
+      await Swal.fire({
+        icon: "success",
+        title: "Estado actualizado",
+        text: `El evento ahora está ${nuevoEstado}`,
+        confirmButtonColor: "#581517",
+        timer: 2000,
+        showConfirmButton: false
+      });
+    } catch (error: any) {
+      console.error("Error al actualizar estado:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: error.message || "No se pudo actualizar el estado del evento",
+        confirmButtonColor: "#581517",
+      });
+    }
   };
 
   {/* Función para colores */}
@@ -227,57 +252,11 @@ const getEstadoColor = (estado: string) => {
                 onClick={() => setEventoEditando(ev)}
                 className="flex items-center gap-2 text-[#581517] hover:text-[#7a1c1c] text-sm font-medium transition"
               >
-                <h2 className="text-lg font-semibold mb-2 text-[#581517]">{ev.nombre}</h2>
-                
-                <div className="space-y-2 mb-4">
-                  <p className="text-sm text-gray-600 flex items-center">
-                    <Calendar size={16} className="mr-2 text-gray-500" />
-                    {ev.fechaInicio || "Fecha no definida"}
-                  </p>
-                  
-                  <p className="text-sm text-gray-600">
-                    <span className="font-medium">Modalidad:</span>{" "}
-                    {ev.modalidad || <span className="text-amber-600 italic">Por definir</span>}
-                  </p>
-                  
-                  <p className="text-sm text-gray-600">
-                    <span className="font-medium">Lugar:</span>{" "}
-                    {ev.lug_evt || <span className="text-amber-600 italic">Por definir</span>}
-                  </p>
-                  
-                  <p className="text-sm text-gray-600">
-                    <span className="font-medium">Público:</span> {ev.publico}
-                  </p>
-                  
-                  <p className="text-sm text-gray-600">
-                    <span className="font-medium">Costo:</span> {ev.pago}
-                  </p>
-                  
-                  <p className="text-sm text-gray-600">
-                    <span className="font-medium">Estado:</span>{" "}
-                    <span className={`font-semibold ${
-                      ev.est_evt === "EDITANDO" ? "text-amber-600" :
-                      ev.est_evt === "PUBLICADO" ? "text-green-600" :
-                      "text-gray-600"
-                    }`}>
-                      {ev.est_evt || "Sin definir"}
-                    </span>
-                  </p>
-                </div>
-
-                <div className="flex justify-end mt-2">
-                  <button
-                    onClick={() => setEventoEditando(ev)}
-                    className="flex items-center gap-2 text-[#581517] hover:text-[#7a1c1c] text-sm font-medium transition"
-                  >
-                    <Edit size={16} /> Editar detalles
-                  </button>
-                </div>
-              </div>
-            ))}
+                <Edit size={16} /> Editar detalles
+              </button>
+            </div>
           </div>
         ))}
-
       </div>
 
       {/* Modal para editar evento */}

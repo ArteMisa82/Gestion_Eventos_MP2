@@ -34,7 +34,7 @@ export const generateOrderPdf = (data: OrderData): Promise<Buffer> => {
         const doc = new PDFDocument({ margin: 50, size: 'A4' });
 
         const buffers: Buffer[] = [];
-        doc.on('data', b => buffers.push(b));
+        doc.on('data', (b: Buffer) => buffers.push(b));
         doc.on('end', () => resolve(Buffer.concat(buffers)));
         doc.on('error', reject);
 

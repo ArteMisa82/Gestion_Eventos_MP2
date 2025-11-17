@@ -27,11 +27,7 @@ const AddEventModal: React.FC<AddEventModalProps> = ({ onClose, setEvents }) => 
   useEffect(() => {
     const fetchResponsables = async () => {
       try {
-        const token = localStorage.getItem("token");
-        if (!token) {
-          throw new Error("No hay sesión activa");
-        }
-        const data = await eventosAPI.getResponsables(token);
+        const data = await eventosAPI.getResponsables();
         setResponsables(data);
       } catch (error) {
         console.error("Error al cargar responsables:", error);
@@ -60,13 +56,8 @@ const AddEventModal: React.FC<AddEventModalProps> = ({ onClose, setEvents }) => 
     setIsLoading(true);
 
     try {
-      // ✅ Llamada al backend para crear evento
-      const token = localStorage.getItem("token");
-      if (!token) {
-        throw new Error("No hay sesión activa");
-      }
-
-      const nuevoEvento = await eventosAPI.create(token, {
+      // ✅ Llamada al backend para crear evento (usa cookies de sesión)
+      const nuevoEvento = await eventosAPI.create({
         nom_evt: title,
         fec_evt: new Date().toISOString().split('T')[0], // Fecha actual por defecto
         lug_evt: "Por definir",
@@ -94,20 +85,6 @@ const AddEventModal: React.FC<AddEventModalProps> = ({ onClose, setEvents }) => 
           end: "Por definir",
         },
       ]);
-
-    if (responsables.length >= 1) {
-        await Swal.fire({
-          icon: "info",
-          title: "Solo un responsable",
-          text: "Este curso solo puede tener un responsable asignado.",
-          confirmButtonColor: "#581517",
-        });
-        return;
-      }
-
-      setResponsables([selected]); // siempre reemplaza al anterior
-
-  };
 
       onClose();
     } catch (error: any) {

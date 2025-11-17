@@ -7,17 +7,30 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
 /**
  * Headers comunes para todas las peticiones
+ * NOTA: El parámetro token se mantiene por compatibilidad pero no se usa
+ * porque el sistema usa cookies de sesión (express-session)
  */
 const getHeaders = (token?: string): HeadersInit => {
-  const headers: HeadersInit = {
+  return {
     'Content-Type': 'application/json',
   };
+};
+
+/**
+ * Opciones de fetch con credentials para cookies de sesión
+ */
+const getFetchOptions = (method: string = 'GET', body?: any): RequestInit => {
+  const options: RequestInit = {
+    method,
+    headers: getHeaders(),
+    credentials: 'include', // ✅ IMPORTANTE: Incluir cookies de sesión
+  };
   
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+  if (body) {
+    options.body = JSON.stringify(body);
   }
   
-  return headers;
+  return options;
 };
 
 /**
@@ -47,7 +60,7 @@ export const authAPI = {
   login: async (cor_usu: string, password: string) => {
     // El backend espera { email, password } y usa sesiones.
     const response = await fetch(`${API_URL}/auth/login`, {
-      method: 'POST',
+      ...getFetchOptions('POST', { email: cor_usu, password }),
       headers: getHeaders(),
       credentials: 'include',                // <- importante: enviar/recibir cookie de sesión
       body: JSON.stringify({ email: cor_usu, password }), // <- claves que el backend espera
@@ -83,6 +96,7 @@ export const authAPI = {
   verifyToken: async (token: string) => {
     const response = await fetch(`${API_URL}/auth/verificar`, {
       headers: getHeaders(token),
+      credentials: 'include',
     });
     return handleResponse(response);
   },
@@ -95,7 +109,8 @@ export const authAPI = {
     const response = await fetch(`${API_URL}/auth/forgot-password`, {
       method: 'POST',
       headers: getHeaders(),
-      body: JSON.stringify({ cor_usu: email }),
+      credentials: 'include',
+      body: JSON.stringify({ email }),
     });
     return handleResponse(response);
   },
@@ -108,6 +123,7 @@ export const authAPI = {
     const response = await fetch(`${API_URL}/auth/reset-password`, {
       method: 'POST',
       headers: getHeaders(),
+      credentials: 'include',
       body: JSON.stringify({ token, newPassword }),
     });
     return handleResponse(response);
@@ -121,6 +137,7 @@ export const authAPI = {
     const response = await fetch(`${API_URL}/auth/verify-reset-token`, {
       method: 'POST',
       headers: getHeaders(),
+      credentials: 'include',
       body: JSON.stringify({ token }),
     });
     return handleResponse(response);
@@ -188,7 +205,7 @@ export const eventosAPI = {
    * Obtener todos los eventos (ADMIN)
    * GET /api/eventos
    */
-  getAll: async (token: string, filters?: {
+  getAll: async (filters?: {
     estado?: string;
     busqueda?: string;
     tipo?: string;
@@ -198,9 +215,7 @@ export const eventosAPI = {
     if (filters?.busqueda) params.append('busqueda', filters.busqueda);
     if (filters?.tipo) params.append('tipo', filters.tipo);
     
-    const response = await fetch(`${API_URL}/eventos?${params}`, {
-      headers: getHeaders(token),
-    });
+    const response = await fetch(`${API_URL}/eventos?${params}`, getFetchOptions());
     return handleResponse(response);
   },
 
@@ -208,10 +223,8 @@ export const eventosAPI = {
    * Obtener evento por ID
    * GET /api/eventos/:id
    */
-  getById: async (id: string, token?: string) => {
-    const response = await fetch(`${API_URL}/eventos/${id}`, {
-      headers: getHeaders(token),
-    });
+  getById: async (id: string) => {
+    const response = await fetch(`${API_URL}/eventos/${id}`, getFetchOptions());
     return handleResponse(response);
   },
 
@@ -219,7 +232,7 @@ export const eventosAPI = {
    * Crear evento (ADMIN)
    * POST /api/eventos
    */
-  create: async (token: string, eventoData: {
+  create: async (eventoData: {
     nom_evt: string;
     fec_evt: string;
     lug_evt: string;
@@ -230,11 +243,7 @@ export const eventosAPI = {
     id_responsable: number;
     detalles?: any;
   }) => {
-    const response = await fetch(`${API_URL}/eventos`, {
-      method: 'POST',
-      headers: getHeaders(token),
-      body: JSON.stringify(eventoData),
-    });
+    const response = await fetch(`${API_URL}/eventos`, getFetchOptions('POST', eventoData));
     return handleResponse(response);
   },
 
@@ -242,12 +251,8 @@ export const eventosAPI = {
    * Actualizar evento (ADMIN)
    * PUT /api/eventos/:id
    */
-  update: async (token: string, id: string, eventoData: any) => {
-    const response = await fetch(`${API_URL}/eventos/${id}`, {
-      method: 'PUT',
-      headers: getHeaders(token),
-      body: JSON.stringify(eventoData),
-    });
+  update: async (id: string, eventoData: any) => {
+    const response = await fetch(`${API_URL}/eventos/${id}`, getFetchOptions('PUT', eventoData));
     return handleResponse(response);
   },
 
@@ -255,11 +260,8 @@ export const eventosAPI = {
    * Eliminar evento (ADMIN)
    * DELETE /api/eventos/:id
    */
-  delete: async (token: string, id: string) => {
-    const response = await fetch(`${API_URL}/eventos/${id}`, {
-      method: 'DELETE',
-      headers: getHeaders(token),
-    });
+  delete: async (id: string) => {
+    const response = await fetch(`${API_URL}/eventos/${id}`, getFetchOptions('DELETE'));
     return handleResponse(response);
   },
 
@@ -267,10 +269,8 @@ export const eventosAPI = {
    * Obtener eventos asignados a un responsable
    * GET /api/eventos/responsable/:id
    */
-  getByResponsable: async (token: string, idResponsable: number) => {
-    const response = await fetch(`${API_URL}/eventos/responsable/${idResponsable}`, {
-      headers: getHeaders(token),
-    });
+  getByResponsable: async (idResponsable: number) => {
+    const response = await fetch(`${API_URL}/eventos/responsable/${idResponsable}`, getFetchOptions());
     return handleResponse(response);
   },
 
@@ -278,10 +278,8 @@ export const eventosAPI = {
    * Obtener lista de usuarios administrativos (para asignar como responsables)
    * GET /api/eventos/usuarios/administrativos
    */
-  getResponsables: async (token: string) => {
-    const response = await fetch(`${API_URL}/eventos/usuarios/administrativos`, {
-      headers: getHeaders(token),
-    });
+  getResponsables: async () => {
+    const response = await fetch(`${API_URL}/eventos/usuarios/administrativos`, getFetchOptions());
     return handleResponse(response);
   },
 
@@ -289,10 +287,8 @@ export const eventosAPI = {
    * Obtener eventos asignados al usuario autenticado (mis eventos)
    * GET /api/eventos/mis-eventos
    */
-  getMisEventos: async (token: string) => {
-    const response = await fetch(`${API_URL}/eventos/mis-eventos`, {
-      headers: getHeaders(token),
-    });
+  getMisEventos: async () => {
+    const response = await fetch(`${API_URL}/eventos/mis-eventos`, getFetchOptions());
     return handleResponse(response);
   },
 
@@ -300,10 +296,8 @@ export const eventosAPI = {
    * Obtener usuarios que son responsables activos de algún curso
    * GET /api/eventos/usuarios/responsables-activos
    */
-  getResponsablesActivos: async (token: string) => {
-    const response = await fetch(`${API_URL}/eventos/usuarios/responsables-activos`, {
-      headers: getHeaders(token),
-    });
+  getResponsablesActivos: async () => {
+    const response = await fetch(`${API_URL}/eventos/usuarios/responsables-activos`, getFetchOptions());
     return handleResponse(response);
   },
 

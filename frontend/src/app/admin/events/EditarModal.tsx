@@ -28,11 +28,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({ onClose, event, onSave 
   useEffect(() => {
     const fetchResponsables = async () => {
       try {
-        const token = localStorage.getItem("token");
-        if (!token) {
-          throw new Error("No hay sesión activa");
-        }
-        const data = await eventosAPI.getResponsables(token);
+        const data = await eventosAPI.getResponsables();
         setResponsables(data);
 
         // TODO: Preseleccionar el responsable actual del evento
@@ -64,14 +60,9 @@ const EditEventModal: React.FC<EditEventModalProps> = ({ onClose, event, onSave 
     setIsLoading(true);
 
     try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        throw new Error("No hay sesión activa");
-      }
-
-      // ✅ Actualizar evento en el backend usando el ID real
+      // ✅ Actualizar evento en el backend usando el ID real (usa cookies de sesión)
       const idToUpdate = event.realId || event.id.toString();
-      await eventosAPI.update(token, idToUpdate, {
+      await eventosAPI.update(idToUpdate, {
         nom_evt: title,
         id_responsable: responsableId,
       });

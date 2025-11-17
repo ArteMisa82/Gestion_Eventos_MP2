@@ -169,7 +169,7 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
     setDocFiltered(usuarios);
   };
 
-  const handleGuardar = () => {
+  const handleGuardar = async () => {
     // validaciones básicas
     if (!formData.fechaInicio || !formData.fechaFin) {
       Swal.fire({ icon: "warning", title: "Fechas requeridas", text: "Debes ingresar la fecha de inicio y de fin del evento.", confirmButtonColor: "#581517" });
@@ -196,9 +196,45 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
       }
     }
 
-    // en el futuro aquí enviar al backend; por ahora devolvemos el objeto
-    onGuardar({ ...formData, imagen: formData.imagen || imageDefault });
-    onClose();
+    try {
+      // ✅ Enviar actualización al backend
+      await eventosAPI.update(evento.id, {
+        nom_evt: formData.nombre,
+        fec_evt: formData.fechaInicio,
+        lug_evt: formData.lugar || "Por definir",
+        mod_evt: formData.modalidad,
+        tip_pub_evt: formData.publico === "General" ? "GENERAL" : "ESTUDIANTES",
+        cos_evt: formData.pago === "Gratuito" ? "GRATUITO" : "DE_PAGO",
+        ima_evt: formData.imagen,
+        detalles: {
+          cup_det: formData.cupos,
+          hor_det: formData.horas,
+          cat_det: formData.tipoEvento,
+          // Agregar más campos según necesites
+        }
+      });
+
+      await Swal.fire({
+        icon: "success",
+        title: "Evento actualizado",
+        text: "Los cambios se guardaron correctamente",
+        confirmButtonColor: "#581517",
+        timer: 2000,
+        showConfirmButton: false
+      });
+
+      // Actualizar estado local y cerrar
+      onGuardar({ ...formData, imagen: formData.imagen || imageDefault });
+      onClose();
+    } catch (error: any) {
+      console.error("Error al guardar evento:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Error al guardar",
+        text: error.message || "No se pudieron guardar los cambios",
+        confirmButtonColor: "#581517",
+      });
+    }
   };
 
   return (
