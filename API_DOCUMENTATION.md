@@ -388,7 +388,7 @@ Authorization: Bearer <token_administrador>
 
 **GET** `/usuarios/administrativos`
 
-Lista todos los usuarios que pueden ser asignados como responsables (adm_usu = 1).
+Lista todos los usuarios que pueden ser asignados como responsables (adm_usu = 1), excluyendo al super admin.
 
 **Headers:**
 ```
@@ -399,7 +399,6 @@ Authorization: Bearer <token>
 ```json
 {
   "success": true,
-  "message": "Usuarios administrativos obtenidos",
   "data": [
     {
       "id_usu": 2,
@@ -421,7 +420,54 @@ Authorization: Bearer <token>
 
 ---
 
-### 8. Obtener Mis Eventos (Responsable)
+### 8. Obtener Responsables Activos
+
+**GET** `/usuarios/responsables-activos`
+
+Lista todos los usuarios que actualmente son responsables de al menos un curso/evento. Incluye el conteo de eventos asignados a cada responsable.
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
+
+**Respuesta Exitosa (200):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id_usu": 2,
+      "nom_usu": "María",
+      "ape_usu": "López",
+      "cor_usu": "maria@uta.edu.ec",
+      "adm_usu": 1,
+      "_count": {
+        "eventos": 3
+      }
+    },
+    {
+      "id_usu": 4,
+      "nom_usu": "Carlos",
+      "ape_usu": "Ramírez",
+      "cor_usu": "carlos@uta.edu.ec",
+      "adm_usu": 1,
+      "_count": {
+        "eventos": 1
+      }
+    }
+  ]
+}
+```
+
+**Notas:**
+- Solo devuelve usuarios que tienen al menos 1 evento asignado
+- El campo `_count.eventos` indica cuántos eventos tiene asignados cada responsable
+- Útil para mostrar estadísticas de carga de trabajo de responsables
+
+---
+
+### 9. Obtener Mis Eventos (Responsable)
 
 **GET** `/mis-eventos`
 

@@ -3,7 +3,10 @@ export type Course = {
   id: string;
   title: string;
   career: "SOFTWARE" | "TI" | "ROBOTICA" | "TELECOM";
+  /** Cobertura / acceso */
   type: "GRATIS" | "PAGO" | "GENERAL" | "ESTUDIANTES";
+  /** Tipo de evento */
+  eventKind: "CURSO" | "CONFERENCIA" | "WEBINAR" | "CONGRESO" | "CASA_ABIERTA";
   hours: number;
   cover: string;
   open: boolean;
@@ -16,6 +19,7 @@ export const COURSES: Course[] = [
     title: "Arduino desde cero: Electrónica, Programación y Automatización",
     career: "SOFTWARE",
     type: "GENERAL",
+    eventKind: "CURSO",
     hours: 20,
     cover: "/home/arduino.jpg",
     open: true,
@@ -26,6 +30,7 @@ export const COURSES: Course[] = [
     title: "Inteligencia Artificial para la Gestión de RRHH",
     career: "TI",
     type: "PAGO",
+    eventKind: "CONFERENCIA",
     hours: 24,
     cover: "/home/RRHH.jpg",
     open: true,
@@ -35,6 +40,7 @@ export const COURSES: Course[] = [
     title: "La Ley de Protección de Datos en el Ecuador",
     career: "SOFTWARE",
     type: "GRATIS",
+    eventKind: "WEBINAR",
     hours: 12,
     cover: "/home/proteccion.jpg",
     open: true,
@@ -45,6 +51,7 @@ export const COURSES: Course[] = [
     title: "Robótica educativa con MicroPython",
     career: "ROBOTICA",
     type: "ESTUDIANTES",
+    eventKind: "CASA_ABIERTA",
     hours: 18,
     cover: "/home/robotica.jpg",
     open: true,
@@ -54,6 +61,7 @@ export const COURSES: Course[] = [
     title: "Redes y Telecom: Fundamentos de Switching",
     career: "TELECOM",
     type: "GENERAL",
+    eventKind: "CURSO",
     hours: 16,
     cover: "/home/redes.jpg",
     open: true,
@@ -63,9 +71,9 @@ export const COURSES: Course[] = [
     title: "Ciberseguridad de Redes: Fundamentos y Buenas Prácticas",
     career: "TI",
     type: "GENERAL",
+    eventKind: "CONGRESO",
     hours: 22,
     cover: "/home/ciberedes.jpg",
     open: true,
   },
 ];
-

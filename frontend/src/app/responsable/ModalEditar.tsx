@@ -2,6 +2,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import { X, Upload, Image as ImageIcon } from "lucide-react";
 import Swal from "sweetalert2";
+import { eventosAPI } from "@/services/api";
 
 interface Evento {
   id: string;
@@ -126,13 +127,40 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData((prev) => ({ ...prev, imagen: reader.result as string }));
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    // Validar tipo de archivo
+    const validTypes = ["image/jpeg", "image/png", "image/webp"];
+    if (!validTypes.includes(file.type)) {
+      Swal.fire({
+        icon: "error",
+        title: "Formato no válido",
+        text: "Solo se permiten archivos JPG, PNG o WEBP",
+        confirmButtonColor: "#581517",
+      });
+      return;
     }
+
+    // Validar tamaño (5MB máximo)
+    if (file.size > 5 * 1024 * 1024) {
+      Swal.fire({
+        icon: "error",
+        title: "Archivo muy grande",
+        text: "El tamaño máximo permitido es 5MB",
+        confirmButtonColor: "#581517",
+      });
+      return;
+    }
+
+    // Crear URL para previsualización
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setFormData((prev) => ({
+        ...prev,
+        imagen: reader.result as string,
+      }));
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleSelectDocente = (id: string, nombre: string) => {

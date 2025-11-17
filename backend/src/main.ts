@@ -11,24 +11,34 @@ dotenv.config();
 
 const app = express();
 
-// Middlewares
+// 🔥 Para permitir imágenes Base64 grandes
+app.use(express.json({ limit: '10mb' }));
 app.use(cors());
+app.use(session(sessionConfig)); // ← SESIONES ACTIVADAS
+// Middlewares CORS configurado para desarrollo
+app.use(cors({
+  origin: ['http://localhost:3000', 'http://localhost:3001'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
 app.use(session(sessionConfig)); // ← SESIONES CONFIGURADAS
 
-// Ruta raíz
+// ✔ Ruta base de prueba
 app.get('/', (req, res) => {
   res.send('Backend funcionando 🚀');
 });
 
-// Rutas API
+// ✔ Aquí se conectan TODAS tus rutas del proyecto (API REST)
 app.use('/api', routes);
 
-// Manejo de errores
+// ✔ Middleware global de errores
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 3001;
 
+// 🚀 Arrancar servidor + conectar a BD
 app.listen(PORT, async () => {
   try {
     await prisma.$connect();
@@ -41,7 +51,17 @@ app.listen(PORT, async () => {
   }
 });
 
+// 🧹 Cerrar conexión cuando se apague el servidor
 process.on('SIGINT', async () => {
   await prisma.$disconnect();
   process.exit(0);
+});
+
+// Manejadores para errores no capturados
+process.on('uncaughtException', (error) => {
+  console.error('❌ Excepción no capturada:', error);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Promesa rechazada no manejada:', reason);
 });

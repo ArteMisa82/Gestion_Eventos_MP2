@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from "react";
 import Swal from "sweetalert2";
 import { Eye, EyeOff, Lock, Mail, User } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { authAPI } from "@/services/api";
 
 interface RegisterFormProps {
   onClose: () => void;
@@ -16,6 +18,7 @@ export default function RegisterForm({ onClose }: RegisterFormProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordError, setPasswordError] = useState("");
+  const router = useRouter();
 
   useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -43,16 +46,49 @@ export default function RegisterForm({ onClose }: RegisterFormProps) {
     }
 
     setPasswordError("");
+    try {
+      const response = await authAPI.register({
+        cor_usu: email,
+        pas_usu: password,
+        nom_usu: nombre,
+        ape_usu: apellido,
+      });
 
-    Swal.fire({
-      title: "Registro exitoso",
-      text: `Bienvenido, ${nombre} ${apellido}!`,
-      icon: "success",
-      confirmButtonColor: "#581517",
-    });
+      // If backend returns token & usuario, store and redirect similar to login
+      const { token, usuario } = response as any;
+      if (token && usuario) {
+        localStorage.setItem("token", token);
+        localStorage.setItem("user", JSON.stringify(usuario));
 
-    console.log({ nombre, apellido, email, password });
-    onClose();
+        let ruta = "/home";
+        if (usuario.adm_usu === 1 || usuario.Administrador === true) ruta = "/admin";
+        else if (usuario.stu_usu === 1) ruta = "/cursos";
+
+        await Swal.fire({ title: `Registro exitoso. Bienvenido ${usuario.nom_usu}!`, icon: "success", confirmButtonColor: "#581517", timer: 1800, showConfirmButton: false });
+        
+        // Si email no está verificado, mostrar modal de verificación
+        if (usuario.email_verified === false) {
+          // Abrir modal de verificación — lo haremos en parent component
+          // Por ahora solo mostrar un mensaje
+          await Swal.fire({ 
+            title: "Verifica tu email", 
+            text: "Se abrirá un modal para verificar tu correo",
+            icon: "info", 
+            confirmButtonColor: "#581517" 
+          });
+        }
+        
+        onClose();
+        router.push(ruta);
+        return;
+      }
+
+      // Fallback success
+      Swal.fire({ title: "Registro exitoso", text: `Bienvenido, ${nombre} ${apellido}!`, icon: "success", confirmButtonColor: "#581517" });
+      onClose();
+    } catch (err: any) {
+      Swal.fire({ title: "Error", text: err.message || "No se pudo registrar", icon: "error", confirmButtonColor: "#581517" });
+    }
   };
 
   return (

@@ -43,8 +43,9 @@ export class DetallesEventosService {
         are_det: data.are_det,
         cat_det: data.cat_det?.toUpperCase(),
         tip_evt: data.tip_evt?.toUpperCase(),
-        not_evt_det: data.not_evt_det || null,
-        asi_evt_det: data.asi_evt_det || null,
+        not_min_evt: data.not_min_evt || null,  // Nota mínima
+        not_fin_evt: data.not_fin_evt || null,  // Nota final
+        asi_evt_det: data.asi_evt_det || null,  // Porcentaje 0-100
         cer_evt_det: data.cer_evt_det || 0,
         apr_evt_det: data.apr_evt_det || 0,
         est_evt_det: 'INSCRIPCIONES', // Estado inicial
@@ -155,8 +156,9 @@ export class DetallesEventosService {
         are_det: data.are_det,
         cat_det: data.cat_det?.toUpperCase(),
         tip_evt: data.tip_evt?.toUpperCase(),
-        not_evt_det: data.not_evt_det,
-        asi_evt_det: data.asi_evt_det,
+        not_min_evt: data.not_min_evt,  // Nota mínima
+        not_fin_evt: data.not_fin_evt,  // Nota final
+        asi_evt_det: data.asi_evt_det,  // Porcentaje 0-100
         cer_evt_det: data.cer_evt_det,
         apr_evt_det: data.apr_evt_det,
         est_evt_det: data.est_evt_det?.toUpperCase()

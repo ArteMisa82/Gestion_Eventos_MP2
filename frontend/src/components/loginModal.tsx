@@ -6,8 +6,10 @@ import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Lock, Mail, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import RecuperarModal from "@/app/login/RecuperarModal";
+import VerifyEmailModal from "@/app/login/VerifyEmailModal";
 import RegisterForm from "@/app/login/registroForm";
 import logo from "../../public/logo_UTA.png";
+import { authAPI } from "@/services/api";
 
 export default function LoginModal({
   isOpen,
@@ -21,11 +23,14 @@ export default function LoginModal({
   onLoginSuccess?: (userData: any) => void;
 }) {
   const router = useRouter();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isRecoverOpen, setIsRecoverOpen] = useState(false);
+  const [isVerifyOpen, setIsVerifyOpen] = useState(false);
   const [showRegister, setShowRegister] = useState(initialRegister);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Bloquear scroll cuando el modal está abierto
   useEffect(() => {
@@ -35,85 +40,113 @@ export default function LoginModal({
     };
   }, [isOpen]);
 
+  // Cambiar entre login / registro según prop inicial
   useEffect(() => {
     if (isOpen) setShowRegister(initialRegister);
   }, [isOpen, initialRegister]);
 
-  // 🔐 Lógica de login con verificación de dominio
-const handleLogin = async () => {
-  try {
-    const adminEmail = "admin@admin.uta.edu.ec";
-    const adminPassword = "admin123";
-
-    let userData = null;
-
-    // 🔹 Caso ADMIN
-    if (email === adminEmail && password === adminPassword) {
-      userData = { name: "Administrador", role: "admin", email };
+  // 🔐 Login con backend real
+  const handleLogin = async () => {
+    // Validaciones básicas
+    if (!email || !password) {
       Swal.fire({
-        title: "Bienvenido Administrador 👑",
-        icon: "success",
+        title: "Campos vacíos",
+        text: "Por favor ingresa correo y contraseña",
+        icon: "warning",
         confirmButtonColor: "#581517",
       });
-
-    // 🔹 Caso DOCENTE UTA
-    } else if (email.endsWith("@uta.edu.ec") && password.length > 0) {
-      userData = { name: email.split("@")[0], role: "usuario", email };
-      Swal.fire({
-        title: "Inicio de sesión exitoso",
-        text: "Bienvenido a la plataforma.",
-        icon: "success",
-        confirmButtonColor: "#581517",
-      });
-
-    // 🔹 Caso USUARIO Gmail / Hotmail
-    } else if (
-      (email.endsWith("@gmail.com") || email.endsWith("@hotmail.com")) &&
-      password.length > 0
-    ) {
-      userData = { name: email.split("@")[0], role: "usuario", email };
-      Swal.fire({
-        title: "Inicio de sesión exitoso",
-        text: "Bienvenido a la plataforma.",
-        icon: "success",
-        confirmButtonColor: "#581517",
-      });
-
-    } else {
-      throw new Error("Correo o contraseña incorrectos ❌");
+      return;
     }
 
-    // 🧼 Limpieza
-    setEmail("");
-    setPassword("");
+    setIsLoading(true);
 
-    // 📌 Guardar usuario en el Navbar
-    if (userData && onLoginSuccess) {
-      onLoginSuccess(userData);
-    }
+    try {
+      // ✅ Llamada real al backend
+      const response = await authAPI.login(email, password);
+      
+      // El backend responde con el usuario en la propiedad `user` (o directamente data.user)
+      const usuario = response?.user || response?.usuario || response;
 
-    // 👁‍🗨 Cerrar modal
-    onClose();
-
-    // 🚀 REDIRECCIÓN DESPUÉS DE ACTUALIZAR NAVBAR
-    setTimeout(() => {
-      if (userData.role === "admin") {
-        router.push("/admin");
-      } else {
-        router.push("/usuarios/cursos");
+      if (!usuario) {
+        throw new Error("Respuesta inválida del servidor");
       }
-    }, 300);
+      
+      // No hay token (usamos sesiones). Guardamos solo el usuario localmente.
+      localStorage.setItem("user", JSON.stringify(usuario));
+      
+      // Si necesitas el id o propiedades de sesión, úsalas desde `usuario`.
+      // Mantén el resto del flujo (mensajes, redirección, verificación de email):
+      if (usuario && usuario.email_verified === false) {
+        setIsVerifyOpen(true);
+      }
+      
+      // ✅ Determinar mensaje y ruta según rol del usuario
+      let mensaje = "";
+      let ruta = "/home";
+      
+      if (usuario.adm_usu === 1 || usuario.Administrador === true) {
+        mensaje = `Bienvenido ${usuario.nom_usu} 👑`;
+        ruta = "/admin";
+      } else if (usuario.stu_usu === 1) {
+        mensaje = `Bienvenido ${usuario.nom_usu} 🎓`;
+        ruta = "/cursos";
+      } else {
+        mensaje = `Bienvenido ${usuario.nom_usu}`;
+        ruta = "/home";
+      }
+      
+      // ✅ Mostrar mensaje de éxito
+      await Swal.fire({
+        title: mensaje,
+        icon: "success",
+        confirmButtonColor: "#581517",
+        timer: 2000,
+        showConfirmButton: false,
+      });
+      
+      // ✅ Limpiar campos
+      setEmail("");
+      setPassword("");
+      
+      // ✅ Callback al Navbar (para actualizar estado global)
+      if (onLoginSuccess) {
+        onLoginSuccess(usuario);
+      }
+      
+      // ✅ Cerrar modal y redirigir
+      onClose();
+      router.push(ruta);
+      
+    } catch (error: any) {
+      // ✅ Manejo de errores desde el backend
+      Swal.fire({
+        title: "Error de autenticación",
+        text: error.message || "Credenciales incorrectas",
+        icon: "error",
+        confirmButtonColor: "#581517",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  } catch (error: any) {
-    Swal.fire({
-      title: "Error",
-      text: error.message || "Error al iniciar sesión",
-      icon: "error",
-      confirmButtonColor: "#581517",
-    });
-  }
-};
-
+      // 🚀 Redirección después de actualizar Navbar
+      setTimeout(() => {
+        if (userData.role === "admin") {
+          router.push("/admin");
+        } else {
+          router.push("/usuarios/cursos");
+        }
+      }, 300);
+    } catch (error: any) {
+      Swal.fire({
+        title: "Error",
+        text: error.message || "Error al iniciar sesión",
+        icon: "error",
+        confirmButtonColor: "#581517",
+      });
+    }
+  };
 
   return (
     <AnimatePresence>
@@ -215,12 +248,13 @@ const handleLogin = async () => {
 
                     <button
                       type="submit"
-                      className="w-full py-3 mt-2 rounded-lg text-white font-semibold shadow-md transition-transform transform hover:-translate-y-1 hover:shadow-lg"
+                      disabled={isLoading}
+                      className="w-full py-3 mt-2 rounded-lg text-white font-semibold shadow-md transition-transform transform hover:-translate-y-1 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                       style={{
                         background: "linear-gradient(to right, #581517, #7a2022)",
                       }}
                     >
-                      Iniciar sesión
+                      {isLoading ? "Iniciando sesión..." : "Iniciar sesión"}
                     </button>
                   </form>
 
@@ -263,6 +297,8 @@ const handleLogin = async () => {
               })
             }
           />
+          {/* Modal de verificación de email */}
+          <VerifyEmailModal isOpen={isVerifyOpen} onClose={() => setIsVerifyOpen(false)} />
         </motion.div>
       )}
     </AnimatePresence>
