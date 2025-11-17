@@ -1,7 +1,7 @@
 // backend/src/services/pagos.service.ts
 
 import prisma from '../config/database';
-import { generateOrderPdf } from '../utils/pdfGenerator'; // Importar la función de generación de PDF
+import { generateOrderPdf, OrderData } from '../utils/pdfGenerator';
 
 export class PagosService {
 
@@ -14,11 +14,9 @@ export class PagosService {
             where: { id_evt: idEvento },
             select: {
                 id_tar_evt: true,
-                val_evt: true,         
-                tip_par: true,           
-                eventos: {
-                    select: { nom_evt: true }
-                }
+                val_evt: true,
+                tip_par: true,
+                eventos: { select: { nom_evt: true } }
             }
         });
 
@@ -26,61 +24,59 @@ export class PagosService {
             throw new Error(`No se encontraron tarifas para el evento ID: ${idEvento}`);
         }
 
-        return tarifas;
+        return tarifas.map(t => ({
+            ...t,
+            val_evt: t.val_evt.toNumber(),
+            nom_evt: t.eventos.nom_evt
+        }));
     }
 
-    async registerPago(
-        idRegistroPersona: number,
-        valorPago: number,
-        metodoPago: string,
-    ) {
+    async registerPago(idRegistroPersona: number, valorPago: number, metodoPago: string) {
 
         const registro = await prisma.registro_personas.findUnique({
             where: { num_reg_per: idRegistroPersona },
         });
 
         if (!registro) {
-            throw new Error(`El ID de registro de persona ${idRegistroPersona} no existe.`);
+            throw new Error(`El ID de registro ${idRegistroPersona} no existe.`);
         }
-        
-        // En un flujo real, 'pag_o_no: 1' se usaría después de que el administrador valida el comprobante.
-        // Aquí lo dejamos en 1 para simular un registro rápido.
-        const nuevoPago = await prisma.pagos.create({
+
+        return prisma.pagos.create({
             data: {
-                num_reg_per: idRegistroPersona, 
-                val_pag: valorPago,          
-                met_pag: metodoPago,           
-                pag_o_no: 1, 
+                num_reg_per: idRegistroPersona,
+                val_pag: valorPago,
+                met_pag: metodoPago,
+                pag_o_no: 1,
             }
         });
-
-        return nuevoPago;
     }
 
     // --------------------------------------------------------
-    // NUEVO MÉTODO: GENERAR ORDEN DE PAGO
+    // MÉTODO AUXILIAR: OBTENER DATOS PARA LA ORDEN DE PAGO
     // --------------------------------------------------------
 
-    /**
-     * Obtiene datos del registro, la tarifa y genera el PDF de la Orden de Pago, 
-     * o devuelve un mensaje si el evento es gratuito.
-     * @param numRegPer ID del registro de persona (e.g., 1)
-     * @returns Buffer del PDF o string de mensaje.
-     */
-    async generatePaymentOrder(numRegPer: number): Promise<Buffer | string> { // <-- TIPO DE RETORNO MODIFICADO
+    async getOrderData(numRegPer: number): Promise<OrderData> {
+
         const registrationData = await prisma.registro_personas.findUnique({
             where: { num_reg_per: numRegPer },
             select: {
+                usuarios: {
+                    select: {
+                        nom_usu: true,
+                        ape_usu: true,
+                        ced_usu: true, // OPCIONAL en Prisma
+                    }
+                },
                 registro_evento: {
                     select: {
                         detalle_eventos: {
                             select: {
                                 id_evt_per: true,
-                                eventos: { 
-                                    select: { 
+                                eventos: {
+                                    select: {
                                         nom_evt: true,
-                                        cos_evt: true // <-- Campo de costo añadido
-                                    } 
+                                        cos_evt: true,
+                                    }
                                 }
                             }
                         }
@@ -89,41 +85,118 @@ export class PagosService {
             }
         });
 
-        if (!registrationData) {
-            throw new Error('Registro de persona no encontrado.');
+        if (!registrationData || !registrationData.registro_evento || !registrationData.usuarios) {
+            throw new Error('No se encontraron datos del registro, evento o usuario.');
         }
 
         const event = registrationData.registro_evento.detalle_eventos.eventos;
+        const user = registrationData.usuarios;
 
-        // 1. LÓGICA DE VALIDACIÓN DE EVENTO GRATUITO
+        // EVENTO GRATUITO
         if (event.cos_evt && event.cos_evt.toUpperCase() === 'GRATUITO') {
-             // Si es GRATUITO, retorna un string con el mensaje.
-             return `El evento "${event.nom_evt}" es GRATUITO. No se requiere orden de pago.`;
+            return {
+                num_orden: numRegPer,
+                nom_evt: event.nom_evt,
+                val_evt: 0,
+                tip_par: "",
+                nom_per: user.nom_usu,
+                ape_per: user.ape_usu,
+                ced_per: user.ced_usu ?? "",   // <-- CORREGIDO
+                fec_limite: "",
+                metodos_pago: ""
+            };
         }
 
         const eventId = registrationData.registro_evento.detalle_eventos.id_evt_per;
 
-        // 2. Búsqueda de tarifa (solo si no fue GRATUITO)
+        // Buscar tarifa
         const tarifa = await prisma.tarifas_evento.findFirst({
             where: { id_evt: eventId },
             select: { val_evt: true, tip_par: true }
         });
 
         if (!tarifa) {
-            // Si no fue marcado como GRATUITO, pero no tiene tarifa, sigue siendo un error.
-            throw new Error('El evento requiere pago, pero la tarifa no ha sido definida.');
+            throw new Error('El evento requiere pago, pero no existe tarifa definida.');
         }
 
-        // 3. Preparación de datos y generación de PDF
-        const orderData = {
+        // Construcción del objeto final
+        const orderData: OrderData = {
             num_orden: numRegPer,
             nom_evt: event.nom_evt,
-            val_evt: tarifa.val_evt.toNumber(), 
+            val_evt: tarifa.val_evt.toNumber(),
             tip_par: tarifa.tip_par,
-            fec_limite: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-            metodos_pago: 'Transferencia Bancaria a Cuenta UTA: XXXXXX | Pago en ventanilla en Banco Pichincha.' 
+
+            nom_per: user.nom_usu,
+            ape_per: user.ape_usu,
+            ced_per: user.ced_usu ?? "",   // <-- CORREGIDO (evita error)
+
+            fec_limite: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                .toISOString()
+                .split('T')[0],
+
+            metodos_pago:
+                'Transferencia bancaria a cuenta UTA: XXXXXX\n' +
+                'Pago en ventanilla Banco Pichincha.'
         };
 
+        return orderData;
+    }
+
+    // --------------------------------------------------------
+    // GENERAR ORDEN DE PAGO
+    // --------------------------------------------------------
+
+    async generatePaymentOrder(numRegPer: number): Promise<Buffer | string> {
+
+        const orderData = await this.getOrderData(numRegPer);
+
+        if (orderData.val_evt === 0) {
+            return `El evento "${orderData.nom_evt}" es GRATUITO. No necesita orden de pago.`;
+        }
+
         return generateOrderPdf(orderData);
+    }
+
+    // --------------------------------------------------------
+    // REGISTRAR COMPROBANTE
+    // --------------------------------------------------------
+
+    async registrarComprobante(numRegPer: number, rutaComprobante: string) {
+
+        const pagoExistente = await prisma.pagos.findFirst({
+            where: { num_reg_per: numRegPer }
+        });
+
+        if (!pagoExistente) {
+            throw new Error('No existe un pago registrado antes de subir el comprobante.');
+        }
+
+        return prisma.pagos.update({
+            where: { num_pag: pagoExistente.num_pag },
+            data: {
+                pdf_comp_pag: rutaComprobante,
+                pag_o_no: 0,
+            }
+        });
+    }
+
+    // --------------------------------------------------------
+    // VALIDAR COMPROBANTE
+    // --------------------------------------------------------
+
+    async validarComprobante(numRegPer: number, aprobado: boolean) {
+
+        const pagoExistente = await prisma.pagos.findFirst({
+            where: { num_reg_per: numRegPer }
+        });
+
+        if (!pagoExistente) {
+            throw new Error('No se encontró pago para este registro.');
+        }
+
+        return prisma.pagos.update({
+            where: { num_pag: pagoExistente.num_pag },
+            data: { pag_o_no: aprobado ? 1 : 0 }
+        });
     }
 }
