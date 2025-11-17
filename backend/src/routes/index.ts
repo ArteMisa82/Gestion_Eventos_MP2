@@ -9,6 +9,7 @@ import inscripcionesRoutes from './inscripciones.routes';
 import estudiantesRoutes from './estudiantes.routes';
 import carrerasRoutes from './carreras.routes';
 import nivelesRoutes from './niveles.routes';
+import pagosRoutes from './pagos.routes';
 import materialesRoutes from './materiales.routes';
 import calificacionesRoutes from './calificaciones.routes';
 
@@ -23,6 +24,7 @@ router.use('/inscripciones', inscripcionesRoutes);
 router.use('/estudiantes', estudiantesRoutes);
 router.use('/carreras', carrerasRoutes);
 router.use('/niveles', nivelesRoutes);
+router.use('/pagos', pagosRoutes);
 router.use('/materiales', materialesRoutes);
 router.use('/calificaciones', calificacionesRoutes);
 
