@@ -180,18 +180,102 @@ export class EventosService {
       data: {
         nom_evt: data.nom_evt,
         fec_evt: data.fec_evt ? new Date(data.fec_evt) : undefined,
+        fec_fin_evt: data.fec_fin_evt ? new Date(data.fec_fin_evt) : undefined,
         lug_evt: data.lug_evt,
         mod_evt: data.mod_evt?.toUpperCase(),
         tip_pub_evt: data.tip_pub_evt?.toUpperCase(),
         cos_evt: data.cos_evt?.toUpperCase(),
         des_evt: data.des_evt,
         est_evt: data.est_evt?.toUpperCase(),
+        ima_evt: data.ima_evt,
         // Solo admin puede cambiar responsable
         ...(esAdmin && data.id_responsable !== undefined && {
           id_res_evt: data.id_responsable
         })
       },
       include: EVENTO_INCLUDES.withUsuario
+    });
+  }
+
+  /**
+   * RESPONSABLE: Actualizar evento completo con detalles
+   * Usado desde el modal del responsable para actualizar evento Y crear/actualizar su detalle
+   */
+  async actualizarEventoCompleto(
+    idEvento: string, 
+    data: UpdateEventoDto & { 
+      detalles?: {
+        cup_det?: number;
+        hor_det?: number;
+        tip_evt?: string;
+        are_det?: string;
+        cat_det?: string;
+      } 
+    }, 
+    userId: number
+  ) {
+    // Actualizar el evento primero
+    const evento = await this.actualizarEvento(idEvento, data, userId);
+
+    // Si se proporcionan detalles, crear o actualizar
+    if (data.detalles && (data.detalles.cup_det || data.detalles.hor_det || data.detalles.tip_evt)) {
+      // Verificar si ya existe un detalle para este evento
+      const detalleExistente = await prisma.detalle_eventos.findFirst({
+        where: { id_evt_per: idEvento }
+      });
+
+      // Mapear cat_det a tip_evt (tip_evt tiene valores más limitados)
+      const catDetValue = data.detalles.cat_det?.toUpperCase() || 'CURSO';
+      let tipEvtValue = 'CURSO'; // valor por defecto
+      
+      // Mapeo de cat_det a tip_evt según restricciones de la BD
+      const catDetToTipEvt: Record<string, string> = {
+        'CURSO': 'CURSO',
+        'CONGRESO': 'CONGRESO',
+        'WEBINAR': 'WEBINAR',
+        'CONFERENCIAS': 'CONFERENCIA', // singular en tip_evt
+        'SOCIALIZACIONES': 'CURSO',    // mapear a CURSO
+        'CASAS ABIERTAS': 'CASAS ABIERTAS',
+        'SEMINARIOS': 'CURSO',         // mapear a CURSO
+        'OTROS': 'CURSO'               // mapear a CURSO
+      };
+      
+      tipEvtValue = catDetToTipEvt[catDetValue] || 'CURSO';
+
+      const detalleData: any = {
+        cup_det: Number(data.detalles.cup_det) || 30,
+        hor_det: Number(data.detalles.hor_det) || 40,
+        are_det: data.detalles.are_det || 'TECNOLOGIA E INGENIERIA',
+        cat_det: catDetValue,
+        tip_evt: tipEvtValue,
+      };
+
+      if (detalleExistente) {
+        // Actualizar detalle existente
+        await prisma.detalle_eventos.update({
+          where: { id_det: detalleExistente.id_det },
+          data: detalleData
+        });
+      } else {
+        // Crear nuevo detalle
+        const { generateDetalleId } = await import('../utils/id-generator.util');
+        const id_det = await generateDetalleId();
+        
+        await prisma.detalle_eventos.create({
+          data: {
+            id_det,
+            id_evt_per: idEvento,
+            ...detalleData,
+            est_evt_det: 'INSCRIPCIONES'
+          }
+        });
+      }
+    }
+
+    // Retornar evento actualizado con detalles
+    return await prisma.eventos.findUnique({
+      where: { id_evt: idEvento },
+      include: EVENTO_INCLUDES.full
     });
   }
 
@@ -209,14 +293,43 @@ export class EventosService {
 
   /**
    * Listar usuarios administrativos (para asignar como responsables)
+   * Excluye al super admin (admin@admin.com)
    */
   async obtenerUsuariosAdministrativos() {
     return await prisma.usuarios.findMany({
       where: {
-        adm_usu: 1
+        adm_usu: 1,
+        NOT: {
+          cor_usu: 'admin@admin.com'
+        }
       },
       select: {
         ...USUARIO_SELECT
+      },
+      orderBy: {
+        nom_usu: 'asc'
+      }
+    });
+  }
+
+  /**
+   * Obtener usuarios que son responsables de al menos un curso/evento
+   */
+  async obtenerResponsablesActivos() {
+    // Obtener todos los usuarios que tienen al menos un evento asignado
+    return await prisma.usuarios.findMany({
+      where: {
+        eventos: {
+          some: {} // Tiene al menos un evento
+        }
+      },
+      select: {
+        ...USUARIO_SELECT,
+        _count: {
+          select: {
+            eventos: true // Contar cuántos eventos tiene asignados
+          }
+        }
       },
       orderBy: {
         nom_usu: 'asc'
@@ -235,6 +348,93 @@ export class EventosService {
       include: {
         //detalle_eventos: true,
         tarifas_evento: true
+      },
+      orderBy: {
+        fec_evt: 'desc'
+      }
+    });
+  }
+
+  /**
+   * PÚBLICO: Obtener eventos publicados (sin autenticación)
+   * Para mostrar en la página de cursos
+   */
+  async obtenerEventosPublicados(filtros?: {
+    mod_evt?: string | string[];  // PRESENCIAL, VIRTUAL, A DISTANCIA
+    tip_pub_evt?: string | string[];  // GENERAL, ESTUDIANTES, ADMINISTRATIVOS
+    cos_evt?: string | string[];  // GRATUITO, DE PAGO
+    busqueda?: string;
+  }) {
+    const whereConditions: any = {
+      est_evt: 'PUBLICADO'  // Solo eventos publicados
+    };
+
+    // Aplicar filtros si existen (soporta valores múltiples)
+    if (filtros?.mod_evt) {
+      const valores = Array.isArray(filtros.mod_evt) 
+        ? filtros.mod_evt.map(v => v.toUpperCase())
+        : [filtros.mod_evt.toUpperCase()];
+      
+      whereConditions.mod_evt = valores.length === 1 
+        ? valores[0] 
+        : { in: valores };
+    }
+
+    if (filtros?.tip_pub_evt) {
+      const valores = Array.isArray(filtros.tip_pub_evt) 
+        ? filtros.tip_pub_evt.map(v => v.toUpperCase())
+        : [filtros.tip_pub_evt.toUpperCase()];
+      
+      whereConditions.tip_pub_evt = valores.length === 1 
+        ? valores[0] 
+        : { in: valores };
+    }
+
+    if (filtros?.cos_evt) {
+      const valores = Array.isArray(filtros.cos_evt) 
+        ? filtros.cos_evt.map(v => v.toUpperCase())
+        : [filtros.cos_evt.toUpperCase()];
+      
+      whereConditions.cos_evt = valores.length === 1 
+        ? valores[0] 
+        : { in: valores };
+    }
+
+    // Búsqueda por nombre y descripción
+    if (filtros?.busqueda) {
+      whereConditions.OR = [
+        {
+          nom_evt: {
+            contains: filtros.busqueda,
+            mode: 'insensitive'
+          }
+        },
+        {
+          des_evt: {
+            contains: filtros.busqueda,
+            mode: 'insensitive'
+          }
+        }
+      ];
+    }
+
+    return await prisma.eventos.findMany({
+      where: whereConditions,
+      include: {
+        detalle_eventos: {
+          include: {
+            detalle_instructores: {
+              include: {
+                usuarios: {
+                  select: USUARIO_SELECT
+                }
+              }
+            }
+          }
+        },
+        usuarios: {
+          select: USUARIO_SELECT
+        }
       },
       orderBy: {
         fec_evt: 'desc'

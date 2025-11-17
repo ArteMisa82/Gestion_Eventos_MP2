@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import RecuperarModal from "@/app/login/RecuperarModal";
 import RegisterForm from "@/app/login/registroForm";
 import logo from "../../public/logo_UTA.png";
+import { authAPI } from "@/services/api";
 
 export default function LoginModal({
   isOpen,
@@ -26,6 +27,7 @@ export default function LoginModal({
   const [showPassword, setShowPassword] = useState(false);
   const [isRecoverOpen, setIsRecoverOpen] = useState(false);
   const [showRegister, setShowRegister] = useState(initialRegister);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Bloquear scroll cuando el modal está abierto
   useEffect(() => {
@@ -39,80 +41,86 @@ export default function LoginModal({
     if (isOpen) setShowRegister(initialRegister);
   }, [isOpen, initialRegister]);
 
-  // 🔐 Lógica de login con verificación de dominio
-const handleLogin = async () => {
-  try {
-    const adminEmail = "admin@admin.uta.edu.ec";
-    const adminPassword = "admin123";
-
-    let userData = null;
-
-    // 🔹 Caso ADMIN
-    if (email === adminEmail && password === adminPassword) {
-      userData = { name: "Administrador", role: "admin", email };
+  // 🔐 Login con backend real
+  const handleLogin = async () => {
+    // Validaciones básicas
+    if (!email || !password) {
       Swal.fire({
-        title: "Bienvenido Administrador 👑",
-        icon: "success",
+        title: "Campos vacíos",
+        text: "Por favor ingresa correo y contraseña",
+        icon: "warning",
         confirmButtonColor: "#581517",
       });
-
-    // 🔹 Caso DOCENTE UTA
-    } else if (email.endsWith("@uta.edu.ec") && password.length > 0) {
-      userData = { name: email.split("@")[0], role: "usuario", email };
-      Swal.fire({
-        title: "Inicio de sesión exitoso",
-        text: "Bienvenido a la plataforma.",
-        icon: "success",
-        confirmButtonColor: "#581517",
-      });
-
-    // 🔹 Caso USUARIO Gmail / Hotmail
-    } else if (
-      (email.endsWith("@gmail.com") || email.endsWith("@hotmail.com")) &&
-      password.length > 0
-    ) {
-      userData = { name: email.split("@")[0], role: "usuario", email };
-      Swal.fire({
-        title: "Inicio de sesión exitoso",
-        text: "Bienvenido a la plataforma.",
-        icon: "success",
-        confirmButtonColor: "#581517",
-      });
-
-    } else {
-      throw new Error("Correo o contraseña incorrectos ❌");
+      return;
     }
 
-    // 🧼 Limpieza
-    setEmail("");
-    setPassword("");
+    setIsLoading(true);
 
-    // 📌 Guardar usuario en el Navbar
-    if (userData && onLoginSuccess) {
-      onLoginSuccess(userData);
-    }
-
-    // 👁‍🗨 Cerrar modal
-    onClose();
-
-    // 🚀 REDIRECCIÓN DESPUÉS DE ACTUALIZAR NAVBAR
-    setTimeout(() => {
-      if (userData.role === "admin") {
-        router.push("/admin");
-      } else {
-        router.push("/usuarios/cursos");
+    try {
+      // ✅ Llamada real al backend
+      const response = await authAPI.login(email, password);
+      
+      // handleResponse ya extrae data: { token, usuario }
+      const { token, usuario } = response;
+      
+      // Validar que token y usuario existan
+      if (!token || !usuario) {
+        throw new Error("Respuesta inválida del servidor");
       }
-    }, 300);
-
-  } catch (error: any) {
-    Swal.fire({
-      title: "Error",
-      text: error.message || "Error al iniciar sesión",
-      icon: "error",
-      confirmButtonColor: "#581517",
-    });
-  }
-};
+      
+      // ✅ Guardar en localStorage
+      localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify(usuario));
+      
+      // ✅ Determinar mensaje y ruta según rol del usuario
+      let mensaje = "";
+      let ruta = "/home";
+      
+      if (usuario.adm_usu === 1 || usuario.Administrador === true) {
+        mensaje = `Bienvenido ${usuario.nom_usu} 👑`;
+        ruta = "/admin";
+      } else if (usuario.stu_usu === 1) {
+        mensaje = `Bienvenido ${usuario.nom_usu} 🎓`;
+        ruta = "/cursos";
+      } else {
+        mensaje = `Bienvenido ${usuario.nom_usu}`;
+        ruta = "/home";
+      }
+      
+      // ✅ Mostrar mensaje de éxito
+      await Swal.fire({
+        title: mensaje,
+        icon: "success",
+        confirmButtonColor: "#581517",
+        timer: 2000,
+        showConfirmButton: false,
+      });
+      
+      // ✅ Limpiar campos
+      setEmail("");
+      setPassword("");
+      
+      // ✅ Callback al Navbar (para actualizar estado global)
+      if (onLoginSuccess) {
+        onLoginSuccess(usuario);
+      }
+      
+      // ✅ Cerrar modal y redirigir
+      onClose();
+      router.push(ruta);
+      
+    } catch (error: any) {
+      // ✅ Manejo de errores desde el backend
+      Swal.fire({
+        title: "Error de autenticación",
+        text: error.message || "Credenciales incorrectas",
+        icon: "error",
+        confirmButtonColor: "#581517",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
 
   return (
@@ -215,12 +223,13 @@ const handleLogin = async () => {
 
                     <button
                       type="submit"
-                      className="w-full py-3 mt-2 rounded-lg text-white font-semibold shadow-md transition-transform transform hover:-translate-y-1 hover:shadow-lg"
+                      disabled={isLoading}
+                      className="w-full py-3 mt-2 rounded-lg text-white font-semibold shadow-md transition-transform transform hover:-translate-y-1 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                       style={{
                         background: "linear-gradient(to right, #581517, #7a2022)",
                       }}
                     >
-                      Iniciar sesión
+                      {isLoading ? "Iniciando sesión..." : "Iniciar sesión"}
                     </button>
                   </form>
 
