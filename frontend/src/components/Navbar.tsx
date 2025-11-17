@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { Home } from "lucide-react"; 
+import { Home } from "lucide-react";
 import styles from "./navbar.module.css";
 import LoginModal from "../components/loginModal";
 
@@ -51,10 +51,9 @@ export default function Navbar() {
     router.push("/home");
   };
 
- return (
+  return (
     <header className={styles.header}>
       <nav className={styles.nav}>
-        
         {/* Marca institucional */}
         <Link href="/" className={styles.brand}>
           <Image
@@ -66,7 +65,7 @@ export default function Navbar() {
           />
         </Link>
 
-        {/* Links de navegación */}
+        {/* Links */}
         <ul className={styles.links}>
           {links.map((link) => (
             <li key={link.href}>
@@ -101,7 +100,9 @@ export default function Navbar() {
               <Link
                 href="/responsable"
                 className={
-                  pathname === "/responsable" ? styles.activeLink : styles.link
+                  pathname === "/responsable"
+                    ? styles.activeLink
+                    : styles.link
                 }
               >
                 Panel Responsable
@@ -126,11 +127,11 @@ export default function Navbar() {
           )}
         </ul>
 
-        {/* Botones + Icono de Home si está logueado */}
+        {/* Botones */}
         <div className={styles.actions}>
           {user ? (
             <>
-              {/* 🏠 ICONO DE CASA */}
+              {/* 🏠 icono HOME */}
               <button
                 onClick={() => router.push("/usuarios/cursos")}
                 className="mr-4 hover:scale-105 transition"
@@ -138,7 +139,8 @@ export default function Navbar() {
                 <Home size={26} className="text-[#7f1d1d] cursor-pointer" />
               </button>
 
-              <span className={styles.userName}> {user.name}</span>
+              <span className={styles.userName}>👋 {user.name}</span>
+
               <button onClick={handleLogout} className={styles.secondaryBtn}>
                 Cerrar sesión
               </button>
@@ -151,6 +153,7 @@ export default function Navbar() {
               >
                 Iniciar sesión
               </button>
+
               <button
                 onClick={() => {
                   setIsLoginOpen(true);
@@ -165,7 +168,7 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* Modal */}
+      {/* Modal Login/Register */}
       <LoginModal
         isOpen={isLoginOpen}
         onClose={() => {

@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import eventosRoutes from './eventos.routes';
+import userRoutes from './user.routes';
 import authRoutes from './auth.routes';
 import detallesRoutes from './detalles.routes';
 import registroEventoRoutes from './registro-evento.routes';
