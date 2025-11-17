@@ -7,7 +7,7 @@ const router = Router();
 const controller = new AuthController();
 
 // Rutas públicas
-router.post('/register', controller.register.bind(controller));
+router.post('/registro', controller.register.bind(controller));
 router.post('/login', controller.login.bind(controller));
 
 // Password recovery routes (public)

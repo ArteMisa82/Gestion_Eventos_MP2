@@ -45,10 +45,12 @@ export const authAPI = {
    * POST /api/auth/login
    */
   login: async (cor_usu: string, password: string) => {
+    // El backend espera { email, password } y usa sesiones.
     const response = await fetch(`${API_URL}/auth/login`, {
       method: 'POST',
       headers: getHeaders(),
-      body: JSON.stringify({ cor_usu, pas_usu: password }),
+      credentials: 'include',                // <- importante: enviar/recibir cookie de sesión
+      body: JSON.stringify({ email: cor_usu, password }), // <- claves que el backend espera
     });
     return handleResponse(response);
   },
@@ -68,6 +70,7 @@ export const authAPI = {
     const response = await fetch(`${API_URL}/auth/registro`, {
       method: 'POST',
       headers: getHeaders(),
+      credentials: 'include',
       body: JSON.stringify(userData),
     });
     return handleResponse(response);
@@ -80,6 +83,97 @@ export const authAPI = {
   verifyToken: async (token: string) => {
     const response = await fetch(`${API_URL}/auth/verificar`, {
       headers: getHeaders(token),
+    });
+    return handleResponse(response);
+  },
+  
+  /**
+   * Solicitar recuperación de contraseña
+   * POST /api/auth/forgot-password
+   */
+  forgotPassword: async (email: string) => {
+    const response = await fetch(`${API_URL}/auth/forgot-password`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ cor_usu: email }),
+    });
+    return handleResponse(response);
+  },
+
+  /**
+   * Restablecer contraseña
+   * POST /api/auth/reset-password
+   */
+  resetPassword: async (token: string, newPassword: string) => {
+    const response = await fetch(`${API_URL}/auth/reset-password`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ token, newPassword }),
+    });
+    return handleResponse(response);
+  },
+
+  /**
+   * Verificar token de reset
+   * POST /api/auth/verify-reset-token
+   */
+  verifyResetToken: async (token: string) => {
+    const response = await fetch(`${API_URL}/auth/verify-reset-token`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ token }),
+    });
+    return handleResponse(response);
+  },
+
+  /**
+   * Enviar código de verificación por email (usa sesión/cookies)
+   * POST /api/auth/send-verification
+   */
+  sendVerification: async (token?: string) => {
+    const response = await fetch(`${API_URL}/auth/send-verification`, {
+      method: 'POST',
+      headers: getHeaders(token),
+      credentials: 'include',
+    });
+    return handleResponse(response);
+  },
+
+  /**
+   * Verificar código de email (requiere sesión)
+   * POST /api/auth/verify-email
+   */
+  verifyEmail: async (token?: string, code?: string) => {
+    const response = await fetch(`${API_URL}/auth/verify-email`, {
+      method: 'POST',
+      headers: getHeaders(token),
+      credentials: 'include',
+      body: JSON.stringify({ code }),
+    });
+    return handleResponse(response);
+  },
+
+  /**
+   * Logout (usa sesión/cookies)
+   * POST /api/auth/logout
+   */
+  logout: async (token?: string) => {
+    const response = await fetch(`${API_URL}/auth/logout`, {
+      method: 'POST',
+      headers: getHeaders(token),
+      credentials: 'include',
+    });
+    return handleResponse(response);
+  },
+
+  /**
+   * Obtener perfil (usa sesión)
+   * GET /api/auth/profile
+   */
+  getProfile: async (token?: string) => {
+    const response = await fetch(`${API_URL}/auth/profile`, {
+      headers: getHeaders(token),
+      credentials: 'include',
     });
     return handleResponse(response);
   },
