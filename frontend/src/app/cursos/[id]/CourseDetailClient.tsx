@@ -7,12 +7,9 @@ import type { Course } from "../courses.data";
 
 export default function CourseDetailClient({ course }: { course: Course }) {
   const router = useRouter();
-  const tabs = [
-    "Información del curso",
-    "Requisitos y detalles",
-    "Materiales y equipos",
-    "Contenidos",
-  ] as const;
+
+  // Solo un tab por ahora (pero dejamos la estructura lista por si luego agregas más)
+  const tabs = ["Información del curso"] as const;
   const [active, setActive] = useState<(typeof tabs)[number]>(tabs[0]);
 
   function handleRegister() {
@@ -29,45 +26,54 @@ export default function CourseDetailClient({ course }: { course: Course }) {
     });
   }
 
+  // 🔸 Contenedor central para que TODO quede en el medio
+  const centerWrap: React.CSSProperties = {
+    maxWidth: 860,            // ancho cómodo para leer
+    margin: "24px auto 0",   // centrado horizontal + separación superior
+  };
+
   return (
     <>
-      {/* Tabs header */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(3, max-content) 1fr",
-          gap: 0,
-          marginTop: 24,
-          borderBottom: "1px solid #e5e7eb",
-        }}
-      >
-        {tabs.map((t) => {
-          const isActive = t === active;
-          return (
-            <button
-              key={t}
-              onClick={() => setActive(t)}
-              style={{
-                border: "none",
-                background: "transparent",
-                padding: "14px 20px",
-                cursor: "pointer",
-                fontWeight: 600,
-                color: isActive ? "#111827" : "#6b7280",
-                borderBottom: isActive ? "3px solid #7f1d1d" : "3px solid transparent",
-                borderTopLeftRadius: 8,
-                borderTopRightRadius: 8,
-              }}
-            >
-              {t}
-            </button>
-          );
-        })}
+      {/* Tabs header centrado */}
+      <div style={{ ...centerWrap, marginTop: 24 }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            gap: 0,
+            borderBottom: "1px solid #e5e7eb",
+          }}
+        >
+          {tabs.map((t) => {
+            const isActive = t === active;
+            return (
+              <button
+                key={t}
+                onClick={() => setActive(t)}
+                style={{
+                  border: "none",
+                  background: "transparent",
+                  padding: "14px 20px",
+                  cursor: "pointer",
+                  fontWeight: 700,
+                  fontSize: 16,
+                  color: isActive ? "#111827" : "#6b7280",
+                  borderBottom: isActive ? "3px solid #7f1d1d" : "3px solid transparent",
+                  borderTopLeftRadius: 8,
+                  borderTopRightRadius: 8,
+                }}
+              >
+                {t}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Tab content */}
+      {/* Contenido del tab centrado */}
       <section
         style={{
+          ...centerWrap,
           background: "#fff",
           border: "1px solid #e5e7eb",
           borderTop: "none",
@@ -77,7 +83,7 @@ export default function CourseDetailClient({ course }: { course: Course }) {
         }}
       >
         {active === "Información del curso" && (
-          <div style={{ lineHeight: 1.7 }}>
+          <div style={{ lineHeight: 1.75, fontSize: 16, color: "#1f2937" }}>
             <p>
               <strong>Fechas de inscripciones:</strong> Personaliza aquí las fechas.
             </p>
@@ -95,49 +101,9 @@ export default function CourseDetailClient({ course }: { course: Course }) {
             </p>
           </div>
         )}
-
-        {active === "Requisitos y detalles" && (
-          <ul style={{ margin: 0, paddingLeft: 18, lineHeight: 1.8 }}>
-            <li>Conocimientos previos básicos del área.</li>
-            <li>Asistencia mínima del 80%.</li>
-            <li>Evaluaciones o proyectos según el curso.</li>
-            <li>Certificado digital de asistencia y aprobación.</li>
-          </ul>
-        )}
-
-        {active === "Materiales y equipos" && (
-          <ul style={{ margin: 0, paddingLeft: 18, lineHeight: 1.8 }}>
-            <li>Portátil con navegador actualizado.</li>
-            <li>Acceso a Internet estable.</li>
-            <li>
-              Software/herramientas: especificar según el curso (IDE, librerías, plataformas).
-            </li>
-            <li>Material de apoyo (PDFs, guías, datasets, etc.).</li>
-          </ul>
-        )}
-
-        {active === "Contenidos" && (
-          <div style={{ lineHeight: 1.9 }}>
-            <p>
-              <strong>Clase 1:</strong> Introducción al tema principal.
-            </p>
-            <p>
-              <strong>Clase 2:</strong> Fundamentos y conceptos clave.
-            </p>
-            <p>
-              <strong>Clase 3:</strong> Taller práctico / laboratorio.
-            </p>
-            <p>
-              <strong>Clase 4:</strong> Mejores prácticas y casos reales.
-            </p>
-            <p>
-              <strong>Clase 5:</strong> Proyecto integrador y evaluación.
-            </p>
-          </div>
-        )}
       </section>
 
-      {/* CTA */}
+      {/* CTA centrado */}
       <div style={{ display: "flex", justifyContent: "center", marginTop: 22 }}>
         <button
           onClick={handleRegister}
@@ -147,7 +113,7 @@ export default function CourseDetailClient({ course }: { course: Course }) {
             border: 0,
             borderRadius: 10,
             padding: "14px 22px",
-            fontWeight: 700,
+            fontWeight: 800,
             letterSpacing: ".2px",
             boxShadow: "0 6px 18px rgba(127,29,29,.25)",
             cursor: "pointer",
@@ -159,3 +125,4 @@ export default function CourseDetailClient({ course }: { course: Course }) {
     </>
   );
 }
+

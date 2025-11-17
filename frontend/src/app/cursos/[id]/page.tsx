@@ -37,7 +37,18 @@ export default async function CourseDetailPage({ params }: { params: Params }) {
         }}
       >
         <div style={{ flex: 1 }}>
-          <h1 style={{ margin: 0 }}>{course.title}</h1>
+          <h1
+  style={{
+    margin: 0,
+    fontSize: 28,       // súbelo a 30–32 si lo quieres aún más grande (Aqui modifique "<h1 style={{ margin: 0 }}>{course.title}</h1>")
+    lineHeight: 1.2,
+    fontWeight: 800,
+    color: "#111827",
+    letterSpacing: ".2px",
+  }}
+>
+  {course.title}
+</h1>
           <p style={{ color: "#6b7280", marginTop: 8 }}>
             {course.career} · {course.hours} horas
             {course.distance ? " · A distancia" : " · Presencial"}
