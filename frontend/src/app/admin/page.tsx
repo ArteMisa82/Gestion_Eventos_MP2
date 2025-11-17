@@ -10,7 +10,8 @@ interface Evento {
   lug_evt: string;
   mod_evt: string;
   tip_pub_evt: string;
-  est_evt_det: string; // estado: FINALIZADO, EN CURSO, INSCRIPCIONES
+  est_evt_det: string; 
+  img_evt: string;
 }
 
 const AdminDashboard: React.FC = () => {
@@ -26,6 +27,7 @@ const AdminDashboard: React.FC = () => {
       mod_evt: "VIRTUAL",
       tip_pub_evt: "GENERAL",
       est_evt_det: "EN CURSO",
+      img_evt: "/Default_Image.png",
     },
     {
       id_evt: "EVT002",
@@ -35,6 +37,7 @@ const AdminDashboard: React.FC = () => {
       mod_evt: "PRESENCIAL",
       tip_pub_evt: "USUARIOS UTA",
       est_evt_det: "FINALIZADO",
+      img_evt: "/Default_Image.png",
     },
     {
       id_evt: "EVT003",
@@ -44,6 +47,7 @@ const AdminDashboard: React.FC = () => {
       mod_evt: "PRESENCIAL",
       tip_pub_evt: "GENERAL",
       est_evt_det: "INSCRIPCIONES",
+      img_evt: "/Default_Image.png",
     },
   ]);
 
@@ -103,32 +107,46 @@ const AdminDashboard: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {eventosFiltrados.map((evt) => (
             <div
-              key={evt.id_evt}
-              className="bg-white shadow-md rounded-lg p-5 hover:shadow-lg transition-all border border-gray-200"
-            >
-              <h2 className="text-xl font-semibold mb-2">{evt.nom_evt}</h2>
-              <p className="text-sm text-gray-600 mb-1">
-                <span className="font-medium">Fecha:</span> {evt.fec_evt}
-              </p>
-              <p className="text-sm text-gray-600 mb-1">
-                <span className="font-medium">Lugar:</span> {evt.lug_evt}
-              </p>
-              <p className="text-sm text-gray-600 mb-1">
-                <span className="font-medium">Modalidad:</span> {evt.mod_evt}
-              </p>
-              <p className="text-sm text-gray-600 mb-4">
-                <span className="font-medium">Público:</span> {evt.tip_pub_evt}
-              </p>
+  key={evt.id_evt}
+  className="bg-white shadow-md rounded-lg overflow-hidden hover:shadow-lg transition-all border border-gray-200"
+>
+  {/* Imagen del curso */}
+  <div className="h-36 w-full overflow-hidden">
+    <img
+      src={evt.img_evt}
+      alt={evt.nom_evt}
+      className="w-full h-full object-cover"
+    />
+      </div>
 
-              <div className="flex justify-end">
-                <button
-                  onClick={() => setEventoEditando(evt)}
-                  className="flex items-center gap-2 text-[#581517] hover:text-[#7a1c1c] text-sm font-medium"
-                >
-                  <Pencil size={16} /> Editar
-                </button>
-              </div>
-            </div>
+      {/* Contenido */}
+      <div className="p-5">
+        <h2 className="text-xl font-semibold mb-2">{evt.nom_evt}</h2>
+
+        <p className="text-sm text-gray-600 mb-1">
+          <span className="font-medium">Fecha:</span> {evt.fec_evt}
+        </p>
+        <p className="text-sm text-gray-600 mb-1">
+          <span className="font-medium">Lugar:</span> {evt.lug_evt}
+        </p>
+        <p className="text-sm text-gray-600 mb-1">
+          <span className="font-medium">Modalidad:</span> {evt.mod_evt}
+        </p>
+        <p className="text-sm text-gray-600 mb-4">
+          <span className="font-medium">Público:</span> {evt.tip_pub_evt}
+        </p>
+
+        <div className="flex justify-end">
+          <button
+            onClick={() => setEventoEditando(evt)}
+            className="flex items-center gap-2 text-[#581517] hover:text-[#7a1c1c] text-sm font-medium"
+          >
+            <Pencil size={16} /> Editar
+          </button>
+        </div>
+      </div>
+    </div>
+
           ))}
         </div>
       ) : (
