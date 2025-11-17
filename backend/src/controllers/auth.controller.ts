@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { AuthService } from '../services/auth.service';
 import { successResponse } from '../utils/response.util';
 import { PasswordService } from '../services/password.service';
+import { generateToken } from '../utils/jwt.util';
 
 const passwordService = new PasswordService();
 
@@ -54,7 +55,9 @@ export class AuthController {
 
   async login(req: Request, res: Response) {
     try {
-      const { email, password } = req.body;
+      // Soportar ambos formatos: { email, password } y { cor_usu, pas_usu }
+      const email = req.body.email || req.body.cor_usu;
+      const password = req.body.password || req.body.pas_usu;
       
       const result = await authService.login({ email, password });
 
@@ -79,8 +82,16 @@ export class AuthController {
 
       console.log(`Sesión creada para: ${result.user!.cor_usu} (Rol: ${userRole})`);
 
+      // Generar token JWT
+      const token = generateToken({
+        id_usu: result.user!.id_usu,
+        cor_usu: result.user!.cor_usu,
+        adm_usu: result.user!.adm_usu
+      });
+
       res.json(successResponse({
-        user: result.user
+        token,
+        usuario: result.user
       }, 'Login exitoso'));
     } catch (error) {
       console.error('Error en login:', error);
@@ -319,79 +330,6 @@ export class AuthController {
       res.status(500).json({
         success: false,
         message: 'Error interno del servidor'
-      });
-    }
-  }
-}
-      const result = await authService.register(data);
-
-      // Determinar mensaje según tipo de usuario
-      let userTypeMessage = 'Usuario registrado exitosamente';
-      if (result.usuario.Administrador) {
-        userTypeMessage = 'Administrador del sistema registrado exitosamente';
-      } else if (result.usuario.stu_usu === 1) {
-        userTypeMessage = 'Estudiante registrado exitosamente';
-      } else if (result.usuario.adm_usu === 1) {
-        userTypeMessage = 'Usuario administrativo registrado exitosamente';
-      } else {
-        userTypeMessage = 'Usuario externo registrado exitosamente';
-      }
-
-      res.status(201).json({
-        success: true,
-        message: userTypeMessage,
-        data: result
-      });
-    } catch (error: any) {
-      res.status(400).json({
-        success: false,
-        message: error.message || 'Error al registrar usuario'
-      });
-    }
-  }
-
-  async login(req: Request, res: Response) {
-    try {
-      const data = req.body;
-
-      // Validación básica
-      if (!data.cor_usu || !data.pas_usu) {
-        return res.status(400).json({
-          success: false,
-          message: 'Correo y contraseña son obligatorios'
-        });
-      }
-
-      const result = await authService.login(data);
-
-      res.json({
-        success: true,
-        message: 'Login exitoso',
-        data: result
-      });
-    } catch (error: any) {
-      res.status(401).json({
-        success: false,
-        message: error.message || 'Error en el login'
-      });
-    }
-  }
-
-  async getProfile(req: Request, res: Response) {
-    try {
-      const userId = (req as any).userId;
-
-      const user = await authService.getProfile(userId);
-
-      res.json({
-        success: true,
-        message: 'Perfil obtenido',
-        data: user
-      });
-    } catch (error: any) {
-      res.status(404).json({
-        success: false,
-        message: error.message || 'Error al obtener perfil'
       });
     }
   }

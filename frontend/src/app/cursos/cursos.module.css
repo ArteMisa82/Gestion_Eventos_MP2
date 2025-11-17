@@ -151,6 +151,7 @@
 }
 
 .badgeOpen,
+.badgeClosed,
 .badgeDistance {
   font-size: 10px;
   font-weight: 700;
@@ -160,7 +161,8 @@
   letter-spacing: .04em;
 }
 
-.badgeOpen { background: #a3161f; }      /* verde */
+.badgeOpen { background: #a3161f; }      /* rojo para abierto */
+.badgeClosed { background: #64748b; }    /* gris para cerrado */
 .badgeDistance { background: #a6bb1d; }  /* celeste */
 
 .cardBody { padding: 12px; display: grid; gap: 8px; }

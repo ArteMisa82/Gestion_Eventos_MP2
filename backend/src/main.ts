@@ -15,6 +15,15 @@ const app = express();
 app.use(express.json({ limit: '10mb' }));
 app.use(cors());
 app.use(session(sessionConfig)); // ← SESIONES ACTIVADAS
+// Middlewares CORS configurado para desarrollo
+app.use(cors({
+  origin: ['http://localhost:3000', 'http://localhost:3001'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+app.use(express.json());
+app.use(session(sessionConfig)); // ← SESIONES CONFIGURADAS
 
 // ✔ Ruta base de prueba
 app.get('/', (req, res) => {

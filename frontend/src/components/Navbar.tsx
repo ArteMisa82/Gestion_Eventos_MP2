@@ -26,7 +26,14 @@ export default function Navbar() {
   // 🔄 Cargar usuario desde localStorage al montar
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
-    if (storedUser) setUser(JSON.parse(storedUser));
+    if (storedUser && storedUser !== "undefined") {
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch (error) {
+        console.error("Error al parsear usuario:", error);
+        localStorage.removeItem("user");
+      }
+    }
   }, []);
 
   // 🔐 Cuando el login es exitoso
@@ -40,6 +47,7 @@ export default function Navbar() {
   const handleLogout = () => {
     setUser(null);
     localStorage.removeItem("user");
+    localStorage.removeItem("token");
     router.push("/home");
   };
 
