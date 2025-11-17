@@ -71,16 +71,18 @@ const AddEventModal: React.FC<AddEventModalProps> = ({ onClose, setEvents }) => 
     if (!selected) return;
     if (responsables.includes(selected)) return;
 
-    if (responsables.length >= 2) {
-      await Swal.fire({
-        icon: "info",
-        title: "Límite alcanzado",
-        text: "Solo puedes seleccionar hasta 2 responsables.",
-        confirmButtonColor: "#581517",
-      });
-      return;
-    }
-    setResponsables((prev) => [...prev, selected]);
+    if (responsables.length >= 1) {
+        await Swal.fire({
+          icon: "info",
+          title: "Solo un responsable",
+          text: "Este curso solo puede tener un responsable asignado.",
+          confirmButtonColor: "#581517",
+        });
+        return;
+      }
+
+      setResponsables([selected]); // siempre reemplaza al anterior
+
   };
 
   const handleRemoveResponsable = (id: number) => {
