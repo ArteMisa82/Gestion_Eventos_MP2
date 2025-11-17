@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Swal from "sweetalert2";
 import { useRouter } from "next/navigation";
 import type { Course } from "../courses.data";
 
@@ -15,18 +14,9 @@ export default function CourseDetailClient({ course }: { course: Course }) {
   ] as const;
   const [active, setActive] = useState<(typeof tabs)[number]>(tabs[0]);
 
+  // 🔥 Ahora no verifica usuario, solo redirige directamente
   function handleRegister() {
-    Swal.fire({
-      icon: "warning",
-      title: "Necesitas una cuenta",
-      text: "Para inscribirte debes iniciar sesión o registrarte.",
-      showCancelButton: true,
-      confirmButtonText: "Ir a registrarse",
-      cancelButtonText: "Cancelar",
-      confirmButtonColor: "#7f1d1d",
-    }).then((r) => {
-      if (r.isConfirmed) router.push("/registro");
-    });
+    router.push(`/cursos/inscripcion/${course.id}`);
   }
 
   return (
