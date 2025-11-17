@@ -19,6 +19,9 @@ interface Evento {
   semestres: string[];
   tipoEvento: string;
   camposExtra: Record<string, string>;
+
+  // 🆕 Nuevo campo
+  estado: "Editando" | "Publicado" | "Cerrado";
 }
 
 export default function DashboardResponsable() {
@@ -42,6 +45,7 @@ export default function DashboardResponsable() {
         semestres: [],
         tipoEvento: "",
         camposExtra: {},
+        estado: "Editando",
       },
       {
         id: "EVT002",
@@ -57,6 +61,7 @@ export default function DashboardResponsable() {
         semestres: [],
         tipoEvento: "",
         camposExtra: {},
+        estado: "Publicado",
       },
     ];
     setEventos(mockEventos);
@@ -75,6 +80,27 @@ export default function DashboardResponsable() {
       confirmButtonColor: "#581517",
     });
   };
+
+  const handleEstadoChange = (id: string, nuevoEstado: Evento["estado"]) => {
+    setEventos((prev) =>
+      prev.map((ev) =>
+        ev.id === id ? { ...ev, estado: nuevoEstado } : ev
+      )
+    );
+  };
+
+  {/* Función para colores */}
+const getEstadoColor = (estado: string) => {
+  switch (estado) {
+    case "Publicado":
+      return "bg-green-100 text-green-700 border-green-300";
+    case "Cerrado":
+      return "bg-red-100 text-red-700 border-red-300";
+    default:
+      return "bg-yellow-100 text-yellow-700 border-yellow-300"; // Editando
+  }
+};
+
 
   return (
     <div className="p-8 font-sans text-gray-800 min-h-screen bg-white">
@@ -98,22 +124,51 @@ export default function DashboardResponsable() {
         {eventos.map((ev) => (
           <div
             key={ev.id}
-            className="bg-white border border-gray-200 rounded-lg shadow-md p-5 hover:shadow-lg transition-all"
+            className="relative bg-white border border-gray-200 rounded-lg shadow-md p-5 hover:shadow-lg transition-all"
           >
+
+            {/* 🟢 Badge de estado */}
+            <span
+              className={`absolute top-3 right-3 px-3 py-1 text-xs font-semibold rounded-full border ${getEstadoColor(
+                ev.estado
+              )}`}
+            >
+              {ev.estado}
+            </span>
+
             <h2 className="text-lg font-semibold mb-2">{ev.nombre}</h2>
+
             <p className="text-sm text-gray-600 flex items-center mb-1">
               <Calendar size={16} className="mr-1 text-gray-500" />
               {ev.fechaInicio && ev.fechaFin
                 ? `${ev.fechaInicio} - ${ev.fechaFin}`
                 : "Fechas no definidas"}
             </p>
+
             <p className="text-sm text-gray-600 mb-1">
               <span className="font-medium">Modalidad:</span>{" "}
               {ev.modalidad || "Por definir"}
             </p>
+
             <p className="text-sm text-gray-600 mb-3">
               <span className="font-medium">Público:</span> {ev.publico}
             </p>
+
+            {/* Selector de estado */}
+            <div className="mb-3">
+              <label className="text-sm font-medium text-gray-700">
+                Estado del Evento:
+              </label>
+              <select
+                value={ev.estado}
+                onChange={(e) => handleEstadoChange(ev.id, e.target.value as Evento["estado"])}
+                className="w-full mt-1 p-2 border rounded-md bg-gray-50 text-sm"
+              >
+                <option value="Editando">Editando</option>
+                <option value="Publicado">Publicado</option>
+                <option value="Cerrado">Cerrado</option>
+              </select>
+            </div>
 
             <div className="flex justify-end mt-2">
               <button
@@ -125,6 +180,7 @@ export default function DashboardResponsable() {
             </div>
           </div>
         ))}
+
       </div>
 
       {/* Modal para editar evento */}
