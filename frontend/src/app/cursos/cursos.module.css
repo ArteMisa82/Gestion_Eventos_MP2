@@ -306,3 +306,22 @@
   text-align: left;
   max-width: 900px;
 }
+
+/* === EVENT KIND TAGS === */
+.kindTag {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 9999px;
+  padding: 6px 10px;
+  margin-right: 8px;
+  border: 1px solid rgba(17,24,39,.08);
+  background: #f9fafb;
+  color: #111827;
+}
+
+.kind_curso { background: #777877; color: #0d0f0f; border-color: #090909; }
+.kind_conferencia { background: #777877; color: #0d0f0f; border-color: #090909; }
+.kind_webinar { background: #777877; color: #0d0f0f; border-color: #090909; }
+.kind_congreso { background: #777877; color: #0d0f0f; border-color: #090909; }
+.kind_casa_abierta { background: #777877; color: #0d0f0f; border-color: #090909; }

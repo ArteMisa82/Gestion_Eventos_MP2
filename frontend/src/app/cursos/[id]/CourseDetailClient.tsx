@@ -5,36 +5,30 @@ import Swal from "sweetalert2";
 import { useRouter } from "next/navigation";
 import { inscripcionesAPI } from "@/services/api";
 
-interface EventoDetalle {
-  id_evt: string;
-  nom_evt: string;
-  fec_evt: string;
-  fec_fin_evt?: string | null;
-  lug_evt: string;
-  mod_evt: string;
-  tip_pub_evt: string;
-  cos_evt: string;
-  des_evt: string;
-  ima_evt?: string | null;
-  detalle_eventos?: Array<{
-    id_det: string;
-    hor_det: number;
-    cup_det: number;
-    are_det: string;
-    cat_det: string;
-    tip_evt: string;
-    est_evt_det: string;
-  }>;
-}
+type Audience = "GENERAL" | "ESTUDIANTES";
+type Modality = "PRESENCIAL" | "VIRTUAL" | "HIBRIDA";
+type PaymentKind = "GRATUITO" | "PAGO";
+type CareerKey = "SOFTWARE" | "TI" | "ROBOTICA" | "TELECOM";
 
-export default function CourseDetailClient({ evento }: { evento: EventoDetalle }) {
+type ExtendedCourse = Course & {
+  audience?: Audience;
+  startDate?: string;
+  endDate?: string;
+  capacity?: number;
+  modality?: Modality;
+  paymentKind?: PaymentKind;
+  teacher?: string;
+  careersTarget?: CareerKey[];
+  semestersTarget?: number[];
+  location?: string;
+};
+
+export default function CourseDetailClient({ course }: { course: Course }) {
   const router = useRouter();
-  const tabs = [
-    "Información del curso",
-    "Requisitos y detalles",
-    "Materiales y equipos",
-    "Contenidos",
-  ] as const;
+  const ev = course as ExtendedCourse;
+
+  // ✅ Título actualizado
+  const tabs = ["Información del evento"] as const;
   const [active, setActive] = useState<(typeof tabs)[number]>(tabs[0]);
   const [inscribiendo, setInscribiendo] = useState(false);
 
@@ -161,17 +155,57 @@ export default function CourseDetailClient({ evento }: { evento: EventoDetalle }
     }
   }
 
+  // Helpers
+  const fmtDate = (s?: string) => {
+    if (!s) return "Por confirmar";
+    const d = new Date(s);
+    if (isNaN(d.getTime())) return s;
+    return d.toLocaleDateString("es-EC", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    });
+  };
+
+  const audienceLabel: Record<Audience, string> = {
+    GENERAL: "Público general",
+    ESTUDIANTES: "Estudiantes",
+  };
+
+  const modalityLabel: Record<Modality, string> = {
+    PRESENCIAL: "Presencial",
+    VIRTUAL: "Virtual",
+    HIBRIDA: "Híbrida",
+  };
+
+  const paymentLabel: Record<PaymentKind, string> = {
+    GRATUITO: "Gratuito",
+    PAGO: "De pago",
+  };
+
+  const careerLabel: Record<CareerKey, string> = {
+    SOFTWARE: "Software",
+    TI: "TI",
+    ROBOTICA: "Robótica",
+    TELECOM: "Telecomunicaciones",
+  };
+
+  const resolvedPayment: PaymentKind =
+    ev.paymentKind ??
+    ((course.type === "GRATIS" ? "GRATUITO" : "PAGO") as PaymentKind);
+
   return (
-    <>
+  <>
+    {/* Contenedor centrado para tabs + contenido */}
+    <div style={{ maxWidth: 900, width: "100%", margin: "28px auto 0" }}>
       {/* Tabs header */}
       <div
         style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(3, max-content) 1fr",
-          gap: 0,
-          marginTop: 24,
-          borderBottom: "1px solid #e5e7eb",
-        }}
+      display: "flex",
+      justifyContent: "center", // ✅ centra horizontalmente el título/tab
+      borderBottom: "1px solid #e5e7eb",
+      marginBottom: 0,
+    }}
       >
         {tabs.map((t) => {
           const isActive = t === active;
@@ -197,7 +231,7 @@ export default function CourseDetailClient({ evento }: { evento: EventoDetalle }
         })}
       </div>
 
-      {/* Tab content */}
+      {/* Contenido (tarjeta) */}
       <section
         style={{
           background: "#fff",
@@ -206,94 +240,69 @@ export default function CourseDetailClient({ evento }: { evento: EventoDetalle }
           borderRadius: "0 0 12px 12px",
           padding: 20,
           boxShadow: "0 2px 6px rgba(0,0,0,.04)",
+          margin: "0 auto",
         }}
       >
-        {active === "Información del curso" && (
+        {active === "Información del evento" && (
           <div style={{ lineHeight: 1.7 }}>
-            <p>
-              <strong>Descripción:</strong> {evento.des_evt}
-            </p>
-            <p>
-              <strong>Fechas:</strong>{" "}
-              {new Date(evento.fec_evt).toLocaleDateString('es-EC')}
-              {evento.fec_fin_evt && ` al ${new Date(evento.fec_fin_evt).toLocaleDateString('es-EC')}`}
-            </p>
-            {detalle && (
-              <>
-                <p>
-                  <strong>Cupo:</strong> {detalle.cup_det} participantes
-                </p>
-                <p>
-                  <strong>Horas:</strong> {detalle.hor_det} horas académicas
-                </p>
-                <p>
-                  <strong>Área:</strong> {detalle.are_det}
-                </p>
-                <p>
-                  <strong>Categoría:</strong> {detalle.cat_det}
-                </p>
-              </>
-            )}
-            <p>
-              <strong>Lugar:</strong> {evento.lug_evt}
-            </p>
-            <p>
-              <strong>Modalidad:</strong> {esDistancia ? "A distancia / Virtual" : "Presencial"}
-            </p>
-            <p>
-              <strong>Dirigido a:</strong> {evento.tip_pub_evt}
-            </p>
-            <p>
-              <strong>Costo:</strong> {evento.cos_evt === 'GRATUITO' ? 'Gratuito' : 'De pago'}
-            </p>
-          </div>
-        )}
+            <p><strong>Público objetivo:</strong> Por confirmar</p>
+            <p><strong>Tipo de pago:</strong> De pago</p>
+            <p><strong>Fecha de inicio:</strong> Por confirmar</p>
+            <p><strong>Fecha de fin:</strong> Por confirmar</p>
+            <p><strong>Duración (horas):</strong> {course.hours}</p>
+            <p><strong>Modalidad:</strong> Por confirmar</p>
+            <p><strong>Capacidad:</strong> Por confirmar</p>
+            <p><strong>Docente asignado:</strong> Por confirmar</p>
 
-        {active === "Requisitos y detalles" && (
-          <ul style={{ margin: 0, paddingLeft: 18, lineHeight: 1.8 }}>
-            <li>Conocimientos previos básicos del área {detalle?.are_det || ''}</li>
-            <li>Asistencia mínima del 80%</li>
-            <li>Evaluaciones o proyectos según el curso</li>
-            <li>Certificado digital de asistencia y aprobación</li>
-            {evento.tip_pub_evt === 'ESTUDIANTES' && (
-              <li>Estar matriculado como estudiante activo</li>
-            )}
-          </ul>
-        )}
+            <div style={{ marginTop: 10 }}>
+              <strong>Carreras dirigidas:</strong>
+              <div style={{ marginTop: 8 }}>
+                <span
+                  style={{
+                    display: "inline-block",
+                    padding: "4px 10px",
+                    border: "1px solid #e5e7eb",
+                    borderRadius: 999,
+                    fontSize: 12,
+                    color: "#374151",
+                    background: "#f9fafb",
+                  }}
+                >
+                  {course.career.charAt(0) + course.career.slice(1).toLowerCase()}
+                </span>
+              </div>
+            </div>
 
-        {active === "Materiales y equipos" && (
-          <ul style={{ margin: 0, paddingLeft: 18, lineHeight: 1.8 }}>
-            <li>Portátil con navegador actualizado</li>
-            {esDistancia && <li>Acceso a Internet estable</li>}
-            <li>Software/herramientas: especificar según el curso (IDE, librerías, plataformas)</li>
-            <li>Material de apoyo (PDFs, guías, datasets, etc.)</li>
-          </ul>
-        )}
-
-        {active === "Contenidos" && (
-          <div style={{ lineHeight: 1.9 }}>
-            <p>
-              <strong>Tipo de evento:</strong> {detalle?.tip_evt || 'Curso'}
-            </p>
-            <p>Los contenidos específicos serán proporcionados por el instructor al inicio del curso.</p>
-            <p>
-              <strong>Clase 1:</strong> Introducción al tema principal
-            </p>
-            <p>
-              <strong>Clase 2:</strong> Fundamentos y conceptos clave
-            </p>
-            <p>
-              <strong>Clase 3:</strong> Taller práctico / laboratorio
-            </p>
-            <p>
-              <strong>Clase 4:</strong> Mejores prácticas y casos reales
-            </p>
-            <p>
-              <strong>Clase 5:</strong> Proyecto integrador y evaluación
-            </p>
+            <div style={{ marginTop: 10 }}>
+              <strong>Semestres dirigidos:</strong>
+              <p style={{ color: "#6b7280", marginTop: 6 }}>Por confirmar</p>
+            </div>
           </div>
         )}
       </section>
+    </div>
+
+    {/* CTA */}
+    <div style={{ display: "flex", justifyContent: "center", marginTop: 22 }}>
+      <button
+        onClick={handleRegister}
+        style={{
+          background: "#7f1d1d",
+          color: "#fff",
+          border: 0,
+          borderRadius: 10,
+          padding: "14px 22px",
+          fontWeight: 700,
+          letterSpacing: ".2px",
+          boxShadow: "0 6px 18px rgba(127,29,29,.25)",
+          cursor: "pointer",
+        }}
+      >
+        REGISTRARME EN ESTE EVENTO
+      </button>
+    </div>
+  </>
+);
 
       {/* CTA */}
       <div style={{ display: "flex", justifyContent: "center", marginTop: 22 }}>
@@ -321,3 +330,6 @@ export default function CourseDetailClient({ evento }: { evento: EventoDetalle }
     </>
   );
 }
+
+
+

@@ -46,7 +46,25 @@ const TIPOS_COSTO = [
   { key: "DE PAGO", label: "PAGO" },
 ] as const;
 
+/** Asegúrate de que Course tenga la propiedad eventKind.
+ *  Si ya lo agregaste en courses.data.ts, usa el tipo de ahí.
+ *  Si no, descomenta esta línea y ajusta:
+ *  type EventKind = "CURSO" | "CONFERENCIA" | "WEBINAR" | "CONGRESO" | "CASA_ABIERTA";
+ */
+type EventKind = Course extends { eventKind: infer K } ? Extract<K, string> : never;
+
+const KINDS: { key: EventKind; label: string }[] = [
+  { key: "CURSO" as EventKind,         label: "CURSO" },
+  { key: "CONFERENCIA" as EventKind,   label: "CONFERENCIA" },
+  { key: "WEBINAR" as EventKind,       label: "WEBINAR" },
+  { key: "CONGRESO" as EventKind,      label: "CONGRESO" },
+  { key: "CASA_ABIERTA" as EventKind,  label: "CASAS ABIERTAS" },
+];
+
 export default function CursosPage() {
+  const [career, setCareer] = useState<null | Course["career"]>(null);
+  const [selectedTypes, setSelectedTypes] = useState<Course["type"][]>([]);
+  const [selectedKinds, setSelectedKinds] = useState<EventKind[]>([]);
   const [eventos, setEventos] = useState<EventoPublico[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalidad, setModalidad] = useState<null | string>(null);
@@ -80,54 +98,33 @@ export default function CursosPage() {
   }, [modalidad, selectedPublico, selectedCosto, q]); // Recargar cuando cambien los filtros
 
   const filtered = useMemo(() => {
-    return eventos.filter((evento) => {
-      // Filtro por modalidad
-      const byModalidad = modalidad ? evento.mod_evt === modalidad : true;
-      
-      // Filtro por público (DIRIGIDO A)
-      const byPublico =
-        selectedPublico.length > 0 
-          ? selectedPublico.includes(evento.tip_pub_evt) 
-          : true;
-      
-      // Filtro por costo
-      const byCosto =
-        selectedCosto.length > 0 
-          ? selectedCosto.includes(evento.cos_evt) 
-          : true;
-      
-      // Filtro por búsqueda de texto
-      const bySearch = q
-        ? evento.nom_evt.toLowerCase().includes(q.trim().toLowerCase()) ||
-          evento.des_evt.toLowerCase().includes(q.trim().toLowerCase())
-        : true;
-      
-      return byModalidad && byPublico && byCosto && bySearch;
+    return COURSES.filter((c) => {
+      const byCareer = career ? c.career === career : true;
+      const byTypes = selectedTypes.length > 0 ? selectedTypes.includes(c.type) : true;
+      const byKinds = selectedKinds.length > 0 ? selectedKinds.includes(c.eventKind as EventKind) : true;
+      const bySearch = q ? c.title.toLowerCase().includes(q.trim().toLowerCase()) : true;
+      return byCareer && byTypes && byKinds && bySearch;
     });
-  }, [eventos, modalidad, selectedPublico, selectedCosto, q]);
+  }, [career, selectedTypes, selectedKinds, q]);
 
-  function togglePublico(t: string) {
-    setSelectedPublico((prev) =>
-      prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]
-    );
+  function toggleType(t: Course["type"]) {
+    setSelectedTypes((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]));
   }
 
-  function toggleCosto(t: string) {
-    setSelectedCosto((prev) =>
-      prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]
-    );
+  function toggleKind(k: EventKind) {
+    setSelectedKinds((prev) => (prev.includes(k) ? prev.filter((x) => x !== k) : [...prev, k]));
   }
 
   function clearAll() {
-    setModalidad(null);
-    setSelectedPublico([]);
-    setSelectedCosto([]);
+    setCareer(null);
+    setSelectedTypes([]);
+    setSelectedKinds([]);
     setQ("");
   }
 
   return (
     <main className={styles.main}>
-      {/* FILTRO / SIDEBAR */}
+      {/* SIDEBAR */}
       <aside className={styles.sidebar}>
         <div className={styles.sidebarSection}>
           <div className={styles.sidebarTitle}>FILTRO</div>
@@ -135,6 +132,14 @@ export default function CursosPage() {
           <div className={styles.group}>
             <div className={styles.groupLabel}>MODALIDAD</div>
             <div className={styles.pills}>
+              {CAREERS.map((c) => (
+                <button
+                  key={c.key}
+                  className={`${styles.pill} ${career === c.key ? styles.pillActive : ""}`}
+                  onClick={() => setCareer((prev) => (prev === c.key ? null : (c.key as Course["career"])))}
+                >
+                  {c.label}
+                </button>
               <button
                 className={`${styles.pill} ${
                   modalidad === 'PRESENCIAL' ? styles.pillActive : ""
@@ -200,11 +205,28 @@ export default function CursosPage() {
             </div>
           </div>
 
+          {/* NUEVO: TIPO DE EVENTO */}
+          <div className={styles.group}>
+            <div className={styles.groupLabel}>TIPO DE EVENTO</div>
+            <div className={styles.checks}>
+              {KINDS.map((k) => (
+                <label key={k.key} className={styles.checkItem}>
+                  <input
+                    type="checkbox"
+                    checked={selectedKinds.includes(k.key)}
+                    onChange={() => toggleKind(k.key)}
+                  />
+                  <span>{k.label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
           <div className={styles.group}>
             <div className={styles.groupLabel}>BUSCAR</div>
             <input
               className={styles.search}
-              placeholder="Nombre del curso…"
+              placeholder="Nombre del evento…"
               value={q}
               onChange={(e) => setQ(e.target.value)}
             />
@@ -216,98 +238,83 @@ export default function CursosPage() {
         </div>
       </aside>
 
-      {/* CONTENIDO */}
+      {/* CONTENT */}
       <section className={styles.content}>
         <header className={styles.header}>
-          <h1 className={styles.title}>Cursos</h1>
+          <h1 className={styles.title}>Eventos</h1>
           <span className={styles.count}>
             {loading ? "Cargando..." : `${filtered.length} resultado${filtered.length !== 1 ? "s" : ""}`}
           </span>
         </header>
 
-        {loading ? (
-          <div className="text-center py-12 text-gray-500">
-            Cargando eventos...
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="text-center py-12 text-gray-500">
-            No se encontraron eventos publicados
-          </div>
-        ) : (
-          <div className={styles.grid}>
-            {filtered.map((evento) => {
-              const detalle = evento.detalle_eventos?.[0];
-              const horas = detalle?.hor_det || 0;
-              const area = detalle?.are_det || 'General';
-              const estadoDetalle = detalle?.est_evt_det || 'EDITANDO';
-              const imagenCurso = evento.ima_evt || '/Default_Image.png';
-              const modalidadInfo = MODALIDAD_MAP[evento.mod_evt] || { label: evento.mod_evt, showBadge: false };
-              
-              // Determinar si está abierto a inscripciones
-              const estaAbierto = estadoDetalle === 'INSCRIPCIONES';
-              
-              return (
-                <Link
-                  key={evento.id_evt}
-                  href={`/cursos/${evento.id_evt}`}
-                  className={styles.card}
-                  aria-label={`Abrir curso: ${evento.nom_evt}`}
-                >
-                  <div className={styles.coverWrap}>
-                    <Image
-                      src={imagenCurso}
-                      alt={evento.nom_evt}
-                      width={520}
-                      height={300}
-                      className={styles.cover}
-                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                      priority
-                    />
-                    <div className={styles.badges}>
-                      {estaAbierto ? (
-                        <span className={styles.badgeOpen}>ABIERTO</span>
-                      ) : (
-                        <span className={styles.badgeClosed}>
-                          {estadoDetalle === 'EN CURSO' ? 'EN CURSO' : 
-                           estadoDetalle === 'FINALIZADO' ? 'FINALIZADO' : 
-                           'CERRADO'}
-                        </span>
-                      )}
-                      {modalidadInfo.showBadge && (
-                        <span className={styles.badgeDistance}>{modalidadInfo.label}</span>
-                      )}
-                    </div>
-                  </div>
+        <p className={styles.subtitle}>
+          Explora los cursos de la Facultad de Ingeniería en Sistemas, Electrónica e Industrial:
+          programas diseñados para potenciar tu desarrollo profesional.
+        </p>
 
-                  <div className={styles.cardBody}>
-                    <div className={styles.metaRow}>
-                      <span className={styles.metaDot} />
-                      <span className={styles.metaText}>
-                        {area} · {horas} horas
-                      </span>
-                    </div>
+        <div className={styles.grid}>
+          {filtered.map((c) => (
+            <Link
+              key={c.id}
+              href={`/cursos/${c.id}`}
+              className={styles.card}
+              aria-label={`Abrir curso: ${c.title}`}
+            >
+              <div className={styles.coverWrap}>
+                <Image
+                  src={c.cover}
+                  alt={c.title}
+                  width={520}
+                  height={300}
+                  className={styles.cover}
+                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  priority
+                />
+                <div className={styles.badges}>
+                  {c.open && <span className={styles.badgeOpen}>ABIERTO</span>}
+                  {c.distance && <span className={styles.badgeDistance}>A DISTANCIA</span>}
+                </div>
+              </div>
 
-                    <h3 className={styles.cardTitle}>{evento.nom_evt}</h3>
+              <div className={styles.cardBody}>
+                <div className={styles.metaRow}>
+                  <span className={styles.metaDot} />
+                  <span className={styles.metaText}>
+                    {c.career} · {c.hours} horas
+                  </span>
+                </div>
 
-                    <div className={styles.tagsRow}>
-                      <span
-                        className={`${styles.typeTag} ${
-                          styles["type_" + evento.cos_evt.toLowerCase().replace(' ', '_')]
-                        }`}
-                      >
-                        {evento.cos_evt === 'GRATUITO' ? 'GRATIS' : 'PAGO'}
-                      </span>
-                      <span className={styles.typeTag}>
-                        {evento.tip_pub_evt}
-                      </span>
-                    </div>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        )}
+                <h3 className={styles.cardTitle}>{c.title}</h3>
+
+                <div className={styles.tagsRow}>
+                  {/* NUEVO: etiqueta de tipo de evento */}
+                  {"eventKind" in c && (
+                    <span
+                      className={`${styles.kindTag} ${
+                        styles["kind_" + String(c.eventKind).toLowerCase()]
+                      }`}
+                    >
+                      {String(c.eventKind).replace("_", " ")}
+                    </span>
+                  )}
+
+                  {/* etiqueta existente de cobertura */}
+                  <span
+                    className={`${styles.typeTag} ${
+                      styles["type_" + c.type.toLowerCase()]
+                    }`}
+                  >
+                    {c.type}
+                  </span>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
       </section>
     </main>
   );
 }
+
+
+

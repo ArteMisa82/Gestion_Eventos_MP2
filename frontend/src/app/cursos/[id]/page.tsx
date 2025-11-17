@@ -7,6 +7,16 @@ import { useParams } from "next/navigation";
 import { eventosAPI } from "@/services/api";
 import CourseDetailClient from "./CourseDetailClient";
 
+// (opcional) si ves cosas raras de caché, descomenta:
+// export const dynamic = "force-dynamic";
+
+type Params = Promise<{ id: string }>;
+
+export default async function CourseDetailPage({ params }: { params: Params }) {
+  const { id } = await params;
+  const decoded = decodeURIComponent(id);
+  const course = COURSES.find((c) => c.id === decoded);
+  if (!course) return notFound();
 interface EventoDetalle {
   id_evt: string;
   nom_evt: string;
@@ -94,52 +104,64 @@ export default function CourseDetailPage() {
 
   return (
     <main style={{ maxWidth: 1100, margin: "24px auto", padding: "0 16px" }}>
-      <Link href="/cursos" style={{ textDecoration: "none", color: "#111827" }}>
+      <Link href="/cursos" style={{ textDecoration: "none" }}>
         ← Volver a cursos
       </Link>
 
+      {/* Cabecera: título + meta + imagen */}
       <header
         style={{
-          display: "flex",
+          display: "grid",
+          gridTemplateColumns: "1fr 380px",
           gap: 24,
-          alignItems: "flex-start",
+          alignItems: "start",
           marginTop: 16,
         }}
       >
-        <div style={{ flex: 1 }}>
-          <h1 style={{ margin: 0 }}>{evento.nom_evt}</h1>
+        <div>
+          <h1
+            style={{
+              margin: 0,
+              fontWeight: 800,
+              fontSize: "clamp(22px, 2.6vw, 34px)",
+              lineHeight: 1.2,
+            }}
+          >
+            {course.title}
+          </h1>
+
           <p style={{ color: "#6b7280", marginTop: 8 }}>
-            {area} · {horas} horas
-            {esDistancia ? " · A distancia" : " · Presencial"}
-            {" · Abierto"}
+            {course.career} · {course.hours} horas
+            {course.distance ? " · A distancia" : ""}{" "}
+            {course.open ? "· Abierto" : ""}
           </p>
         </div>
 
         <div
           style={{
-            width: 360,
-            height: 220,
+            width: "100%",
+            height: 230,
             borderRadius: 12,
             overflow: "hidden",
-            boxShadow: "0 2px 8px rgba(0,0,0,.08)",
           }}
         >
           <Image
-            src={imagenCurso}
-            alt={evento.nom_evt}
-            width={720}
-            height={440}
+            src={course.cover}
+            alt={course.title}
+            width={760}
+            height={460}
             style={{ width: "100%", height: "100%", objectFit: "cover" }}
             priority
           />
         </div>
       </header>
 
-      {/* Cliente: tabs + botón "Registrarme" con SweetAlert2 */}
-      <CourseDetailClient evento={evento} />
+      {/* 👇 Aquí sí renderizamos todo lo del cliente (tabs y contenido centrado) */}
+      <CourseDetailClient course={course} />
     </main>
   );
 }
+
 
 
 
