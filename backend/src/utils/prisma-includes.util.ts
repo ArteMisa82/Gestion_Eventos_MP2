@@ -7,7 +7,8 @@ export const USUARIO_SELECT = {
   id_usu: true,
   nom_usu: true,
   ape_usu: true,
-  cor_usu: true
+  cor_usu: true,
+  img_usu: true 
 };
 
 export const INSTRUCTOR_INCLUDE = {

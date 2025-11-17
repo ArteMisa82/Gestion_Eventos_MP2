@@ -22,6 +22,7 @@ export default function LoginModal({
   onLoginSuccess?: (userData: any) => void;
 }) {
   const router = useRouter();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -37,6 +38,7 @@ export default function LoginModal({
     };
   }, [isOpen]);
 
+  // Cambiar entre login / registro según prop inicial
   useEffect(() => {
     if (isOpen) setShowRegister(initialRegister);
   }, [isOpen, initialRegister]);
@@ -122,6 +124,23 @@ export default function LoginModal({
     }
   };
 
+      // 🚀 Redirección después de actualizar Navbar
+      setTimeout(() => {
+        if (userData.role === "admin") {
+          router.push("/admin");
+        } else {
+          router.push("/usuarios/cursos");
+        }
+      }, 300);
+    } catch (error: any) {
+      Swal.fire({
+        title: "Error",
+        text: error.message || "Error al iniciar sesión",
+        icon: "error",
+        confirmButtonColor: "#581517",
+      });
+    }
+  };
 
   return (
     <AnimatePresence>
