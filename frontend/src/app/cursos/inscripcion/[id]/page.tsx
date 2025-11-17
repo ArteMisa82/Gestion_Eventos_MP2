@@ -17,6 +17,7 @@ interface Curso {
   nombre: string;
   tipo: "gratis" | "pago";
   documentosRequeridos: string[];
+  requiereCartaMotivacion?: boolean; // Nueva propiedad
 }
 
 // Modal de pago
@@ -184,6 +185,8 @@ export default function InscripcionCurso({ params }: { params: Promise<{ id: str
   const [documentosFaltantes, setDocumentosFaltantes] = useState<string[]>([]);
   const [metodoPago, setMetodoPago] = useState("");
   const [comprobante, setComprobante] = useState<File | null>(null);
+  const [cartaMotivacion, setCartaMotivacion] = useState<File | null>(null);
+  const [cartaSubida, setCartaSubida] = useState<boolean>(false);
   const [loading, setLoading] = useState(true);
   const [modalPagoOpen, setModalPagoOpen] = useState(false);
 
@@ -206,12 +209,13 @@ export default function InscripcionCurso({ params }: { params: Promise<{ id: str
         },
       };
 
-      // Simulación de curso
+      // Simulación de curso - algunos cursos requieren carta de motivación
       const cursoSimulado: Curso = {
         id,
         nombre: `Curso de Especialización ${id}`,
         tipo: id === "1" ? "gratis" : "pago",
         documentosRequeridos: ["cedula", "certificadoEstudios"],
+        requiereCartaMotivacion: id === "2" || id === "3" // Ejemplo: los cursos 2 y 3 requieren carta
       };
 
       setUsuario(usuarioSimulado);
@@ -228,8 +232,59 @@ export default function InscripcionCurso({ params }: { params: Promise<{ id: str
     cargarDatos();
   }, [id]);
 
+  // Función para subir carta de motivación
+  const subirCartaMotivacion = () => {
+    if (!cartaMotivacion) {
+      Swal.fire("Error", "Por favor selecciona un archivo PDF", "warning");
+      return;
+    }
+
+    // Validar que sea PDF
+    if (cartaMotivacion.type !== "application/pdf") {
+      Swal.fire("Error", "Por favor sube un archivo en formato PDF", "error");
+      return;
+    }
+
+    // Validar tamaño del archivo (ejemplo: máximo 5MB)
+    if (cartaMotivacion.size > 5 * 1024 * 1024) {
+      Swal.fire("Error", "El archivo no debe exceder los 5MB", "error");
+      return;
+    }
+
+    // Simular subida de archivo
+    Swal.fire({
+      title: "Subiendo carta de motivación...",
+      text: "Por favor espera",
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+
+    setTimeout(() => {
+      Swal.fire({
+        title: "¡Carta de Motivación Subida!",
+        text: "Tu carta de motivación ha sido enviada correctamente.",
+        icon: "success",
+        confirmButtonColor: "#581517"
+      });
+      setCartaSubida(true);
+    }, 2000);
+  };
+
   // Función para manejar inscripción gratis
   const handleInscripcionGratis = () => {
+    // Verificar si requiere carta de motivación y si está subida
+    if (curso?.requiereCartaMotivacion && !cartaSubida) {
+      Swal.fire({
+        title: "Carta de Motivación Requerida",
+        text: "Debes subir tu carta de motivación antes de inscribirte",
+        icon: "warning",
+        confirmButtonColor: "#581517"
+      });
+      return;
+    }
+
     Swal.fire({
       title: "¡Inscripción Exitosa!",
       text: "Tu inscripción fue registrada correctamente.",
@@ -263,6 +318,17 @@ export default function InscripcionCurso({ params }: { params: Promise<{ id: str
   };
 
   const pagarConTarjetaSimulado = () => {
+    // Verificar si requiere carta de motivación y si está subida
+    if (curso?.requiereCartaMotivacion && !cartaSubida) {
+      Swal.fire({
+        title: "Carta de Motivación Requerida",
+        text: "Debes subir tu carta de motivación antes de realizar el pago",
+        icon: "warning",
+        confirmButtonColor: "#581517"
+      });
+      return;
+    }
+
     Swal.fire({
       title: "¡Pago Exitoso!",
       text: "Tu pago ha sido aprobado correctamente.",
@@ -349,6 +415,81 @@ export default function InscripcionCurso({ params }: { params: Promise<{ id: str
               </div>
             </section>
 
+            {/* CARTA DE MOTIVACIÓN (si el curso lo requiere) */}
+            {curso.requiereCartaMotivacion && (
+              <section className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+                    <span className="text-gray-600 text-lg">📝</span>
+                  </div>
+                  <h2 className="text-xl font-semibold text-gray-800">Carta de Motivación</h2>
+                </div>
+
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+                  {cartaSubida ? (
+                    <div className="text-center">
+                      <span className="text-green-500 text-4xl mb-3 block">✅</span>
+                      <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                        ¡Carta de Motivación Subida!
+                      </h3>
+                      <p className="text-gray-600 mb-4">
+                        Tu carta de motivación ha sido enviada correctamente.
+                      </p>
+                      <button
+                        onClick={() => {
+                          setCartaSubida(false);
+                          setCartaMotivacion(null);
+                        }}
+                        className="text-[#581517] hover:text-[#7a1c1c] font-medium underline"
+                      >
+                        Subir nueva carta
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-3 mb-4">
+                        <span className="text-[#581517] text-xl">📄</span>
+                        <h3 className="text-lg font-semibold text-gray-800">Subir Carta de Motivación</h3>
+                      </div>
+                      
+                      <p className="text-gray-600 mb-4">
+                        Por favor, sube tu carta de motivación en formato PDF (máximo 5MB). 
+                        Explícanos por qué quieres tomar este curso y cómo contribuirá a tu desarrollo profesional.
+                      </p>
+
+                      <input
+                        type="file"
+                        className="w-full p-3 border-2 border-dashed border-gray-300 rounded-lg mb-4 hover:border-gray-400 transition-colors text-sm text-gray-700"
+                        accept=".pdf,application/pdf"
+                        onChange={(e) => setCartaMotivacion(e.target.files?.[0] || null)}
+                      />
+                      
+                      {cartaMotivacion && (
+                        <div className="bg-white rounded-lg p-3 border border-gray-200 mb-4">
+                          <div className="flex items-center gap-3">
+                            <span className="text-red-500 text-xl">📎</span>
+                            <div>
+                              <p className="font-medium text-gray-800">{cartaMotivacion.name}</p>
+                              <p className="text-sm text-gray-600">
+                                {(cartaMotivacion.size / 1024 / 1024).toFixed(2)} MB
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      <button
+                        className="w-full bg-[#581517] hover:bg-[#7a1c1c] text-white font-medium py-3 px-6 rounded-md transition-all duration-200 shadow-md"
+                        onClick={subirCartaMotivacion}
+                      >
+                        📤 Subir Carta de Motivación
+                      </button>
+                    </>
+                  )}
+                </div>
+              </section>
+            )}
+
             {/* DOCUMENTOS REQUERIDOS */}
             <section className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
               <div className="flex items-center gap-3 mb-4">
@@ -404,13 +545,25 @@ export default function InscripcionCurso({ params }: { params: Promise<{ id: str
                   {curso.tipo === "gratis" ? "Inscripción Gratuita" : "Inscripción de Pago"}
                 </h2>
                 
+                {/* Verificación adicional para cursos que requieren carta de motivación */}
+                {curso.requiereCartaMotivacion && !cartaSubida && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                    <div className="flex items-center gap-3">
+                      <span className="text-yellow-500 text-xl">⚠️</span>
+                      <p className="text-yellow-800 font-medium">
+                        Debes subir tu carta de motivación antes de inscribirte
+                      </p>
+                    </div>
+                  </div>
+                )}
+                
                 {curso.tipo === "gratis" ? (
                   <button
-                    disabled={documentosFaltantes.length > 0}
+                    disabled={documentosFaltantes.length > 0 || (curso.requiereCartaMotivacion && !cartaSubida)}
                     onClick={handleInscripcionGratis}
                     className={`
                       w-full py-4 px-6 rounded-md font-semibold text-lg transition-all duration-200 shadow-md
-                      ${documentosFaltantes.length > 0
+                      ${documentosFaltantes.length > 0 || (curso.requiereCartaMotivacion && !cartaSubida)
                         ? "bg-gray-400 cursor-not-allowed text-gray-600"
                         : "bg-[#581517] hover:bg-[#7a1c1c] text-white"
                       }
@@ -418,16 +571,18 @@ export default function InscripcionCurso({ params }: { params: Promise<{ id: str
                   >
                     {documentosFaltantes.length > 0 
                       ? "Completa los documentos para inscribirte" 
+                      : curso.requiereCartaMotivacion && !cartaSubida
+                      ? "Sube tu carta de motivación para inscribirte"
                       : "✅ Confirmar Inscripción Gratuita"
                     }
                   </button>
                 ) : (
                   <button
-                    disabled={documentosFaltantes.length > 0}
+                    disabled={documentosFaltantes.length > 0 || (curso.requiereCartaMotivacion && !cartaSubida)}
                     onClick={handlePagarCurso}
                     className={`
                       w-full py-4 px-6 rounded-md font-semibold text-lg transition-all duration-200 shadow-md
-                      ${documentosFaltantes.length > 0
+                      ${documentosFaltantes.length > 0 || (curso.requiereCartaMotivacion && !cartaSubida)
                         ? "bg-gray-400 cursor-not-allowed text-gray-600"
                         : "bg-[#581517] hover:bg-[#7a1c1c] text-white"
                       }
@@ -435,6 +590,8 @@ export default function InscripcionCurso({ params }: { params: Promise<{ id: str
                   >
                     {documentosFaltantes.length > 0 
                       ? "Completa los documentos para pagar" 
+                      : curso.requiereCartaMotivacion && !cartaSubida
+                      ? "Sube tu carta de motivación para pagar"
                       : "💳 Proceder al Pago"
                     }
                   </button>
@@ -459,6 +616,15 @@ export default function InscripcionCurso({ params }: { params: Promise<{ id: str
                   <span className="font-medium text-gray-800">{curso.tipo === "gratis" ? "Gratuita" : "De Pago"}</span>
                 </div>
                 
+                {curso.requiereCartaMotivacion && (
+                  <div className="flex justify-between items-center pb-3 border-b border-gray-200">
+                    <span className="text-gray-600">Carta Motivación:</span>
+                    <span className={`font-medium ${cartaSubida ? "text-green-600" : "text-red-600"}`}>
+                      {cartaSubida ? "Subida" : "Pendiente"}
+                    </span>
+                  </div>
+                )}
+                
                 <div className="flex justify-between items-center pb-3 border-b border-gray-200">
                   <span className="text-gray-600">Documentos:</span>
                   <span className={`font-medium ${documentosFaltantes.length > 0 ? "text-red-600" : "text-green-600"}`}>
@@ -477,6 +643,7 @@ export default function InscripcionCurso({ params }: { params: Promise<{ id: str
               <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                 <p className="text-sm text-gray-700 text-center">
                   💡 <strong>Recuerda:</strong> Tu inscripción será confirmada una vez completes todos los requisitos.
+                  {curso.requiereCartaMotivacion && " Incluyendo la carta de motivación."}
                 </p>
               </div>
             </div>
