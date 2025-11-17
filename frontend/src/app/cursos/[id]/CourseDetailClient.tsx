@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Swal from "sweetalert2";
 import { useRouter } from "next/navigation";
 import { inscripcionesAPI } from "@/services/api";
 
@@ -32,6 +31,9 @@ export default function CourseDetailClient({ course }: { course: Course }) {
   const [active, setActive] = useState<(typeof tabs)[number]>(tabs[0]);
   const [inscribiendo, setInscribiendo] = useState(false);
 
+  // 🔥 Ahora no verifica usuario, solo redirige directamente
+  function handleRegister() {
+    router.push(`/cursos/inscripcion/${course.id}`);
   const detalle = evento.detalle_eventos?.[0];
   const esDistancia = evento.mod_evt === 'VIRTUAL' || evento.mod_evt === 'A DISTANCIA';
 

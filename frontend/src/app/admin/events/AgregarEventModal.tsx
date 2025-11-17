@@ -95,14 +95,19 @@ const AddEventModal: React.FC<AddEventModalProps> = ({ onClose, setEvents }) => 
         },
       ]);
 
-      await Swal.fire({
-        icon: "success",
-        title: "Curso añadido",
-        text: "El nuevo curso ha sido agregado correctamente.",
-        confirmButtonColor: "#581517",
-        timer: 2000,
-        showConfirmButton: false,
-      });
+    if (responsables.length >= 1) {
+        await Swal.fire({
+          icon: "info",
+          title: "Solo un responsable",
+          text: "Este curso solo puede tener un responsable asignado.",
+          confirmButtonColor: "#581517",
+        });
+        return;
+      }
+
+      setResponsables([selected]); // siempre reemplaza al anterior
+
+  };
 
       onClose();
     } catch (error: any) {
