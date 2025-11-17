@@ -7,15 +7,11 @@ type TeacherCourse = {
   titulo: string;
   estado: "ABIERTO" | "CERRADO";
   horas: number;
-  portada: string;   // url de imagen
+  portada: string;
 };
 
 async function getTeacherCourses(): Promise<TeacherCourse[]> {
-  // 🔧 TODO: reemplazar por fetch a tu API (no-store para datos vivos)
-  // const res = await fetch(`${process.env.NEXT_PUBLIC_API}/docente/cursos`, { cache: "no-store" });
-  // return await res.json();
-
-  // Mock para diseño:
+  // Aquí luego cambiarás por tu fetch real a la API
   return [
     {
       id: "arduino",
@@ -32,13 +28,12 @@ async function getTeacherCourses(): Promise<TeacherCourse[]> {
       portada: "/home/RRHH.jpg",
     },
     {
-      id: "ley-datos",
+      id: "Ley-datos",
       titulo: "La Ley de Protección de Datos en el Ecuador",
       estado: "ABIERTO",
       horas: 32,
       portada: "/home/datos.jpg",
     },
-    
   ];
 }
 
@@ -47,28 +42,60 @@ export default async function DocenteCursosPage() {
 
   return (
     <section className={styles.wrapper}>
-      <h1 className={styles.title}>CURSOS EN PROCESO</h1>
+      {/* Barra superior interna */}
+      <div className={styles.topBar}>
+        <div className={styles.topBarInner}>
+          <h2>Panel del docente</h2>
+        </div>
+      </div>
 
-      <div className={styles.grid}>
-        {cursos.map((c) => (
-          <Link key={c.id} href={`/cursos/docente/${c.id}`} className={styles.card}>
-            <div className={styles.thumb}>
-              {/* Usa <img> para no tocar tu configuración de <Image/> */}
-              <img src={c.portada} alt={c.titulo} />
-            </div>
+      {/* Contenedor para alinear títulos y grids con las tarjetas */}
+      <div className={styles.container}>
+        <h1 className={styles.sectionTitle}>CURSOS EN PROCESO</h1>
 
-            <div className={styles.metaRow}>
-              <span className={styles.badge}>
-                <i className="bi bi-people"></i> {c.estado.toLowerCase()}
-              </span>
-              <span className={styles.badge}>
-                <i className="bi bi-clock-history"></i> {c.horas} horas
-              </span>
-            </div>
+        {/* Grid de cursos */}
+        <div className={styles.coursesGrid}>
+          {cursos.map((c) => (
+            <Link key={c.id} href={`/cursos/docente/${c.id}`} className={styles.card}>
+              <div className={styles.thumb}>
+                <img src={c.portada} alt={c.titulo} />
+              </div>
 
-            <h3 className={styles.courseTitle}>{c.titulo}</h3>
+              <div className={styles.metaRow}>
+                <span className={styles.badge}>
+                  <i className="bi bi-people"></i> {c.estado.toLowerCase()}
+                </span>
+                <span className={styles.badge}>
+                  <i className="bi bi-clock-history"></i> {c.horas} horas
+                </span>
+              </div>
+
+              <h3 className={styles.courseTitle}>{c.titulo}</h3>
+            </Link>
+          ))}
+        </div>
+
+        <h1 className={styles.sectionTitle}>EVENTOS</h1>
+
+        <div className={styles.eventsGrid}>
+          <Link href="/cursos/docente/eventos/evento-1" className={styles.eventCard}>
+            <img src="/home/evento1.jpg" alt="Evento 1" />
+            <h3>Congreso de Innovación Educativa</h3>
+            <p>15 Febrero 2024</p>
           </Link>
-        ))}
+
+          <Link href="/cursos/docente/eventos/evento-2" className={styles.eventCard}>
+            <img src="/home/evento2.jpg" alt="Evento 2" />
+            <h3>Taller de Transformación Digital</h3>
+            <p>20 Febrero 2024</p>
+          </Link>
+
+          <Link href="/cursos/docente/eventos/evento-3" className={styles.eventCard}>
+            <img src="/home/evento3.jpg" alt="Evento 3" />
+            <h3>Seminario de IA en Educación</h3>
+            <p>25 Febrero 2024</p>
+          </Link>
+        </div>
       </div>
     </section>
   );

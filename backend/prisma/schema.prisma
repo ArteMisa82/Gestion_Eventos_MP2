@@ -14,6 +14,10 @@ model autoridades {
   ced_per  String   @db.VarChar(10)
   dir_aut  String   @db.VarChar(30)
   car_aut  String   @db.VarChar(20)
+  uni_aut  String?  @db.VarChar(50)
+  img_aut  String?
+  ord_aut  Int?     @default(0)
+  act_aut  Boolean? @default(true)
   personas personas @relation(fields: [ced_per], references: [ced_per], onDelete: Cascade)
 }
 
@@ -28,17 +32,19 @@ model detalle_eventos {
   id_det               String                 @id @db.VarChar(10)
   id_evt_per           String                 @db.VarChar(10)
   cup_det              Int
-  not_evt_det          Decimal?               @db.Decimal(4, 2)
+  not_min_evt          Decimal?               @db.Decimal(4, 2)
   hor_det              Decimal                @db.Decimal(4, 2)
-  asi_evt_det          Decimal?               @db.Decimal(3, 2)
   cer_evt_det          Int?                   @db.SmallInt
   apr_evt_det          Int?                   @db.SmallInt
   are_det              String                 @db.VarChar(40)
   cat_det              String                 @db.VarChar(20)
   tip_evt              String                 @db.VarChar(20)
   est_evt_det          String?                @default("INSCRIPCIONES") @db.VarChar(20)
+  not_fin_evt          Decimal?               @db.Decimal(4, 2)
+  asi_evt_det          Int?                   @db.SmallInt
   eventos              eventos                @relation(fields: [id_evt_per], references: [id_evt], onDelete: Cascade)
   detalle_instructores detalle_instructores[]
+  material_curso       material_curso[]
   registro_evento      registro_evento[]
 
   @@index([id_evt_per], map: "idx_detalle_eventos_evento")
@@ -67,6 +73,8 @@ model eventos {
   des_evt         String            @db.VarChar(255)
   id_res_evt      Int?
   est_evt         String?           @default("EDITANDO") @db.VarChar(20)
+  ima_evt         String?
+  fec_fin_evt     DateTime?         @db.Date
   detalle_eventos detalle_eventos[]
   usuarios        usuarios?         @relation(fields: [id_res_evt], references: [id_usu], map: "fk_eventos_responsable")
   requerimientos  requerimientos[]
@@ -90,10 +98,10 @@ model nivel {
   nom_niv         String            @db.VarChar(10)
   org_cur_niv     String            @db.VarChar(10)
   id_car          String            @db.VarChar(10)
-  estudiantes     estudiantes[]
   carreras        carreras          @relation(fields: [id_car], references: [id_car], onDelete: Cascade)
   registro_evento registro_evento[]
   usuarios        usuarios[]
+  estudiantes     estudiantes[]
 }
 
 model pagos {
@@ -132,13 +140,19 @@ model registro_personas {
   id_usu          Int
   id_reg_evt      String          @db.VarChar(10)
   fec_reg_per     DateTime        @default(dbgenerated("CURRENT_DATE")) @db.Date
+  not_fin_evt     Decimal?        @db.Decimal(4, 2)
+  asi_evt_det     Int?            @db.SmallInt
+  id_est          Int?
   informes        informes[]
   pagos           pagos[]
+  estudiantes     estudiantes?    @relation(fields: [id_est], references: [id_est], onUpdate: NoAction, map: "fk_registro_personas_estudiante")
   registro_evento registro_evento @relation(fields: [id_reg_evt], references: [id_reg_evt], onDelete: Cascade)
   usuarios        usuarios        @relation(fields: [id_usu], references: [id_usu], onDelete: Cascade)
 
   @@index([fec_reg_per], map: "idx_registro_personas_fecha")
   @@index([id_usu], map: "idx_registro_personas_usuario")
+  @@index([id_reg_evt, not_fin_evt, asi_evt_det], map: "idx_registro_personas_calificaciones")
+  @@index([id_est], map: "idx_registro_personas_estudiante")
 }
 
 model requerimientos {
@@ -180,6 +194,7 @@ model usuarios {
   detalle_instructores detalle_instructores[]
   estudiantes          estudiantes[]
   eventos              eventos[]
+  material_curso       material_curso[]
   registro_personas    registro_personas[]
   nivel                nivel?                 @relation(fields: [niv_usu], references: [id_niv])
 
@@ -225,19 +240,94 @@ model detalle_instructores {
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model estudiantes {
-  id_est        Int       @id @default(autoincrement())
-  id_usu        Int
-  id_niv        String    @db.VarChar(10)
-  fec_ingreso   DateTime  @default(dbgenerated("CURRENT_DATE")) @db.Date
-  fec_egreso    DateTime? @db.Date
-  est_activo    Int       @default(1) @db.SmallInt
-  observaciones String?
-  nivel         nivel     @relation(fields: [id_niv], references: [id_niv], onDelete: Cascade)
-  usuarios      usuarios  @relation(fields: [id_usu], references: [id_usu], onDelete: Cascade)
+  id_est            Int                 @id @default(autoincrement())
+  id_usu            Int
+  id_niv            String              @db.VarChar(10)
+  fec_ingreso       DateTime            @default(dbgenerated("CURRENT_DATE")) @db.Date
+  fec_egreso        DateTime?           @db.Date
+  est_activo        Int                 @default(1) @db.SmallInt
+  observaciones     String?
+  nivel             nivel               @relation(fields: [id_niv], references: [id_niv], onDelete: Cascade)
+  usuarios          usuarios            @relation(fields: [id_usu], references: [id_usu], onDelete: Cascade)
+  registro_personas registro_personas[]
 
   @@unique([id_usu, id_niv, fec_ingreso], map: "estudiantes_unico_activo")
   @@index([est_activo], map: "idx_estudiantes_activo")
   @@index([fec_ingreso, fec_egreso], map: "idx_estudiantes_fechas")
   @@index([id_niv], map: "idx_estudiantes_nivel")
   @@index([id_usu], map: "idx_estudiantes_usuario")
+}
+
+/// Tabla para gestionar el contenido de la sección INICIO
+model contenido_inicio {
+  id_inicio         Int                   @id @default(autoincrement())
+  img_hero          String?
+  fec_actualizacion DateTime?             @default(now()) @updatedAt @db.Timestamp(6)
+  activo            Boolean?              @default(true)
+  estadisticas      estadisticas_inicio[]
+}
+
+/// Estadísticas que se muestran en la página de inicio
+model estadisticas_inicio {
+  id_estadistica   Int              @id @default(autoincrement())
+  id_inicio        Int
+  valor            String           @db.VarChar(50)
+  etiqueta         String           @db.VarChar(100)
+  orden            Int?             @default(0)
+  contenido_inicio contenido_inicio @relation(fields: [id_inicio], references: [id_inicio], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([id_inicio], map: "idx_estadisticas_inicio")
+}
+
+/// Tabla para gestionar el contenido de la sección NOSOTROS
+model contenido_nosotros {
+  id_nosotros       Int       @id @default(autoincrement())
+  img_banner        String?
+  mision            String
+  vision            String
+  fec_actualizacion DateTime? @default(now()) @updatedAt @db.Timestamp(6)
+  activo            Boolean?  @default(true)
+}
+
+/// Tabla para gestionar el contenido de la sección CURSOS
+model contenido_cursos {
+  id_cursos         Int       @id @default(autoincrement())
+  img_default       String?
+  descripcion       String
+  fec_actualizacion DateTime? @default(now()) @updatedAt @db.Timestamp(6)
+  activo            Boolean?  @default(true)
+}
+
+/// Tabla para gestionar el contenido de la sección CONTACTO
+model contenido_contacto {
+  id_contacto       Int       @id @default(autoincrement())
+  img_banner        String?
+  titulo            String    @db.VarChar(100)
+  email             String    @db.VarChar(100)
+  telefono          String?   @db.VarChar(20)
+  direccion         String?
+  fec_actualizacion DateTime? @default(now()) @updatedAt @db.Timestamp(6)
+  activo            Boolean?  @default(true)
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model material_curso {
+  id_mat          Int             @id @default(autoincrement())
+  id_det          String          @db.VarChar(10)
+  id_cur_per      String?         @db.VarChar(10)
+  nom_mat         String          @db.VarChar(100)
+  des_mat         String?
+  mat_det         String
+  tip_mat         String?         @default("PDF") @db.VarChar(20)
+  tam_mat         Int?
+  fec_subida      DateTime?       @default(now()) @db.Timestamp(6)
+  id_usu_subida   Int?
+  est_mat         Boolean?        @default(true)
+  vis_est_mat     Boolean?        @default(false)
+  detalle_eventos detalle_eventos @relation(fields: [id_det], references: [id_det], onDelete: Cascade, onUpdate: NoAction, map: "fk_material_detalle")
+  usuarios        usuarios?       @relation(fields: [id_usu_subida], references: [id_usu], onUpdate: NoAction, map: "fk_material_usuario")
+
+  @@index([id_det], map: "idx_material_curso_detalle")
+  @@index([fec_subida], map: "idx_material_curso_fecha")
+  @@index([id_usu_subida], map: "idx_material_curso_usuario")
 }

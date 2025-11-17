@@ -112,11 +112,13 @@ export class EventosController {
       const userId = (req as any).userId;
       const data: UpdateEventoDto = req.body;
 
-      const evento = await eventosService.actualizarEvento(
-        req.params.id,
-        data,
-        userId
-      );
+      // Si se envían detalles en el body, usar actualización completa
+      const tieneDetalles = data.detalles && 
+        (data.detalles.cup_det || data.detalles.hor_det || data.detalles.cat_det);
+
+      const evento = tieneDetalles 
+        ? await eventosService.actualizarEventoCompleto(req.params.id, data, userId)
+        : await eventosService.actualizarEvento(req.params.id, data, userId);
 
       res.json({
         success: true,
@@ -159,6 +161,22 @@ export class EventosController {
       res.status(500).json({
         success: false,
         message: error.message || 'Error al obtener usuarios administrativos'
+      });
+    }
+  }
+
+  // GET /api/eventos/usuarios/responsables-activos - Listar usuarios que son responsables de algún curso
+  async obtenerResponsablesActivos(req: Request, res: Response) {
+    try {
+      const responsables = await eventosService.obtenerResponsablesActivos();
+      res.json({
+        success: true,
+        data: responsables
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Error al obtener responsables activos'
       });
     }
   }
@@ -317,6 +335,43 @@ export class EventosController {
       res.status(403).json({
         success: false,
         message: error.message || 'Error al eliminar detalle de evento'
+      });
+    }
+  }
+
+  // ==========================================
+  // ENDPOINTS PÚBLICOS (SIN AUTENTICACIÓN)
+  // ==========================================
+
+  // GET /api/eventos/publicos - PÚBLICO: Obtener eventos publicados
+  async obtenerEventosPublicados(req: Request, res: Response) {
+    try {
+      // Parsear filtros que pueden ser arrays (separados por coma)
+      const parseFiltro = (value: any): string | string[] | undefined => {
+        if (!value) return undefined;
+        if (typeof value === 'string' && value.includes(',')) {
+          return value.split(',').map(v => v.trim());
+        }
+        return value as string;
+      };
+
+      const filtros = {
+        mod_evt: parseFiltro(req.query.mod_evt),
+        tip_pub_evt: parseFiltro(req.query.tip_pub_evt),
+        cos_evt: parseFiltro(req.query.cos_evt),
+        busqueda: req.query.busqueda as string | undefined,
+      };
+
+      const eventos = await eventosService.obtenerEventosPublicados(filtros);
+      
+      res.json({
+        success: true,
+        data: eventos
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Error al obtener eventos publicados'
       });
     }
   }
