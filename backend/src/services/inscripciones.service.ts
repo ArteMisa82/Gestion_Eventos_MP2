@@ -140,6 +140,40 @@ export class InscripcionesService {
     const nivelRequerido = registroEvento.id_niv;
     const tipoPublico = evento.tip_pub_evt; // GENERAL, ESTUDIANTES, ADMINISTRATIVOS
 
+    // ===== VALIDACIÓN 0: NO PUEDE INSCRIBIRSE SI ES INSTRUCTOR O RESPONSABLE =====
+    // Verificar si es instructor del curso
+    const esInstructor = await prisma.detalle_instructores.findFirst({
+      where: {
+        id_det: detalle.id_det,
+        id_usu: id_usu
+      }
+    });
+
+    if (esInstructor) {
+      return {
+        valido: false,
+        mensaje: 'No puedes inscribirte en un curso donde eres instructor',
+        detalles: {
+          cupoDisponible: false,
+          yaInscrito: false,
+          estadoDetalle: detalle.est_evt_det
+        }
+      };
+    }
+
+    // Verificar si es responsable del evento
+    if (evento.id_res_evt === id_usu) {
+      return {
+        valido: false,
+        mensaje: 'No puedes inscribirte en un evento donde eres el responsable',
+        detalles: {
+          cupoDisponible: false,
+          yaInscrito: false,
+          estadoDetalle: detalle.est_evt_det
+        }
+      };
+    }
+
     // ===== VALIDACIÓN 1: TIPO DE PÚBLICO DEL EVENTO =====
     const esEstudiante = usuario.stu_usu === 1;
     const esAdministrativo = usuario.adm_usu === 1 || usuario.Administrador === true;

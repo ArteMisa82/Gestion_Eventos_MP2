@@ -2,11 +2,13 @@
 export interface CreateEventoDto {
   nom_evt: string;
   fec_evt: string | Date;
+  fec_fin_evt?: string | Date; // Fecha de finalización
   lug_evt: string;
   des_evt: string;
   mod_evt?: string; // Modalidad: PRESENCIAL, VIRTUAL
   tip_pub_evt?: string; // Tipo público: GENERAL, ESTUDIANTES, ADMINISTRATIVOS
   cos_evt?: string; // Costo: GRATUITO, DE PAGO
+  ima_evt?: string; // URL de imagen o Base64
   id_responsable: number; // Responsable asignado (OBLIGATORIO - todo evento debe tener responsable)
   // Detalles opcionales para crear en la misma petición (solo ADMIN)
   detalles?: Omit<CreateDetalleEventoDto, 'id_evt_per'>;
@@ -15,13 +17,21 @@ export interface CreateEventoDto {
 export interface UpdateEventoDto {
   nom_evt?: string;
   fec_evt?: string | Date;
+  fec_fin_evt?: string | Date; // Fecha de finalización
   lug_evt?: string;
   mod_evt?: string;
   tip_pub_evt?: string;
   cos_evt?: string;
   des_evt?: string;
   est_evt?: string; // Estado: EDITANDO, PLANIFICADO, EN CURSO, FINALIZADO, CANCELADO
+  ima_evt?: string; // URL de imagen o Base64
   id_responsable?: number; // Solo ADMIN puede cambiar el responsable
+  detalles?: {
+    cup_det?: number;
+    hor_det?: number;
+    cat_det?: string;  // Usar cat_det en lugar de tip_evt
+    are_det?: string;
+  };
 }
 
 export interface AsignarResponsableDto {
@@ -33,12 +43,14 @@ export interface EventoResponse {
   id_evt: string;
   nom_evt: string;
   fec_evt: Date;
+  fec_fin_evt?: Date | null; // Fecha de finalización
   lug_evt: string;
   mod_evt: string;
   tip_pub_evt: string;
   cos_evt: string;
   des_evt: string;
   est_evt: string | null;
+  ima_evt: string | null;
   id_res_evt: number | null;
   responsable?: {
     id_usu: number;
@@ -74,8 +86,9 @@ export interface CreateDetalleEventoDto {
   are_det: string; // Área
   cat_det: string; // Categoría
   tip_evt: string; // Tipo de evento
-  not_evt_det?: number; // Nota mínima
-  asi_evt_det?: number; // Asistencia mínima
+  not_min_evt?: number; // Nota mínima (antes not_evt_det)
+  not_fin_evt?: number; // Nota final (NUEVO)
+  asi_evt_det?: number; // Porcentaje de asistencia 0-100 (antes era decimal)
   cer_evt_det?: number; // Certificado (0 o 1)
   apr_evt_det?: number; // Aprobado (0 o 1)
 }
@@ -87,8 +100,9 @@ export interface UpdateDetalleEventoDto {
   are_det?: string;
   cat_det?: string;
   tip_evt?: string;
-  not_evt_det?: number;
-  asi_evt_det?: number;
+  not_min_evt?: number; // Nota mínima (antes not_evt_det)
+  not_fin_evt?: number; // Nota final (NUEVO)
+  asi_evt_det?: number; // Porcentaje de asistencia 0-100 (antes era decimal)
   cer_evt_det?: number;
   apr_evt_det?: number;
   est_evt_det?: string; // Estado: INSCRIPCIONES, EN CURSO, FINALIZADO, etc.

@@ -2,22 +2,48 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import styles from "./cursos.module.css";
-import { COURSES, type Course } from "./courses.data";
+import { eventosAPI } from "@/services/api";
 
-const CAREERS = [
-  { key: "SOFTWARE", label: "SOFTWARE" },
-  { key: "TI", label: "TI" },
-  { key: "ROBOTICA", label: "ROBOTICA" },
-  { key: "TELECOM", label: "TELECOMUNICACIONES" },
-] as const;
+// Tipos para eventos del backend
+interface EventoPublico {
+  id_evt: string;
+  nom_evt: string;
+  fec_evt: string;
+  lug_evt: string;
+  mod_evt: 'PRESENCIAL' | 'VIRTUAL' | 'A DISTANCIA';
+  tip_pub_evt: 'GENERAL' | 'ESTUDIANTES' | 'ADMINISTRATIVOS';
+  cos_evt: 'GRATUITO' | 'DE PAGO';
+  des_evt: string;
+  est_evt?: string; // Estado del evento
+  ima_evt?: string | null;
+  detalle_eventos?: Array<{
+    id_det: string;
+    hor_det: number;
+    tip_evt: string;
+    cup_det: number;
+    are_det: string;
+    est_evt_det?: string; // Estado del detalle
+  }>;
+}
 
-const TYPES = [
-  { key: "GRATIS", label: "GRATIS" },
-  { key: "PAGO", label: "PAGO" },
+// Mapeo de modalidad a etiqueta de badge
+const MODALIDAD_MAP: Record<string, { label: string; showBadge: boolean }> = {
+  'PRESENCIAL': { label: 'PRESENCIAL', showBadge: false },
+  'VIRTUAL': { label: 'A DISTANCIA', showBadge: true },
+  'A DISTANCIA': { label: 'A DISTANCIA', showBadge: true },
+};
+
+const TIPOS_PUBLICO = [
   { key: "GENERAL", label: "GENERAL" },
   { key: "ESTUDIANTES", label: "ESTUDIANTES" },
+  { key: "ADMINISTRATIVOS", label: "ADMINISTRATIVOS" },
+] as const;
+
+const TIPOS_COSTO = [
+  { key: "GRATUITO", label: "GRATIS" },
+  { key: "DE PAGO", label: "PAGO" },
 ] as const;
 
 /** Asegúrate de que Course tenga la propiedad eventKind.
@@ -39,7 +65,37 @@ export default function CursosPage() {
   const [career, setCareer] = useState<null | Course["career"]>(null);
   const [selectedTypes, setSelectedTypes] = useState<Course["type"][]>([]);
   const [selectedKinds, setSelectedKinds] = useState<EventKind[]>([]);
+  const [eventos, setEventos] = useState<EventoPublico[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [modalidad, setModalidad] = useState<null | string>(null);
+  const [selectedPublico, setSelectedPublico] = useState<string[]>([]);
+  const [selectedCosto, setSelectedCosto] = useState<string[]>([]);
   const [q, setQ] = useState("");
+
+  // Cargar eventos publicados del backend
+  useEffect(() => {
+    async function cargarEventos() {
+      try {
+        setLoading(true);
+        
+        // Construir filtros para el backend
+        const filters: any = {};
+        if (modalidad) filters.mod_evt = modalidad;
+        if (selectedPublico.length > 0) filters.tip_pub_evt = selectedPublico.join(',');
+        if (selectedCosto.length > 0) filters.cos_evt = selectedCosto.join(',');
+        if (q.trim()) filters.busqueda = q.trim();
+        
+        const data = await eventosAPI.getPublicados(filters);
+        setEventos(data);
+      } catch (error) {
+        console.error('Error al cargar eventos:', error);
+        setEventos([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+    cargarEventos();
+  }, [modalidad, selectedPublico, selectedCosto, q]); // Recargar cuando cambien los filtros
 
   const filtered = useMemo(() => {
     return COURSES.filter((c) => {
@@ -74,7 +130,7 @@ export default function CursosPage() {
           <div className={styles.sidebarTitle}>FILTRO</div>
 
           <div className={styles.group}>
-            <div className={styles.groupLabel}>CARRERA</div>
+            <div className={styles.groupLabel}>MODALIDAD</div>
             <div className={styles.pills}>
               {CAREERS.map((c) => (
                 <button
@@ -84,19 +140,64 @@ export default function CursosPage() {
                 >
                   {c.label}
                 </button>
+              <button
+                className={`${styles.pill} ${
+                  modalidad === 'PRESENCIAL' ? styles.pillActive : ""
+                }`}
+                onClick={() =>
+                  setModalidad((prev) => (prev === 'PRESENCIAL' ? null : 'PRESENCIAL'))
+                }
+              >
+                PRESENCIAL
+              </button>
+              <button
+                className={`${styles.pill} ${
+                  modalidad === 'VIRTUAL' ? styles.pillActive : ""
+                }`}
+                onClick={() =>
+                  setModalidad((prev) => (prev === 'VIRTUAL' ? null : 'VIRTUAL'))
+                }
+              >
+                VIRTUAL
+              </button>
+              <button
+                className={`${styles.pill} ${
+                  modalidad === 'A DISTANCIA' ? styles.pillActive : ""
+                }`}
+                onClick={() =>
+                  setModalidad((prev) => (prev === 'A DISTANCIA' ? null : 'A DISTANCIA'))
+                }
+              >
+                A DISTANCIA
+              </button>
+            </div>
+          </div>
+
+          <div className={styles.group}>
+            <div className={styles.groupLabel}>DIRIGIDO A</div>
+            <div className={styles.checks}>
+              {TIPOS_PUBLICO.map((t) => (
+                <label key={t.key} className={styles.checkItem}>
+                  <input
+                    type="checkbox"
+                    checked={selectedPublico.includes(t.key)}
+                    onChange={() => togglePublico(t.key)}
+                  />
+                  <span>{t.label}</span>
+                </label>
               ))}
             </div>
           </div>
 
           <div className={styles.group}>
-            <div className={styles.groupLabel}>ESTADO/COBERTURA</div>
+            <div className={styles.groupLabel}>COSTO</div>
             <div className={styles.checks}>
-              {TYPES.map((t) => (
+              {TIPOS_COSTO.map((t) => (
                 <label key={t.key} className={styles.checkItem}>
                   <input
                     type="checkbox"
-                    checked={selectedTypes.includes(t.key as Course["type"])}
-                    onChange={() => toggleType(t.key as Course["type"])}
+                    checked={selectedCosto.includes(t.key)}
+                    onChange={() => toggleCosto(t.key)}
                   />
                   <span>{t.label}</span>
                 </label>
@@ -142,7 +243,7 @@ export default function CursosPage() {
         <header className={styles.header}>
           <h1 className={styles.title}>Eventos</h1>
           <span className={styles.count}>
-            {filtered.length} resultado{filtered.length !== 1 ? "s" : ""}
+            {loading ? "Cargando..." : `${filtered.length} resultado${filtered.length !== 1 ? "s" : ""}`}
           </span>
         </header>
 
