@@ -7,16 +7,6 @@ import { useParams } from "next/navigation";
 import { eventosAPI } from "@/services/api";
 import CourseDetailClient from "./CourseDetailClient";
 
-// (opcional) si ves cosas raras de caché, descomenta:
-// export const dynamic = "force-dynamic";
-
-type Params = Promise<{ id: string }>;
-
-export default async function CourseDetailPage({ params }: { params: Params }) {
-  const { id } = await params;
-  const decoded = decodeURIComponent(id);
-  const course = COURSES.find((c) => c.id === decoded);
-  if (!course) return notFound();
 interface EventoDetalle {
   id_evt: string;
   nom_evt: string;
@@ -50,7 +40,16 @@ export default function CourseDetailPage() {
     async function cargarEvento() {
       try {
         setLoading(true);
-        const data = await eventosAPI.getPublicados();
+        const response = await eventosAPI.getPublicados();
+        const data = response.data || response; // Extraer data de la respuesta del backend
+        
+        // Verificar que sea un array antes de buscar
+        if (!Array.isArray(data)) {
+          console.error("Los datos de eventos no son un array:", data);
+          setError(true);
+          return;
+        }
+        
         const eventoEncontrado = data.find((e: EventoDetalle) => e.id_evt === id);
         
         if (eventoEncontrado) {
@@ -127,13 +126,13 @@ export default function CourseDetailPage() {
               lineHeight: 1.2,
             }}
           >
-            {course.title}
+            {evento.nom_evt}
           </h1>
 
           <p style={{ color: "#6b7280", marginTop: 8 }}>
-            {course.career} · {course.hours} horas
-            {course.distance ? " · A distancia" : ""}{" "}
-            {course.open ? "· Abierto" : ""}
+            {area} · {horas} horas
+            {esDistancia ? " · A distancia" : ""}{" "}
+            {evento.est_evt === 'PUBLICADO' ? "· Abierto" : ""}
           </p>
         </div>
 
@@ -146,8 +145,8 @@ export default function CourseDetailPage() {
           }}
         >
           <Image
-            src={course.cover}
-            alt={course.title}
+            src={imagenCurso}
+            alt={evento.nom_evt}
             width={760}
             height={460}
             style={{ width: "100%", height: "100%", objectFit: "cover" }}
@@ -156,13 +155,11 @@ export default function CourseDetailPage() {
         </div>
       </header>
 
-      {/* 👇 Aquí sí renderizamos todo lo del cliente (tabs y contenido centrado) */}
-      <CourseDetailClient course={course} />
+      {/* Componente cliente con detalles del evento */}
+      <CourseDetailClient evento={evento} />
     </main>
   );
 }
-
-
 
 
 

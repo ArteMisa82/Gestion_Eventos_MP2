@@ -28,17 +28,22 @@ const EditEventModal: React.FC<EditEventModalProps> = ({ onClose, event, onSave 
   useEffect(() => {
     const fetchResponsables = async () => {
       try {
-        const token = localStorage.getItem("token");
-        if (!token) {
-          throw new Error("No hay sesión activa");
+        const response = await eventosAPI.getResponsables();
+        const data = response.data || response; // Extraer data de la respuesta del backend
+        
+        // Verificar que sea un array antes de asignar
+        if (Array.isArray(data)) {
+          setResponsables(data);
+        } else {
+          console.error("Los datos de responsables no son un array:", data);
+          setResponsables([]);
         }
-        const data = await eventosAPI.getResponsables(token);
-        setResponsables(data);
 
         // TODO: Preseleccionar el responsable actual del evento
         // Necesitarías tener el id_res_evt en EventItem
       } catch (error) {
         console.error("Error al cargar responsables:", error);
+        setResponsables([]);
         Swal.fire({
           icon: "error",
           title: "Error",
@@ -64,14 +69,9 @@ const EditEventModal: React.FC<EditEventModalProps> = ({ onClose, event, onSave 
     setIsLoading(true);
 
     try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        throw new Error("No hay sesión activa");
-      }
-
-      // ✅ Actualizar evento en el backend usando el ID real
+      // ✅ Actualizar evento en el backend usando el ID real (usa cookies de sesión)
       const idToUpdate = event.realId || event.id.toString();
-      await eventosAPI.update(token, idToUpdate, {
+      await eventosAPI.update(idToUpdate, {
         nom_evt: title,
         id_responsable: responsableId,
       });

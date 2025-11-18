@@ -18,7 +18,7 @@ const router = Router();
 
 // 🔑 Rutas principales
 router.use('/auth', authRoutes);
-router.use('/user', userRoutes); // ← agregada para usuarios
+router.use('/user', userRoutes); // ← ruta correcta en singular
 router.use('/eventos', eventosRoutes);
 router.use('/detalles', detallesRoutes);
 router.use('/registro-evento', registroEventoRoutes);
