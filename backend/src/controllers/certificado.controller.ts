@@ -112,6 +112,7 @@ export class CertificadoController {
             return res.status(500).json({ 
                 message: 'Error al guardar el certificado.', 
                 error: (error as Error).message 
+//
             });
         }
     }
