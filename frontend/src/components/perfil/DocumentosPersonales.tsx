@@ -14,7 +14,7 @@ export default function DocumentosPersonales({ usuario, setUsuario }: Props) {
     if (file.type !== "application/pdf") return alert("Debe ser un PDF");
 
     const formData = new FormData();
-    formData.append("pdf", file);
+    formData.append("file", file); // 🔥 ESTE ERA EL ERROR
 
     try {
       const res = await fetch(
@@ -29,10 +29,10 @@ export default function DocumentosPersonales({ usuario, setUsuario }: Props) {
 
       const data = await res.json();
 
-      // Guarda el PDF BASE64 recibido
+      // Guardar el base64 recibido
       setUsuario(prev =>
         prev
-          ? { ...prev, pdf_ced_usu: data?.pdf || data?.pdf_ced_usu }
+          ? { ...prev, pdf_ced_usu: data?.pdf_ced_usu }
           : prev
       );
 
@@ -43,14 +43,14 @@ export default function DocumentosPersonales({ usuario, setUsuario }: Props) {
     }
   };
 
-  // Convertir Base64 a Blob URL para poder abrirlo
+  // Convertir Base64 → Blob URL
   const generarURLPDF = () => {
     if (!usuario.pdf_ced_usu) return null;
 
-    // Si ya viene como URL normal, úsalo
+    // Si ya es URL normal
     if (usuario.pdf_ced_usu.startsWith("http")) return usuario.pdf_ced_usu;
 
-    // Caso usual: base64
+    // Si es base64 puro
     const byteCharacters = atob(usuario.pdf_ced_usu);
     const byteNumbers = new Array(byteCharacters.length);
 
@@ -68,6 +68,7 @@ export default function DocumentosPersonales({ usuario, setUsuario }: Props) {
 
   return (
     <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-200">
+      
       {/* BOTÓN SUBIR PDF */}
       <label className="bg-[#a3161f] text-white px-6 py-3 rounded-xl cursor-pointer">
         Subir PDF

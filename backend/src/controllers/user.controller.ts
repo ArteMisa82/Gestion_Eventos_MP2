@@ -1,38 +1,24 @@
 // src/controllers/user.controller.ts
-
 // src/controllers/user.controller.ts
 
-import { Request, Response } from 'express';
-import { UserService } from '../services/user.service';
-import fs from 'fs';
+import { Request, Response } from "express";
+import fs from "fs";
+import { UserService } from "../services/user.service";
 
 const userService = new UserService();
 
 export class UserController {
-
   async getById(req: Request, res: Response) {
-    try {
-      const id = Number(req.params.id);
-      const user = await userService.getById(id);
-
-      if (!user) {
-        return res.status(404).json({ msg: "Usuario no encontrado" });
-      }
-
-      res.json(user);
-    } catch (error) {
-      res.status(500).json({ msg: "Error interno", error });
-    }
+    const id = Number(req.params.id);
+    const user = await userService.getById(id);
+    if (!user) return res.status(404).json({ msg: "Usuario no encontrado" });
+    res.json(user);
   }
 
   async getByCedula(req: Request, res: Response) {
-    try {
-      const ced = req.params.ced;
-      const user = await userService.getByCedula(ced);
-      res.json(user);
-    } catch (error) {
-      res.status(500).json({ msg: "Error interno" });
-    }
+    const ced = req.params.ced;
+    const user = await userService.getByCedula(ced);
+    res.json(user);
   }
 
   async getAll(req: Request, res: Response) {
@@ -48,43 +34,53 @@ export class UserController {
 
   async update(req: Request, res: Response) {
     const cedula = req.params.ced;
-    const data = req.body;
-    const updated = await userService.update(cedula, data);
+    const updated = await userService.update(cedula, req.body);
     res.json(updated);
+  }
+
+  //-----------------------------
+  // SUBIR IMAGEN
+  //-----------------------------
+  async uploadImage(req: Request, res: Response) {
+    if (!req.file)
+      return res.status(400).json({ msg: "No llegó ninguna imagen" });
+
+    const base64 = fs.readFileSync(req.file.path).toString("base64");
+    fs.unlinkSync(req.file.path);
+
+    const updated = await userService.updateById(Number(req.params.id), {
+      img_usu: base64,
+    });
+
+    res.json({
+      msg: "Imagen actualizada correctamente",
+      img_usu: updated?.img_usu,
+    });
+  }
+
+  //-----------------------------
+  // SUBIR PDF
+  //-----------------------------
+  async uploadPDF(req: Request, res: Response) {
+    if (!req.file)
+      return res.status(400).json({ msg: "No llegó ningún PDF" });
+
+    const base64 = fs.readFileSync(req.file.path).toString("base64");
+    fs.unlinkSync(req.file.path);
+
+    const updated = await userService.updateById(Number(req.params.id), {
+      pdf_ced_usu: base64,
+    });
+
+    res.json({
+      msg: "PDF actualizado correctamente",
+      pdf_ced_usu: updated?.pdf_ced_usu,
+    });
   }
 
   async delete(req: Request, res: Response) {
     const cedula = req.params.ced;
     const deleted = await userService.delete(cedula);
     res.json(deleted);
-  }
-
-  // -------------------------------------------
-  // 📄 NUEVO: SUBIR PDF
-  // -------------------------------------------
-  async uploadPDF(req: Request, res: Response) {
-    try {
-      if (!req.file) {
-        return res.status(400).json({ msg: "No llegó ningún PDF" });
-      }
-
-      const id = Number(req.params.id);
-
-      // Leer archivo temporal y volverlo base64
-      const pdfBase64 = fs.readFileSync(req.file.path, {
-        encoding: "base64",
-      });
-
-      const updated = await userService.updatePDF(id, pdfBase64);
-
-      res.json({
-        msg: "PDF actualizado correctamente",
-        pdf_ced_usu: updated?.pdf_ced_usu,
-      });
-
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ msg: "Error al subir PDF" });
-    }
   }
 }
