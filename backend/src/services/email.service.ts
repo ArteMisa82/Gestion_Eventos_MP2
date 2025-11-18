@@ -7,22 +7,39 @@ export interface EmailOptions {
 }
 
 export class EmailService {
-  private transporter: nodemailer.Transporter;
+  private transporter: nodemailer.Transporter | null = null;
+  private isDevelopment: boolean;
 
   constructor() {
-    this.transporter = nodemailer.createTransport({
-      host: process.env.EMAIL_HOST,
-      port: parseInt(process.env.EMAIL_PORT || '587'),
-      secure: false,
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
+    this.isDevelopment = process.env.NODE_ENV !== 'production';
+    
+    // Solo crear transporter si hay configuración de email
+    if (process.env.EMAIL_HOST && process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+      this.transporter = nodemailer.createTransport({
+        host: process.env.EMAIL_HOST,
+        port: parseInt(process.env.EMAIL_PORT || '587'),
+        secure: false,
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASS,
+        },
+      });
+    } else {
+      console.warn('⚠️ Email no configurado - usando modo desarrollo');
+    }
   }
 
   async sendEmail(options: EmailOptions): Promise<boolean> {
     try {
+      // Si no hay transporter (modo desarrollo), solo logueamos
+      if (!this.transporter) {
+        console.log('📧 [MODO DESARROLLO] Email que se enviaría:');
+        console.log(`   To: ${options.to}`);
+        console.log(`   Subject: ${options.subject}`);
+        console.log(`   HTML: ${options.html.substring(0, 200)}...`);
+        return true;
+      }
+
       await this.transporter.sendMail({
         from: process.env.EMAIL_FROM,
         to: options.to,
@@ -33,13 +50,25 @@ export class EmailService {
       return true;
     } catch (error) {
       console.error('❌ Error enviando email:', error);
-      return false;
+      // En desarrollo, no fallar si no se puede enviar email
+      return this.isDevelopment;
     }
   }
 
   // Plantilla para recuperación de contraseña
   async sendPasswordResetEmail(email: string, resetToken: string): Promise<boolean> {
     const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
+    
+    // 🔥 En modo desarrollo, mostrar el token en consola
+    if (this.isDevelopment || !this.transporter) {
+      console.log('\n🔑 ========================================');
+      console.log('📧 RECUPERACIÓN DE CONTRASEÑA (MODO DEV)');
+      console.log('========================================');
+      console.log(`👤 Email: ${email}`);
+      console.log(`🔐 Token: ${resetToken}`);
+      console.log(`🔗 Link: ${resetLink}`);
+      console.log('========================================\n');
+    }
     
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">

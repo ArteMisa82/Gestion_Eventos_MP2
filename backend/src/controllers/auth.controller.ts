@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { AuthService } from '../services/auth.service';
 import { successResponse } from '../utils/response.util';
 import { PasswordService } from '../services/password.service';
+import { generateToken } from '../utils/jwt.util';
 
 const passwordService = new PasswordService();
 const authService = new AuthService();
@@ -39,10 +40,18 @@ export class AuthController {
       req.session.userRole = userRole;
       req.session.isAuthenticated = true;
 
+      // GENERAR TOKEN JWT para compatibilidad con frontend
+      const token = generateToken({
+        id_usu: result.user!.id_usu,
+        cor_usu: result.user!.cor_usu,
+        adm_usu: result.user!.adm_usu
+      });
+
       console.log(`Sesión creada para: ${result.user!.cor_usu} (Rol: ${userRole})`);
 
       res.json(successResponse({
-        user: result.user
+        token,
+        usuario: result.user
       }, 'Usuario registrado exitosamente'));
     } catch (error) {
       console.error('Error en registro:', error);
@@ -78,10 +87,18 @@ export class AuthController {
       req.session.userRole = userRole;
       req.session.isAuthenticated = true;
 
+      // GENERAR TOKEN JWT para compatibilidad con frontend
+      const token = generateToken({
+        id_usu: result.user!.id_usu,
+        cor_usu: result.user!.cor_usu,
+        adm_usu: result.user!.adm_usu
+      });
+
       console.log(`Sesión creada para: ${result.user!.cor_usu} (Rol: ${userRole})`);
 
       res.json(successResponse({
-        user: result.user
+        token,
+        usuario: result.user
       }, 'Login exitoso'));
     } catch (error) {
       console.error('Error en login:', error);

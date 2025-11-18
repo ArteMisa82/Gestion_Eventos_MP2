@@ -16,6 +16,7 @@ import calificacionesRoutes from './calificaciones.routes';
 const router = Router();
 
 router.use('/auth', authRoutes);
+router.use('/users', userRoutes);
 router.use('/eventos', eventosRoutes);
 router.use('/detalles', detallesRoutes);
 router.use('/registro-evento', registroEventoRoutes);

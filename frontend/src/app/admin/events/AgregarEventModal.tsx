@@ -27,14 +27,19 @@ const AddEventModal: React.FC<AddEventModalProps> = ({ onClose, setEvents }) => 
   useEffect(() => {
     const fetchResponsables = async () => {
       try {
-        const token = localStorage.getItem("token");
-        if (!token) {
-          throw new Error("No hay sesión activa");
+        const response = await eventosAPI.getResponsables();
+        const data = response.data || response; // Extraer data de la respuesta del backend
+        
+        // Verificar que sea un array antes de asignar
+        if (Array.isArray(data)) {
+          setResponsables(data);
+        } else {
+          console.error("Los datos de responsables no son un array:", data);
+          setResponsables([]);
         }
-        const data = await eventosAPI.getResponsables(token);
-        setResponsables(data);
       } catch (error) {
         console.error("Error al cargar responsables:", error);
+        setResponsables([]);
         Swal.fire({
           icon: "error",
           title: "Error",
@@ -60,13 +65,8 @@ const AddEventModal: React.FC<AddEventModalProps> = ({ onClose, setEvents }) => 
     setIsLoading(true);
 
     try {
-      // ✅ Llamada al backend para crear evento
-      const token = localStorage.getItem("token");
-      if (!token) {
-        throw new Error("No hay sesión activa");
-      }
-
-      const nuevoEvento = await eventosAPI.create(token, {
+      // ✅ Llamada al backend para crear evento (usa cookies de sesión)
+      const nuevoEvento = await eventosAPI.create({
         nom_evt: title,
         fec_evt: new Date().toISOString().split('T')[0], // Fecha actual por defecto
         lug_evt: "Por definir",
@@ -94,20 +94,6 @@ const AddEventModal: React.FC<AddEventModalProps> = ({ onClose, setEvents }) => 
           end: "Por definir",
         },
       ]);
-
-    if (responsables.length >= 1) {
-        await Swal.fire({
-          icon: "info",
-          title: "Solo un responsable",
-          text: "Este curso solo puede tener un responsable asignado.",
-          confirmButtonColor: "#581517",
-        });
-        return;
-      }
-
-      setResponsables([selected]); // siempre reemplaza al anterior
-
-  };
 
       onClose();
     } catch (error: any) {

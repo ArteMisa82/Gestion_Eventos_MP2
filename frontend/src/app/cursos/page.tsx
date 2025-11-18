@@ -46,30 +46,21 @@ const TIPOS_COSTO = [
   { key: "DE PAGO", label: "PAGO" },
 ] as const;
 
-/** Asegúrate de que Course tenga la propiedad eventKind.
- *  Si ya lo agregaste en courses.data.ts, usa el tipo de ahí.
- *  Si no, descomenta esta línea y ajusta:
- *  type EventKind = "CURSO" | "CONFERENCIA" | "WEBINAR" | "CONGRESO" | "CASA_ABIERTA";
- */
-type EventKind = Course extends { eventKind: infer K } ? Extract<K, string> : never;
-
-const KINDS: { key: EventKind; label: string }[] = [
-  { key: "CURSO" as EventKind,         label: "CURSO" },
-  { key: "CONFERENCIA" as EventKind,   label: "CONFERENCIA" },
-  { key: "WEBINAR" as EventKind,       label: "WEBINAR" },
-  { key: "CONGRESO" as EventKind,      label: "CONGRESO" },
-  { key: "CASA_ABIERTA" as EventKind,  label: "CASAS ABIERTAS" },
-];
+const TIPOS_EVENTO = [
+  { key: "CURSO", label: "CURSO" },
+  { key: "CONFERENCIA", label: "CONFERENCIA" },
+  { key: "WEBINAR", label: "WEBINAR" },
+  { key: "CONGRESO", label: "CONGRESO" },
+  { key: "CASAS ABIERTAS", label: "CASAS ABIERTAS" },
+] as const;
 
 export default function CursosPage() {
-  const [career, setCareer] = useState<null | Course["career"]>(null);
-  const [selectedTypes, setSelectedTypes] = useState<Course["type"][]>([]);
-  const [selectedKinds, setSelectedKinds] = useState<EventKind[]>([]);
-  const [eventos, setEventos] = useState<EventoPublico[]>([]);
-  const [loading, setLoading] = useState(true);
   const [modalidad, setModalidad] = useState<null | string>(null);
   const [selectedPublico, setSelectedPublico] = useState<string[]>([]);
   const [selectedCosto, setSelectedCosto] = useState<string[]>([]);
+  const [selectedKinds, setSelectedKinds] = useState<string[]>([]);
+  const [eventos, setEventos] = useState<EventoPublico[]>([]);
+  const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
 
   // Cargar eventos publicados del backend
@@ -85,7 +76,16 @@ export default function CursosPage() {
         if (selectedCosto.length > 0) filters.cos_evt = selectedCosto.join(',');
         if (q.trim()) filters.busqueda = q.trim();
         
-        const data = await eventosAPI.getPublicados(filters);
+        const response = await eventosAPI.getPublicados(filters);
+        const data = response.data || response; // Extraer data de la respuesta del backend
+        
+        // Verificar que sea un array antes de asignar
+        if (!Array.isArray(data)) {
+          console.error("Los datos de eventos no son un array:", data);
+          setEventos([]);
+          return;
+        }
+        
         setEventos(data);
       } catch (error) {
         console.error('Error al cargar eventos:', error);
@@ -98,26 +98,44 @@ export default function CursosPage() {
   }, [modalidad, selectedPublico, selectedCosto, q]); // Recargar cuando cambien los filtros
 
   const filtered = useMemo(() => {
-    return COURSES.filter((c) => {
-      const byCareer = career ? c.career === career : true;
-      const byTypes = selectedTypes.length > 0 ? selectedTypes.includes(c.type) : true;
-      const byKinds = selectedKinds.length > 0 ? selectedKinds.includes(c.eventKind as EventKind) : true;
-      const bySearch = q ? c.title.toLowerCase().includes(q.trim().toLowerCase()) : true;
-      return byCareer && byTypes && byKinds && bySearch;
+    // Verificar que eventos sea un array antes de filtrar
+    if (!Array.isArray(eventos)) {
+      console.warn("eventos no es un array en filtered:", eventos);
+      return [];
+    }
+    
+    return eventos.filter((evento) => {
+      // Filtrar por tipo de evento (desde detalle_eventos)
+      if (selectedKinds.length > 0) {
+        const tipoEvento = evento.detalle_eventos?.[0]?.tip_evt;
+        if (!tipoEvento || !selectedKinds.includes(tipoEvento)) return false;
+      }
+      return true;
     });
-  }, [career, selectedTypes, selectedKinds, q]);
+  }, [eventos, selectedKinds]);
 
-  function toggleType(t: Course["type"]) {
-    setSelectedTypes((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]));
+  function togglePublico(tipo: string) {
+    setSelectedPublico((prev) => 
+      prev.includes(tipo) ? prev.filter((x) => x !== tipo) : [...prev, tipo]
+    );
   }
 
-  function toggleKind(k: EventKind) {
-    setSelectedKinds((prev) => (prev.includes(k) ? prev.filter((x) => x !== k) : [...prev, k]));
+  function toggleCosto(tipo: string) {
+    setSelectedCosto((prev) => 
+      prev.includes(tipo) ? prev.filter((x) => x !== tipo) : [...prev, tipo]
+    );
+  }
+
+  function toggleKind(k: string) {
+    setSelectedKinds((prev) => 
+      prev.includes(k) ? prev.filter((x) => x !== k) : [...prev, k]
+    );
   }
 
   function clearAll() {
-    setCareer(null);
-    setSelectedTypes([]);
+    setModalidad(null);
+    setSelectedPublico([]);
+    setSelectedCosto([]);
     setSelectedKinds([]);
     setQ("");
   }
@@ -132,14 +150,6 @@ export default function CursosPage() {
           <div className={styles.group}>
             <div className={styles.groupLabel}>MODALIDAD</div>
             <div className={styles.pills}>
-              {CAREERS.map((c) => (
-                <button
-                  key={c.key}
-                  className={`${styles.pill} ${career === c.key ? styles.pillActive : ""}`}
-                  onClick={() => setCareer((prev) => (prev === c.key ? null : (c.key as Course["career"])))}
-                >
-                  {c.label}
-                </button>
               <button
                 className={`${styles.pill} ${
                   modalidad === 'PRESENCIAL' ? styles.pillActive : ""
@@ -205,11 +215,11 @@ export default function CursosPage() {
             </div>
           </div>
 
-          {/* NUEVO: TIPO DE EVENTO */}
+          {/* TIPO DE EVENTO */}
           <div className={styles.group}>
             <div className={styles.groupLabel}>TIPO DE EVENTO</div>
             <div className={styles.checks}>
-              {KINDS.map((k) => (
+              {TIPOS_EVENTO.map((k) => (
                 <label key={k.key} className={styles.checkItem}>
                   <input
                     type="checkbox"
@@ -253,63 +263,61 @@ export default function CursosPage() {
         </p>
 
         <div className={styles.grid}>
-          {filtered.map((c) => (
-            <Link
-              key={c.id}
-              href={`/cursos/${c.id}`}
-              className={styles.card}
-              aria-label={`Abrir curso: ${c.title}`}
-            >
-              <div className={styles.coverWrap}>
-                <Image
-                  src={c.cover}
-                  alt={c.title}
-                  width={520}
-                  height={300}
-                  className={styles.cover}
-                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                  priority
-                />
-                <div className={styles.badges}>
-                  {c.open && <span className={styles.badgeOpen}>ABIERTO</span>}
-                  {c.distance && <span className={styles.badgeDistance}>A DISTANCIA</span>}
-                </div>
-              </div>
-
-              <div className={styles.cardBody}>
-                <div className={styles.metaRow}>
-                  <span className={styles.metaDot} />
-                  <span className={styles.metaText}>
-                    {c.career} · {c.hours} horas
-                  </span>
-                </div>
-
-                <h3 className={styles.cardTitle}>{c.title}</h3>
-
-                <div className={styles.tagsRow}>
-                  {/* NUEVO: etiqueta de tipo de evento */}
-                  {"eventKind" in c && (
-                    <span
-                      className={`${styles.kindTag} ${
-                        styles["kind_" + String(c.eventKind).toLowerCase()]
-                      }`}
-                    >
-                      {String(c.eventKind).replace("_", " ")}
-                    </span>
+          {filtered.map((evento) => {
+            const detalle = evento.detalle_eventos?.[0];
+            const modalidadInfo = MODALIDAD_MAP[evento.mod_evt] || { label: evento.mod_evt, showBadge: false };
+            
+            return (
+              <Link
+                key={evento.id_evt}
+                href={`/cursos/${evento.id_evt}`}
+                className={styles.card}
+                aria-label={`Abrir evento: ${evento.nom_evt}`}
+              >
+                <div className={styles.coverWrap}>
+                  {evento.ima_evt ? (
+                    <Image
+                      src={evento.ima_evt}
+                      alt={evento.nom_evt}
+                      width={520}
+                      height={300}
+                      className={styles.cover}
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                      priority
+                    />
+                  ) : (
+                    <div className={styles.cover} style={{ background: '#581517' }} />
                   )}
-
-                  {/* etiqueta existente de cobertura */}
-                  <span
-                    className={`${styles.typeTag} ${
-                      styles["type_" + c.type.toLowerCase()]
-                    }`}
-                  >
-                    {c.type}
-                  </span>
+                  <div className={styles.badges}>
+                    {evento.est_evt === 'PUBLICADO' && <span className={styles.badgeOpen}>ABIERTO</span>}
+                    {modalidadInfo.showBadge && <span className={styles.badgeDistance}>{modalidadInfo.label}</span>}
+                  </div>
                 </div>
-              </div>
-            </Link>
-          ))}
+
+                <div className={styles.cardBody}>
+                  <div className={styles.metaRow}>
+                    <span className={styles.metaDot} />
+                    <span className={styles.metaText}>
+                      {detalle?.are_det || 'General'} · {detalle?.hor_det || 0} horas
+                    </span>
+                  </div>
+
+                  <h3 className={styles.cardTitle}>{evento.nom_evt}</h3>
+
+                  <div className={styles.tagsRow}>
+                    {detalle?.tip_evt && (
+                      <span className={`${styles.kindTag}`}>
+                        {detalle.tip_evt}
+                      </span>
+                    )}
+                    <span className={`${styles.typeTag}`}>
+                      {evento.cos_evt}
+                    </span>
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
         </div>
       </section>
     </main>

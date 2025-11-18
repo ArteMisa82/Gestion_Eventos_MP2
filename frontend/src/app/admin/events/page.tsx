@@ -18,12 +18,15 @@ const EventsPage: React.FC = () => {
   useEffect(() => {
     const fetchEventos = async () => {
       try {
-        const token = localStorage.getItem("token");
-        if (!token) {
-          throw new Error("No hay sesión activa");
+        const response = await eventosAPI.getAll();
+        const data = response.data || response; // Extraer data de la respuesta del backend
+        
+        // Verificar que sea un array antes de mapear
+        if (!Array.isArray(data)) {
+          console.error("Los datos de eventos no son un array:", data);
+          setEvents([]);
+          return;
         }
-
-        const data = await eventosAPI.getAll(token);
         
         // Transformar datos del backend al formato del frontend
         const eventosTransformados: EventItem[] = data.map((evento: any, index: number) => ({
@@ -76,14 +79,9 @@ const EventsPage: React.FC = () => {
 
     if (result.isConfirmed) {
       try {
-        const token = localStorage.getItem("token");
-        if (!token) {
-          throw new Error("No hay sesión activa");
-        }
-
         // Usar el ID real del backend
         const idToDelete = event.realId || event.id.toString();
-        await eventosAPI.delete(token, idToDelete);
+        await eventosAPI.delete(idToDelete);
         
         setEvents((prev) => prev.filter((e) => e.id !== event.id));
         
