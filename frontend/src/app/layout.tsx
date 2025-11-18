@@ -4,6 +4,7 @@ import "./globals.css";
 import { usePathname } from "next/navigation";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import { AuthProvider } from "../hooks/useAuth";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -14,9 +15,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="es">
       <body>
-        {!hideLayout && <Navbar />}
-        {children}
-        {!hideLayout && <Footer />}
+        <AuthProvider>
+          {!hideLayout && <Navbar />}
+          {children}
+          {!hideLayout && <Footer />}
+        </AuthProvider>
       </body>
     </html>
   );
