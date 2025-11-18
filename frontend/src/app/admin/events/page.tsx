@@ -18,7 +18,15 @@ const EventsPage: React.FC = () => {
   useEffect(() => {
     const fetchEventos = async () => {
       try {
-        const data = await eventosAPI.getAll();
+        const response = await eventosAPI.getAll();
+        const data = response.data || response; // Extraer data de la respuesta del backend
+        
+        // Verificar que sea un array antes de mapear
+        if (!Array.isArray(data)) {
+          console.error("Los datos de eventos no son un array:", data);
+          setEvents([]);
+          return;
+        }
         
         // Transformar datos del backend al formato del frontend
         const eventosTransformados: EventItem[] = data.map((evento: any, index: number) => ({

@@ -40,7 +40,16 @@ export default function CourseDetailPage() {
     async function cargarEvento() {
       try {
         setLoading(true);
-        const data = await eventosAPI.getPublicados();
+        const response = await eventosAPI.getPublicados();
+        const data = response.data || response; // Extraer data de la respuesta del backend
+        
+        // Verificar que sea un array antes de buscar
+        if (!Array.isArray(data)) {
+          console.error("Los datos de eventos no son un array:", data);
+          setError(true);
+          return;
+        }
+        
         const eventoEncontrado = data.find((e: EventoDetalle) => e.id_evt === id);
         
         if (eventoEncontrado) {

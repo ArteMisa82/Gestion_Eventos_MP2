@@ -337,11 +337,12 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
       
       console.log("Respuesta del servidor:", response);
 
-      if (response && (response.success || response.data)) {
+      // El backend devuelve { success: true, message: string, data: any }
+      if (response && response.success) {
         await Swal.fire({
           icon: "success",
           title: "¡Éxito!",
-          text: "El evento ha sido actualizado correctamente",
+          text: response.message || "El evento ha sido actualizado correctamente",
           confirmButtonColor: "#581517"
         });
         onGuardar({ ...formData, imagen: formData.imagen || imageDefault });

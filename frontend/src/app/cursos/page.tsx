@@ -76,7 +76,16 @@ export default function CursosPage() {
         if (selectedCosto.length > 0) filters.cos_evt = selectedCosto.join(',');
         if (q.trim()) filters.busqueda = q.trim();
         
-        const data = await eventosAPI.getPublicados(filters);
+        const response = await eventosAPI.getPublicados(filters);
+        const data = response.data || response; // Extraer data de la respuesta del backend
+        
+        // Verificar que sea un array antes de asignar
+        if (!Array.isArray(data)) {
+          console.error("Los datos de eventos no son un array:", data);
+          setEventos([]);
+          return;
+        }
+        
         setEventos(data);
       } catch (error) {
         console.error('Error al cargar eventos:', error);
@@ -89,6 +98,12 @@ export default function CursosPage() {
   }, [modalidad, selectedPublico, selectedCosto, q]); // Recargar cuando cambien los filtros
 
   const filtered = useMemo(() => {
+    // Verificar que eventos sea un array antes de filtrar
+    if (!Array.isArray(eventos)) {
+      console.warn("eventos no es un array en filtered:", eventos);
+      return [];
+    }
+    
     return eventos.filter((evento) => {
       // Filtrar por tipo de evento (desde detalle_eventos)
       if (selectedKinds.length > 0) {

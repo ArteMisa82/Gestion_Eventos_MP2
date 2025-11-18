@@ -28,13 +28,22 @@ const EditEventModal: React.FC<EditEventModalProps> = ({ onClose, event, onSave 
   useEffect(() => {
     const fetchResponsables = async () => {
       try {
-        const data = await eventosAPI.getResponsables();
-        setResponsables(data);
+        const response = await eventosAPI.getResponsables();
+        const data = response.data || response; // Extraer data de la respuesta del backend
+        
+        // Verificar que sea un array antes de asignar
+        if (Array.isArray(data)) {
+          setResponsables(data);
+        } else {
+          console.error("Los datos de responsables no son un array:", data);
+          setResponsables([]);
+        }
 
         // TODO: Preseleccionar el responsable actual del evento
         // Necesitarías tener el id_res_evt en EventItem
       } catch (error) {
         console.error("Error al cargar responsables:", error);
+        setResponsables([]);
         Swal.fire({
           icon: "error",
           title: "Error",

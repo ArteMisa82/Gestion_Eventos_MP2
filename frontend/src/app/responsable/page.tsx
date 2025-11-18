@@ -46,7 +46,14 @@ export default function DashboardResponsable() {
     const fetchMisEventos = async () => {
       try {
         // ✅ Llamar al endpoint de mis eventos (usa cookies de sesión)
-        const data = await eventosAPI.getMisEventos();
+        const response = await eventosAPI.getMisEventos();
+        const data = response.data || response; // Extraer data de la respuesta del backend
+        
+        // Verificar que sea un array antes de mapear
+        if (!Array.isArray(data)) {
+          console.error("Los datos no son un array:", data);
+          throw new Error("Formato de datos inválido recibido del servidor");
+        }
         
         // Transformar datos del backend al formato del frontend
         const eventosTransformados: Evento[] = data.map((evento: any) => ({
@@ -72,6 +79,7 @@ export default function DashboardResponsable() {
           lug_evt: evento.lug_evt,
           des_evt: evento.des_evt,
           est_evt: evento.est_evt,
+          estado: evento.est_evt === "PUBLICADO" ? "Publicado" : evento.est_evt === "CERRADO" ? "Cerrado" : "Editando",
         }));
 
         setEventos(eventosTransformados);
@@ -108,6 +116,7 @@ export default function DashboardResponsable() {
       tipoEvento: eventoActualizado.tipoEvento || "",
       camposExtra: eventoActualizado.camposExtra || {},
       docente: eventoActualizado.docente,
+      estado: eventoActualizado.estado || "Editando",
       // Campos del backend - actualizar con los valores del modal
       id_evt: eventoActualizado.id_evt,
       nom_evt: eventoActualizado.nom_evt,

@@ -7,13 +7,27 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
 /**
  * Headers comunes para todas las peticiones
- * NOTA: El parámetro token se mantiene por compatibilidad pero no se usa
- * porque el sistema usa cookies de sesión (express-session)
+ * Incluye el token JWT si está disponible
  */
 const getHeaders = (token?: string): HeadersInit => {
-  return {
+  const headers: HeadersInit = {
     'Content-Type': 'application/json',
   };
+  
+  // Intentar obtener token del localStorage si no se proporciona uno
+  if (!token && typeof window !== 'undefined') {
+    const storedToken = localStorage.getItem('token');
+    if (storedToken) {
+      token = storedToken;
+    }
+  }
+  
+  // Agregar Authorization header si hay token
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  
+  return headers;
 };
 
 /**
@@ -37,15 +51,26 @@ const getFetchOptions = (method: string = 'GET', body?: any): RequestInit => {
  * Manejo de errores de la API
  */
 const handleResponse = async (response: Response) => {
-  const data = await response.json();
+  let data;
   
-  if (!response.ok) {
-    throw new Error(data.message || data.error || `Error ${response.status}`);
+  try {
+    data = await response.json();
+  } catch (e) {
+    throw new Error(`Error al parsear la respuesta JSON: ${response.statusText}`);
   }
   
-  // Si el backend devuelve { success, data }, devolvemos solo data
-  // Si no tiene esa estructura, devolvemos todo
-  return data.data || data;
+  if (!response.ok) {
+    const errorMessage = data?.message || data?.error || `Error ${response.status}: ${response.statusText}`;
+    throw new Error(errorMessage);
+  }
+  
+  // El backend siempre devuelve { success: true/false, data?: any, message?: string }
+  if (data.success === false) {
+    throw new Error(data.message || 'Error desconocido del servidor');
+  }
+  
+  // Devolver la respuesta completa para que el frontend pueda manejar success y data
+  return data;
 };
 
 // ==========================================
