@@ -1,10 +1,18 @@
 "use client";
-import { useEffect, useState } from "react";
+
+import { useEffect, useState, useRef } from "react";
+import ModalCambioContrasena from "@/components/perfil/ModalCambioContrasena";
+import FotoPerfil from "@/components/perfil/FotoPerfil";
+import DocumentosPersonales from "@/components/perfil/DocumentosPersonales";
 
 export default function PerfilPage() {
   const [usuario, setUsuario] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
+  const [mostrarModal, setMostrarModal] = useState(false);
+
+  const fileImgRef = useRef<HTMLInputElement>(null);
+  const filePdfRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     try {
@@ -16,7 +24,6 @@ export default function PerfilPage() {
       }
 
       const parsed = JSON.parse(stored);
-
       const id = parsed?.id_usu;
       const token = parsed?.token;
 
@@ -66,38 +73,33 @@ export default function PerfilPage() {
 
   return (
     <div className="p-8 max-w-6xl mx-auto">
-      {/* --- TÍTULO --- */}
       <h1 className="text-3xl font-bold text-center text-[#7b1113] mb-10">
         Mi Perfil
       </h1>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {/* --- TARJETA IZQUIERDA --- */}
+        
+        {/* FOTO DE PERFIL COMPONENTE */}
         <div className="bg-white shadow-lg rounded-2xl p-6 flex flex-col items-center">
-          <div className="w-28 h-28 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 text-4xl">
-            👤
-          </div>
+          <FotoPerfil usuario={usuario} setUsuario={setUsuario} />
 
-          <span className="bg-green-600 text-white px-4 py-1 mt-3 rounded-full text-sm">
+          <span className="bg-green-600 text-white px-4 py-1 mt-4 rounded-full text-sm">
             Activo
           </span>
 
-          <button className="mt-4 px-5 py-2 bg-[#7b1113] text-white rounded-lg hover:bg-[#5d0b0d] transition">
-            Cambiar Foto
-          </button>
-
           <div className="mt-8 w-full text-center">
             <p className="text-gray-600 font-semibold">Miembro desde</p>
-            <p className="text-xl font-bold">2024</p>
+            <p className="text-xl font-bold">{usuario.stu_usu ?? "2024"}</p>
           </div>
 
           <div className="mt-4 w-full text-center">
             <p className="text-gray-600 font-semibold">Documentos</p>
-            <p className="text-xl font-bold">0</p>
+            <p className="text-xl font-bold">{usuario.pdf_ced_usu ? 1 : 0}</p>
           </div>
         </div>
 
-        {/* --- INFORMACIÓN PERSONAL --- */}
+        
+        {/* INFORMACIÓN PERSONAL */}
         <div className="bg-white shadow-lg rounded-2xl p-6 md:col-span-2">
           <h2 className="text-xl font-semibold mb-5 text-[#7b1113]">
             Información Personal
@@ -106,46 +108,54 @@ export default function PerfilPage() {
           <div className="grid grid-cols-2 gap-4">
             <input
               className="border rounded-lg p-2 w-full"
-              placeholder="Nombre"
               value={usuario.nom_usu || ""}
               readOnly
             />
 
             <input
               className="border rounded-lg p-2 w-full"
-              placeholder="Apellido"
               value={usuario.ape_usu || ""}
               readOnly
             />
 
             <input
               className="border rounded-lg p-2 w-full col-span-2"
-              placeholder="Correo"
               value={usuario.cor_usu || ""}
+              readOnly
+            />
+
+            <input
+              type="password"
+              className="border rounded-lg p-2 w-full col-span-2"
+              value={usuario.pas_usu || ""}
               readOnly
             />
           </div>
 
-          <button className="mt-6 px-5 py-2 bg-[#7b1113] text-white rounded-lg hover:bg-[#5d0b0d] transition">
-            Editar Información
+          <button
+            onClick={() => setMostrarModal(true)}
+            className="mt-6 px-5 py-2 bg-[#7b1113] text-white rounded-lg hover:bg-[#5d0b0d] transition"
+          >
+            Cambiar Contraseña
           </button>
         </div>
       </div>
 
-      {/* --- DOCUMENTOS PERSONALES --- */}
+      {/* DOCUMENTOS PERSONALES COMPONENTE */}
       <div className="bg-white shadow-lg rounded-2xl p-6 mt-10">
         <h2 className="text-xl font-semibold mb-5 text-[#7b1113]">
           Documentos Personales
         </h2>
 
-        <button className="px-5 py-2 bg-[#7b1113] text-white rounded-lg hover:bg-[#5d0b0d] transition">
-          Subir PDF
-        </button>
-
-        <p className="text-gray-500 mt-5">
-          No se ha subido ningún documento.
-        </p>
+        <DocumentosPersonales usuario={usuario} setUsuario={setUsuario} />
       </div>
+
+      <ModalCambioContrasena
+        isOpen={mostrarModal}
+        onClose={() => setMostrarModal(false)}
+        usuario={usuario}
+        setUsuario={setUsuario}
+      />
     </div>
   );
 }

@@ -1,7 +1,10 @@
+// src/services/user.service.ts
+
 import prisma from "../config/database";
 import { IUser } from "../types/user";
 
 export class UserService {
+
   async getAll(): Promise<IUser[]> {
     return prisma.usuarios.findMany();
   }
@@ -27,5 +30,17 @@ export class UserService {
 
   async delete(cedula: string) {
     return prisma.usuarios.deleteMany({ where: { ced_usu: cedula } });
+  }
+
+  // -----------------------------------------
+  // 📄 NUEVO: ACTUALIZAR PDF BASE64
+  // -----------------------------------------
+  async updatePDF(id: number, pdf: string) {
+    return prisma.usuarios.update({
+      where: { id_usu: id },
+      data: {
+        pdf_ced_usu: pdf
+      }
+    });
   }
 }
