@@ -64,7 +64,9 @@ export class AuthController {
 
   async login(req: Request, res: Response) {
     try {
-      const { email, password } = req.body;
+      // Soportar tanto el formato del frontend (cor_usu/con_usu) como el estándar (email/password)
+      const email = req.body.email || req.body.cor_usu;
+      const password = req.body.password || req.body.con_usu;
       
       const result = await authService.login({ email, password });
 

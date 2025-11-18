@@ -160,11 +160,19 @@ export class EventosController {
         }
       }
 
-      // Si se envían detalles en el body, usar actualización completa
+      // Si se envían detalles, carreras o semestres en el body, usar actualización completa
       const tieneDetalles = data.detalles && 
         (data.detalles.cup_det || data.detalles.hor_det || data.detalles.cat_det);
+      const tieneCarrerasOSemestres = (data.carreras && data.carreras.length > 0) || 
+                                       (data.semestres && data.semestres.length > 0);
 
-      const evento = tieneDetalles 
+      console.log('🔍 Verificando tipo de actualización:');
+      console.log('  - tieneDetalles:', tieneDetalles);
+      console.log('  - tieneCarrerasOSemestres:', tieneCarrerasOSemestres);
+      console.log('  - carreras:', data.carreras);
+      console.log('  - semestres:', data.semestres);
+
+      const evento = (tieneDetalles || tieneCarrerasOSemestres)
         ? await eventosService.actualizarEventoCompleto(req.params.id, data, userId)
         : await eventosService.actualizarEvento(req.params.id, data, userId);
 
