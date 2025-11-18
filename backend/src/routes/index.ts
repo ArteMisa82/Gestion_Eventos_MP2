@@ -14,6 +14,8 @@ import pagosRoutes from './pagos.routes';
 import materialesRoutes from './materiales.routes';
 import calificacionesRoutes from './calificaciones.routes';
 
+import certificadosRoutes from './certificados.routes';
+
 const router = Router();
 
 // 🔑 Rutas principales
@@ -30,5 +32,7 @@ router.use('/niveles', nivelesRoutes);
 router.use('/pagos', pagosRoutes);
 router.use('/materiales', materialesRoutes);
 router.use('/calificaciones', calificacionesRoutes);
+
+router.use('/certificados', certificadosRoutes);
 
 export default router;
