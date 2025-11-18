@@ -127,7 +127,7 @@ El proyecto implementa un flujo completo de control de cambios:
 - Evidencias en GitHub  
 - Cierre y documentación del cambio  
 
----
+----
 
 ## 👥 Equipo
 **Equipo de Desarrollo – Grupo 3 – Carrera de Software (UTA)**  
