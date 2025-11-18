@@ -1,3 +1,4 @@
+// src/routes/index.ts
 import { Router } from 'express';
 import eventosRoutes from './eventos.routes';
 import userRoutes from './user.routes';
@@ -15,7 +16,9 @@ import calificacionesRoutes from './calificaciones.routes';
 
 const router = Router();
 
+// 🔑 Rutas principales
 router.use('/auth', authRoutes);
+router.use('/user', userRoutes); // ← agregada para usuarios
 router.use('/eventos', eventosRoutes);
 router.use('/detalles', detallesRoutes);
 router.use('/registro-evento', registroEventoRoutes);
