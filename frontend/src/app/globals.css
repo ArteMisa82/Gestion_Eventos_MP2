@@ -1,26 +1,8 @@
 @import "tailwindcss";
 
-/*Nosotros*/
 :root {
-  --brand: #7f1d1d;
-  --brand-600: #8f2020;
-  --ink: #111827;
-  --muted: #6b7280;
-  --ring: #e5e7eb;
-  --surface: #ffffff;
-  --bg: #f8fafc;
-}
-
-:root {
-  --brand: #7f1d1d;      /* burdeos principal */
-  --brand-600: #8f2020;  /* hover */
-  --brand-700: #6a1515;  /* activo */
-  --brand-100: #f5e9e9;  /* badges suaves */
-  --ink: #111827;        /* texto principal */
-  --muted: #6b7280;      /* texto secundario */
-  --ring: #e5e7eb;       /* bordes suaves */
-  --surface: #ffffff;    /* cards */
-  --bg: #f8fafc;         /* fondos secciones */
+  --background: #ffffff;
+  --foreground: #171717;
 }
 
 @theme inline {
@@ -42,10 +24,3 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
-
-html, body {
-  background: #ffffff;
-  color: #0b1220;
-}
-
-
