@@ -43,7 +43,7 @@ export class CertificadoService {
                         detalle_eventos: {
                             select: {
                                 hor_det: true,
-                                not_evt_det: true,
+                                not_fin_evt: true,
                                 asi_evt_det: true,
                                 eventos: { select: { nom_evt: true, fec_evt: true, cos_evt: true } }
                             }
@@ -63,7 +63,7 @@ export class CertificadoService {
                 detalle_eventos: {
                     ...data.registro_evento.detalle_eventos, 
                     hor_det: safeNumberConversion(data.registro_evento.detalle_eventos.hor_det) ?? 0,
-                    not_evt_det: safeNumberConversion(data.registro_evento.detalle_eventos.not_evt_det),
+                    not_evt_det: safeNumberConversion(data.registro_evento.detalle_eventos.not_fin_evt),
                     asi_evt_det: safeNumberConversion(data.registro_evento.detalle_eventos.asi_evt_det),
                 }
             },

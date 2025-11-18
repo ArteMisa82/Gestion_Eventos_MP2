@@ -784,19 +784,39 @@ export const nivelesAPI = {
 export const usuariosAPI = {
   /**
    * Obtener todos los usuarios del sistema
-   * GET /api/users
+   * GET /api/user
    */
   getAll: async () => {
-    const response = await fetch(`${API_URL}/users`, getFetchOptions());
+    const response = await fetch(`${API_URL}/user`, getFetchOptions());
     return handleResponse(response);
   },
 
   /**
    * Obtener usuario por cédula
-   * GET /api/users/:ced
+   * GET /api/user/ced/:ced
    */
   getByCedula: async (cedula: string) => {
-    const response = await fetch(`${API_URL}/users/${cedula}`, getFetchOptions());
+    const response = await fetch(`${API_URL}/user/ced/${cedula}`, getFetchOptions());
+    return handleResponse(response);
+  },
+
+  /**
+   * Obtener usuario por ID
+   * GET /api/user/id/:id
+   */
+  getById: async (id: number) => {
+    const response = await fetch(`${API_URL}/user/id/${id}`, getFetchOptions());
+    return handleResponse(response);
+  },
+
+  /**
+   * Actualizar usuario por ID
+   * PUT /api/user/:id
+   */
+  updateById: async (id: number, data: any) => {
+    const response = await fetch(`${API_URL}/user/${id}`, {
+      ...getFetchOptions('PUT', data),
+    });
     return handleResponse(response);
   },
 };
