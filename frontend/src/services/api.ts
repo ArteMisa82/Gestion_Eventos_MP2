@@ -741,6 +741,30 @@ export const nivelesAPI = {
   },
 };
 
+// ==========================================
+// 👤 USUARIOS
+// ==========================================
+
+export const usuariosAPI = {
+  /**
+   * Obtener todos los usuarios del sistema
+   * GET /api/users
+   */
+  getAll: async () => {
+    const response = await fetch(`${API_URL}/users`, getFetchOptions());
+    return handleResponse(response);
+  },
+
+  /**
+   * Obtener usuario por cédula
+   * GET /api/users/:ced
+   */
+  getByCedula: async (cedula: string) => {
+    const response = await fetch(`${API_URL}/users/${cedula}`, getFetchOptions());
+    return handleResponse(response);
+  },
+};
+
 export default {
   auth: authAPI,
   eventos: eventosAPI,
@@ -750,4 +774,5 @@ export default {
   estudiantes: estudiantesAPI,
   carreras: carrerasAPI,
   niveles: nivelesAPI,
+  usuarios: usuariosAPI,
 };
