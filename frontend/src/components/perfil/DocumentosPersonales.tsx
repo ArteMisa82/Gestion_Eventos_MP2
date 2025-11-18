@@ -1,30 +1,34 @@
 "use client";
 
-type Usuario = {
-  id_usu?: number;
-  pdf_ced_usu?: string | null;
-};
+import { Usuario } from "@/types/usuario";
 
 interface Props {
   usuario: Usuario;
-  setUsuario: (usuario: Usuario) => void;
+  setUsuario: React.Dispatch<React.SetStateAction<Usuario | null>>; // coherente con FotoPerfil
 }
 
 export default function DocumentosPersonales({ usuario, setUsuario }: Props) {
   const cargarPDF = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || file.type !== "application/pdf") return alert("Solo PDFs");
+    if (!file || file.type !== "application/pdf") {
+      return alert("Solo se permiten archivos PDF");
+    }
 
     const reader = new FileReader();
     reader.onload = async () => {
       const base64 = reader.result as string;
-      setUsuario({ ...usuario, pdf_ced_usu: base64 });
 
-      await fetch(`/api/user/${usuario.id_usu}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pdf_ced_usu: base64 }),
-      });
+      // Actualiza el estado verificando que prev no sea null
+      setUsuario(prev => prev ? { ...prev, pdf_ced_usu: base64 } : prev);
+
+      // Subir al backend (ruta por id)
+      if (usuario.id_usu) {
+        await fetch(`/api/user/id/${usuario.id_usu}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pdf_ced_usu: base64 }),
+        });
+      }
     };
     reader.readAsDataURL(file);
   };
@@ -37,7 +41,12 @@ export default function DocumentosPersonales({ usuario, setUsuario }: Props) {
       </label>
 
       {usuario.pdf_ced_usu && (
-        <a href={usuario.pdf_ced_usu} target="_blank" className="block mt-4 text-[#7f1d1d]">
+        <a
+          href={usuario.pdf_ced_usu}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block mt-4 text-[#7f1d1d]"
+        >
           Ver PDF
         </a>
       )}
