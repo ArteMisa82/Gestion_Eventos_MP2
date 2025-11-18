@@ -132,7 +132,7 @@ export default function CourseDetailPage() {
           <p style={{ color: "#6b7280", marginTop: 8 }}>
             {area} · {horas} horas
             {esDistancia ? " · A distancia" : ""}{" "}
-            {evento.est_evt === 'PUBLICADO' ? "· Abierto" : ""}
+            {evento.detalle_eventos?.[0]?.est_evt_det === 'PUBLICADO' ? "· Abierto" : ""}
           </p>
         </div>
 

@@ -21,6 +21,13 @@ export class UserService {
     return prisma.usuarios.create({ data });
   }
 
+  async updateById(id: number, data: Partial<IUser>) {
+    return prisma.usuarios.update({
+      where: { id_usu: id },
+      data,
+    });
+  }
+
   async update(cedula: string, data: Partial<IUser>) {
     return prisma.usuarios.updateMany({
       where: { ced_usu: cedula },
