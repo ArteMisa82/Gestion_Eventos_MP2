@@ -1,75 +1,52 @@
-interface InfoPersonalProps {
-  setMostrarModal: (value: boolean) => void;
+"use client";
+
+import { Usuario } from "@/types/usuario";
+
+interface Props {
+  usuario: Usuario;
+  setUsuario: React.Dispatch<React.SetStateAction<Usuario | null>>;
+  setMostrarModal: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-export default function InfoPersonal({ setMostrarModal }: InfoPersonalProps) {
+export default function InfoPersonal({ usuario, setUsuario, setMostrarModal }: Props) {
+  const actualizarCampo = (campo: keyof Usuario, valor: string) => {
+    setUsuario(prev => prev ? { ...prev, [campo]: valor } : prev);
+  };
+
   return (
-    <div className="bg-white p-6 rounded-2xl shadow-xl border border-gray-100">
-      <h2 className="text-2xl font-semibold mb-6 text-[#7A1C1C]">
-        Información Personal
-      </h2>
+    <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-200">
+      <h2 className="text-lg font-semibold mb-4">Información Personal</h2>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Nombre */}
+      <div className="space-y-3">
         <input
-          className="p-3 border border-gray-300 rounded-xl
-                     focus:ring-2 focus:ring-[#7A1C1C] focus:border-transparent
-                     transition-all duration-200 text-gray-700"
+          type="text"
+          value={usuario.nom_usu || ""}
+          onChange={e => actualizarCampo("nom_usu", e.target.value)}
           placeholder="Nombre"
+          className="w-full border rounded px-3 py-2"
         />
-
-        {/* Apellido */}
         <input
-          className="p-3 border border-gray-300 rounded-xl
-                     focus:ring-2 focus:ring-[#7A1C1C] focus:border-transparent
-                     transition-all duration-200 text-gray-700"
+          type="text"
+          value={usuario.ape_usu || ""}
+          onChange={e => actualizarCampo("ape_usu", e.target.value)}
           placeholder="Apellido"
+          className="w-full border rounded px-3 py-2"
         />
-
-        {/* Segundo Nombre */}
         <input
-          className="p-3 border border-gray-300 rounded-xl
-                     focus:ring-2 focus:ring-[#7A1C1C] focus:border-transparent
-                     transition-all duration-200 text-gray-700"
-          placeholder="Segundo Nombre"
+          type="text"
+          value={usuario.tel_usu || ""}
+          onChange={e => actualizarCampo("tel_usu", e.target.value)}
+          placeholder="Teléfono"
+          className="w-full border rounded px-3 py-2"
         />
-
-        {/* Segundo Apellido */}
-        <input
-          className="p-3 border border-gray-300 rounded-xl
-                     focus:ring-2 focus:ring-[#7A1C1C] focus:border-transparent
-                     transition-all duration-200 text-gray-700"
-          placeholder="Segundo Apellido"
-        />
-
-        {/* Correo */}
-        <input
-          className="p-3 border border-gray-300 bg-gray-100 rounded-xl 
-                     text-gray-600 cursor-not-allowed"
-          disabled
-          value="correo@ejemplo.com"
-        />
-
-        {/* Contraseña */}
-        <div className="flex gap-2">
-          <input
-            type="password"
-            className="p-3 border border-gray-300 bg-gray-100 rounded-xl 
-                       flex-1 text-gray-600 cursor-not-allowed"
-            disabled
-            value="••••••••"
-          />
-
-          <button
-            className="bg-gradient-to-r from-[#7A1C1C] to-[#8B1E1E]
-                       text-white px-4 rounded-xl font-semibold shadow-md 
-                       hover:shadow-lg transition-all duration-300 hover:scale-105"
-            onClick={() => setMostrarModal(true)}
-          >
-            Cambiar
-          </button>
-        </div>
       </div>
+
+      <button
+        onClick={() => setMostrarModal(true)}
+        className="mt-4 bg-[#7A1C1C] text-white px-6 py-2 rounded-xl"
+      >
+        Cambiar Contraseña
+      </button>
     </div>
   );
 }

@@ -32,7 +32,6 @@ export default function LoginModal({
   const [showRegister, setShowRegister] = useState(initialRegister);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Bloquear scroll cuando el modal está abierto
   useEffect(() => {
     document.body.style.overflow = isOpen ? "hidden" : "auto";
     return () => {
@@ -40,14 +39,12 @@ export default function LoginModal({
     };
   }, [isOpen]);
 
-  // Cambiar entre login / registro según prop inicial
   useEffect(() => {
     if (isOpen) setShowRegister(initialRegister);
   }, [isOpen, initialRegister]);
 
-  // 🔐 Login con backend real
+  // 🔐 Login totalmente corregido
   const handleLogin = async () => {
-    // Validaciones básicas
     if (!email || !password) {
       Swal.fire({
         title: "Campos vacíos",
@@ -61,29 +58,39 @@ export default function LoginModal({
     setIsLoading(true);
 
     try {
-      // ✅ Llamada real al backend
       const response = await authAPI.login(email, password);
-      
-      // El backend responde con el usuario en la propiedad `user` (o directamente data.user)
-      const usuario = response?.user || response?.usuario || response;
+
+      // 📌 Tu backend envía esto:
+      // { success, message, data: { token, usuario: {...} } }
+      const usuario =
+        response?.data?.usuario ||
+        response?.usuario ||
+        response?.user ||
+        response;
 
       if (!usuario) {
         throw new Error("Respuesta inválida del servidor");
       }
-      
-      // No hay token (usamos sesiones). Guardamos solo el usuario localmente.
+
+      // Guarda el usuario completo
       localStorage.setItem("user", JSON.stringify(usuario));
-      
-      // Si necesitas el id o propiedades de sesión, úsalas desde `usuario`.
-      // Mantén el resto del flujo (mensajes, redirección, verificación de email):
-      if (usuario && usuario.email_verified === false) {
+
+      // 👉 GUARDA EL ID REAL: id_usu
+      if (usuario.id_usu) {
+        localStorage.setItem("userId", usuario.id_usu.toString());
+      } else {
+        console.warn("⚠ Backend no envía id_usu");
+      }
+
+      // Si no verificó email
+      if (usuario.email_verified === false) {
         setIsVerifyOpen(true);
       }
-      
-      // ✅ Determinar mensaje y ruta según rol del usuario
+
+      // Redirección + mensaje
       let mensaje = "";
       let ruta = "/home";
-      
+
       if (usuario.adm_usu === 1 || usuario.Administrador === true) {
         mensaje = `Bienvenido ${usuario.nom_usu} 👑`;
         ruta = "/admin";
@@ -94,8 +101,7 @@ export default function LoginModal({
         mensaje = `Bienvenido ${usuario.nom_usu}`;
         ruta = "/home";
       }
-      
-      // ✅ Mostrar mensaje de éxito
+
       await Swal.fire({
         title: mensaje,
         icon: "success",
@@ -103,22 +109,13 @@ export default function LoginModal({
         timer: 2000,
         showConfirmButton: false,
       });
-      
-      // ✅ Limpiar campos
-      setEmail("");
-      setPassword("");
-      
-      // ✅ Callback al Navbar (para actualizar estado global)
-      if (onLoginSuccess) {
-        onLoginSuccess(usuario);
-      }
-      
-      // ✅ Cerrar modal y redirigir
+
+      if (onLoginSuccess) onLoginSuccess(usuario);
+
       onClose();
       router.push(ruta);
-      
+
     } catch (error: any) {
-      // ✅ Manejo de errores desde el backend
       Swal.fire({
         title: "Error de autenticación",
         text: error.message || "Credenciales incorrectas",
@@ -139,7 +136,6 @@ export default function LoginModal({
           exit={{ opacity: 0 }}
           className="fixed inset-0 bg-black/40 backdrop-blur-sm flex justify-center items-center z-50"
         >
-          {/* Modal principal */}
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -147,7 +143,6 @@ export default function LoginModal({
             transition={{ type: "spring", stiffness: 120, damping: 15 }}
             className="relative bg-white rounded-2xl shadow-2xl border border-gray-200 p-8 w-[380px] md:w-[400px] max-h-[90vh] overflow-y-auto"
           >
-            {/* Botón cerrar */}
             <button
               onClick={onClose}
               className="absolute top-4 right-4 text-[#581517] hover:text-[#7a2022]"
@@ -155,12 +150,10 @@ export default function LoginModal({
               <X size={22} />
             </button>
 
-            {/* Logo */}
             <div className="flex justify-center mb-6">
               <Image src={logo} alt="Logo" width={90} height={90} />
             </div>
 
-            {/* Contenido animado */}
             <AnimatePresence mode="wait">
               {!showRegister ? (
                 <motion.div
@@ -182,10 +175,7 @@ export default function LoginModal({
                     className="flex flex-col gap-5"
                   >
                     <div className="relative">
-                      <Mail
-                        className="absolute left-3 top-3 text-[#bfa66b]"
-                        size={20}
-                      />
+                      <Mail className="absolute left-3 top-3 text-[#bfa66b]" size={20} />
                       <input
                         type="email"
                         placeholder="Correo electrónico"
@@ -197,10 +187,7 @@ export default function LoginModal({
                     </div>
 
                     <div className="relative">
-                      <Lock
-                        className="absolute left-3 top-3 text-[#bfa66b]"
-                        size={20}
-                      />
+                      <Lock className="absolute left-3 top-3 text-[#bfa66b]" size={20} />
                       <input
                         type={showPassword ? "text" : "password"}
                         placeholder="Contraseña"
@@ -232,9 +219,7 @@ export default function LoginModal({
                       type="submit"
                       disabled={isLoading}
                       className="w-full py-3 mt-2 rounded-lg text-white font-semibold shadow-md transition-transform transform hover:-translate-y-1 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                      style={{
-                        background: "linear-gradient(to right, #581517, #7a2022)",
-                      }}
+                      style={{ background: "linear-gradient(to right, #581517, #7a2022)" }}
                     >
                       {isLoading ? "Iniciando sesión..." : "Iniciar sesión"}
                     </button>
@@ -270,17 +255,20 @@ export default function LoginModal({
           <RecuperarModal
             isOpen={isRecoverOpen}
             onClose={() => setIsRecoverOpen(false)}
-            onRecoverySent={(message) =>
+            onRecoverySent={(msg) =>
               Swal.fire({
                 title: "Éxito",
-                text: message,
+                text: msg,
                 icon: "success",
                 confirmButtonColor: "#581517",
               })
             }
           />
-          {/* Modal de verificación de email */}
-          <VerifyEmailModal isOpen={isVerifyOpen} onClose={() => setIsVerifyOpen(false)} />
+
+          <VerifyEmailModal
+            isOpen={isVerifyOpen}
+            onClose={() => setIsVerifyOpen(false)}
+          />
         </motion.div>
       )}
     </AnimatePresence>
