@@ -26,6 +26,8 @@ export interface UpdateEventoDto {
   est_evt?: string; // Estado: EDITANDO, PLANIFICADO, EN CURSO, FINALIZADO, CANCELADO
   ima_evt?: string; // URL de imagen o Base64
   id_responsable?: number; // Solo ADMIN puede cambiar el responsable
+  carreras?: string[]; // Carreras objetivo del evento
+  semestres?: string[]; // Semestres objetivo del evento
   detalles?: {
     cup_det?: number;
     hor_det?: number;
