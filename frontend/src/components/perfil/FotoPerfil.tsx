@@ -17,34 +17,38 @@ export default function FotoPerfil({ usuario, setUsuario }: Props) {
 
     const reader = new FileReader();
     reader.onload = async () => {
-      const base64 = reader.result as string;
+      const base64 = reader.result as string; // contiene data:image/xxx;base64,...
 
-      // Actualiza estado local
+      // Actualiza localmente la imagen inmediatamente
       setUsuario(prev => prev ? { ...prev, img_usu: base64 } : prev);
 
-      // Subir al backend
       try {
+        // Enviar al backend solo el Base64 puro (sin data:image)
+        const base64Pure = base64.split(",")[1];
+
         const res = await fetch(
           `http://localhost:3001/api/user/upload-image/${usuario.id_usu}`,
           {
             method: "PUT",
-            body: new FormData().append("file", file), // Subimos el archivo
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ file: base64Pure, type: file.type }),
           }
         );
 
-        if (!res.ok) throw new Error("Error al subir la imagen");
+        if (!res.ok) return alert("Error al subir la imagen");
 
         const data = await res.json();
-        // Asegúrate que el backend devuelve el base64 con data:image/*
-        setUsuario(prev =>
-          prev ? { ...prev, img_usu: `data:image/jpeg;base64,${data.img_usu}` } : prev
-        );
 
-      } catch (err) {
-        console.error(err);
+        // Asegurarse de que la imagen tenga prefijo correcto al mostrar
+        setUsuario(prev =>
+          prev ? { ...prev, img_usu: `data:${file.type};base64,${data.img_usu}` } : prev
+        );
+      } catch (error) {
+        console.error(error);
         alert("Error al subir la imagen");
       }
     };
+
     reader.readAsDataURL(file);
   };
 
@@ -54,8 +58,8 @@ export default function FotoPerfil({ usuario, setUsuario }: Props) {
         {usuario.img_usu ? (
           <img
             src={usuario.img_usu}
-            className="w-full h-full object-cover"
             alt="Foto de perfil"
+            className="w-full h-full object-cover"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-gray-400">
@@ -66,7 +70,12 @@ export default function FotoPerfil({ usuario, setUsuario }: Props) {
 
       <label className="bg-[#7A1C1C] text-white px-6 py-3 rounded-xl cursor-pointer">
         Cambiar Foto
-        <input type="file" className="hidden" accept="image/*" onChange={cargarImagen} />
+        <input
+          type="file"
+          className="hidden"
+          accept="image/*"
+          onChange={cargarImagen}
+        />
       </label>
     </div>
   );
