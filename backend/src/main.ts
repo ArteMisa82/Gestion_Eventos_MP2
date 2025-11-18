@@ -1,46 +1,15 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import routes from './routes';
-import prisma from './config/database';
-import { errorHandler } from './middlewares/errorHandler.middleware';
 
 dotenv.config();
-
 const app = express();
-
-// Middlewares
 app.use(cors());
 app.use(express.json());
 
-// Ruta raíz
 app.get('/', (req, res) => {
   res.send('Backend funcionando 🚀');
 });
 
-// Rutas API
-app.use('/api', routes);
-
-// Manejo de errores
-app.use(errorHandler);
-
 const PORT = process.env.PORT || 3001;
-
-// Iniciar servidor
-app.listen(PORT, async () => {
-  try {
-    await prisma.$connect();
-    console.log(`✅ Base de datos conectada`);
-    console.log(`🚀 Servidor backend en puerto ${PORT}`);
-    console.log(`📡 API disponible en http://localhost:${PORT}/api`);
-  } catch (error) {
-    console.error('❌ Error conectando a la base de datos:', error);
-    process.exit(1);
-  }
-});
-
-// Cerrar conexión al terminar
-process.on('SIGINT', async () => {
-  await prisma.$disconnect();
-  process.exit(0);
-});
+app.listen(PORT, () => console.log(`Servidor backend en puerto ${PORT}`));
