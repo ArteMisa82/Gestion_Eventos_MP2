@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
+import { Home } from "lucide-react";
 import styles from "./navbar.module.css";
 import LoginModal from "../components/loginModal";
 
@@ -25,7 +26,14 @@ export default function Navbar() {
   // 🔄 Cargar usuario desde localStorage al montar
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
-    if (storedUser) setUser(JSON.parse(storedUser));
+    if (storedUser && storedUser !== "undefined") {
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch (error) {
+        console.error("Error al parsear usuario:", error);
+        localStorage.removeItem("user");
+      }
+    }
   }, []);
 
   // 🔐 Cuando el login es exitoso
@@ -35,10 +43,11 @@ export default function Navbar() {
     setIsLoginOpen(false);
   };
 
-  // 🚪 Cerrar sesión y redirigir al home
+  // 🚪 Cerrar sesión
   const handleLogout = () => {
     setUser(null);
     localStorage.removeItem("user");
+    localStorage.removeItem("token");
     router.push("/home");
   };
 
@@ -56,7 +65,7 @@ export default function Navbar() {
           />
         </Link>
 
-        {/* Links de navegación */}
+        {/* Links */}
         <ul className={styles.links}>
           {links.map((link) => (
             <li key={link.href}>
@@ -71,7 +80,7 @@ export default function Navbar() {
             </li>
           ))}
 
-          {/* 🔸 Mostrar "Panel" solo si el usuario es admin */}
+          {/* 🔸 ADMIN */}
           {user?.role === "admin" && (
             <li>
               <Link
@@ -80,17 +89,58 @@ export default function Navbar() {
                   pathname === "/admin" ? styles.activeLink : styles.link
                 }
               >
-                Panel
+                Panel Admin
+              </Link>
+            </li>
+          )}
+
+          {/* 🔹 RESPONSABLE */}
+          {user?.isResponsable && (
+            <li>
+              <Link
+                href="/responsable"
+                className={
+                  pathname === "/responsable"
+                    ? styles.activeLink
+                    : styles.link
+                }
+              >
+                Panel Responsable
+              </Link>
+            </li>
+          )}
+
+          {/* 🔹 DOCENTE */}
+          {user?.isDocente && (
+            <li>
+              <Link
+                href="/cursos/docente"
+                className={
+                  pathname === "/cursos/docente"
+                    ? styles.activeLink
+                    : styles.link
+                }
+              >
+                Panel Docente
               </Link>
             </li>
           )}
         </ul>
 
-        {/* Botones de acción */}
+        {/* Botones */}
         <div className={styles.actions}>
           {user ? (
             <>
+              {/* 🏠 icono HOME */}
+              <button
+                onClick={() => router.push("/usuarios/cursos")}
+                className="mr-4 hover:scale-105 transition"
+              >
+                <Home size={26} className="text-[#7f1d1d] cursor-pointer" />
+              </button>
+
               <span className={styles.userName}>👋 {user.name}</span>
+
               <button onClick={handleLogout} className={styles.secondaryBtn}>
                 Cerrar sesión
               </button>
@@ -103,6 +153,7 @@ export default function Navbar() {
               >
                 Iniciar sesión
               </button>
+
               <button
                 onClick={() => {
                   setIsLoginOpen(true);
@@ -117,7 +168,7 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* Modal de Login / Registro */}
+      {/* Modal Login/Register */}
       <LoginModal
         isOpen={isLoginOpen}
         onClose={() => {

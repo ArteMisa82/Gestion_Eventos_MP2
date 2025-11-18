@@ -6,28 +6,34 @@ import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Lock, Mail, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import RecuperarModal from "@/app/login/RecuperarModal";
+import VerifyEmailModal from "@/app/login/VerifyEmailModal";
 import RegisterForm from "@/app/login/registroForm";
 import logo from "../../public/logo_UTA.png";
+import { authAPI } from "@/services/api";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function LoginModal({
   isOpen,
   onClose,
   initialRegister = false,
-  onLoginSuccess, // ✅ nueva prop
+  onLoginSuccess,
 }: {
   isOpen: boolean;
   onClose: () => void;
   initialRegister?: boolean;
-  onLoginSuccess?: (userData: any) => void; // ✅ callback al Navbar
+  onLoginSuccess?: (userData: any) => void;
 }) {
   const router = useRouter();
+  const { login: authLogin, user: authUser } = useAuth();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isRecoverOpen, setIsRecoverOpen] = useState(false);
+  const [isVerifyOpen, setIsVerifyOpen] = useState(false);
   const [showRegister, setShowRegister] = useState(initialRegister);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Bloquear scroll del fondo cuando el modal esté abierto
   useEffect(() => {
     document.body.style.overflow = isOpen ? "hidden" : "auto";
     return () => {
@@ -35,58 +41,89 @@ export default function LoginModal({
     };
   }, [isOpen]);
 
-  // Cambiar entre login / registro según prop inicial
   useEffect(() => {
     if (isOpen) setShowRegister(initialRegister);
   }, [isOpen, initialRegister]);
 
-  // 🔐 Lógica simulada de login (temporal hasta conectar backend)
+  // 🔐 Login totalmente corregido
   const handleLogin = async () => {
+    if (!email || !password) {
+      Swal.fire({
+        title: "Campos vacíos",
+        text: "Por favor ingresa correo y contraseña",
+        icon: "warning",
+        confirmButtonColor: "#581517",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+
     try {
-      const adminEmail = "admin@admin.uta.edu.ec";
-      const adminPassword = "admin123";
-      const responsableEmail = "responsable@responsable.uta.edu.ec";
-      const responsablePassword = "resp123";
-
-      let userData = null;
-
-      if (email === adminEmail && password === adminPassword) {
-        userData = { name: "Administrador", role: "admin", email };
-        Swal.fire({
-          title: "Bienvenido Administrador 👑",
-          icon: "success",
-          confirmButtonColor: "#581517",
-        });
-        router.push("/admin");
-
-      } else if (email.includes("@") && password.length > 0) {
-        userData = { name: email.split("@")[0], role: "usuario", email };
-        Swal.fire({
-          title: "Inicio de sesión exitoso ✅",
-          icon: "success",
-          confirmButtonColor: "#581517",
-        });
-        router.push("/home");
-      } else {
-        throw new Error("Correo o contraseña incorrectos ❌");
-      }
-
+      // ✅ Usar el hook de autenticación
+      await authLogin(email, password);
       
-      setEmail("");
-      setPassword("");
-
-      if (userData && onLoginSuccess) {
-        onLoginSuccess(userData);
+      // Esperar un momento para que el hook actualice el estado
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Obtener el usuario desde localStorage (ya guardado por el hook)
+      const storedUser = localStorage.getItem('user');
+      let usuario = null;
+      
+      if (storedUser) {
+        usuario = JSON.parse(storedUser);
       }
+      
+      if (!usuario) {
+        throw new Error("Respuesta inválida del servidor");
+      }
+      
+      console.log("=== USUARIO DESPUÉS DEL LOGIN ===");
+      console.log("Usuario completo:", usuario);
+      
+      // Si necesitas el id o propiedades de sesión, úsalas desde `usuario`.
+      // Mantén el resto del flujo (mensajes, redirección, verificación de email):
+      if (usuario && usuario.email_verified === false) {
+        setIsVerifyOpen(true);
+      }
+
+      // Redirección + mensaje
+      let mensaje = "";
+      let ruta = "/home";
+
+      if (usuario.adm_usu === 1 || usuario.Administrador === true) {
+        mensaje = `Bienvenido ${usuario.nom_usu} 👑`;
+        ruta = "/admin";
+      } else if (usuario.stu_usu === 1) {
+        mensaje = `Bienvenido ${usuario.nom_usu} 🎓`;
+        ruta = "/cursos";
+      } else {
+        mensaje = `Bienvenido ${usuario.nom_usu}`;
+        ruta = "/home";
+      }
+
+      await Swal.fire({
+        title: mensaje,
+        icon: "success",
+        confirmButtonColor: "#581517",
+        timer: 2000,
+        showConfirmButton: false,
+      });
+
+      if (onLoginSuccess) onLoginSuccess(usuario);
 
       onClose();
+      router.push(ruta);
+
     } catch (error: any) {
       Swal.fire({
-        title: "Error",
-        text: error.message || "Error al iniciar sesión",
+        title: "Error de autenticación",
+        text: error.message || "Credenciales incorrectas",
         icon: "error",
         confirmButtonColor: "#581517",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -99,7 +136,6 @@ export default function LoginModal({
           exit={{ opacity: 0 }}
           className="fixed inset-0 bg-black/40 backdrop-blur-sm flex justify-center items-center z-50"
         >
-          {/* Contenedor del modal principal */}
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -107,7 +143,6 @@ export default function LoginModal({
             transition={{ type: "spring", stiffness: 120, damping: 15 }}
             className="relative bg-white rounded-2xl shadow-2xl border border-gray-200 p-8 w-[380px] md:w-[400px] max-h-[90vh] overflow-y-auto"
           >
-            {/* Botón cerrar */}
             <button
               onClick={onClose}
               className="absolute top-4 right-4 text-[#581517] hover:text-[#7a2022]"
@@ -115,12 +150,10 @@ export default function LoginModal({
               <X size={22} />
             </button>
 
-            {/* Logo */}
             <div className="flex justify-center mb-6">
               <Image src={logo} alt="Logo" width={90} height={90} />
             </div>
 
-            {/* Contenido animado: Login o Registro */}
             <AnimatePresence mode="wait">
               {!showRegister ? (
                 <motion.div
@@ -142,10 +175,7 @@ export default function LoginModal({
                     className="flex flex-col gap-5"
                   >
                     <div className="relative">
-                      <Mail
-                        className="absolute left-3 top-3 text-[#bfa66b]"
-                        size={20}
-                      />
+                      <Mail className="absolute left-3 top-3 text-[#bfa66b]" size={20} />
                       <input
                         type="email"
                         placeholder="Correo electrónico"
@@ -157,10 +187,7 @@ export default function LoginModal({
                     </div>
 
                     <div className="relative">
-                      <Lock
-                        className="absolute left-3 top-3 text-[#bfa66b]"
-                        size={20}
-                      />
+                      <Lock className="absolute left-3 top-3 text-[#bfa66b]" size={20} />
                       <input
                         type={showPassword ? "text" : "password"}
                         placeholder="Contraseña"
@@ -190,13 +217,11 @@ export default function LoginModal({
 
                     <button
                       type="submit"
-                      className="w-full py-3 mt-2 rounded-lg text-white font-semibold shadow-md transition-transform transform hover:-translate-y-1 hover:shadow-lg"
-                      style={{
-                        background:
-                          "linear-gradient(to right, #581517, #7a2022)",
-                      }}
+                      disabled={isLoading}
+                      className="w-full py-3 mt-2 rounded-lg text-white font-semibold shadow-md transition-transform transform hover:-translate-y-1 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                      style={{ background: "linear-gradient(to right, #581517, #7a2022)" }}
                     >
-                      Iniciar sesión
+                      {isLoading ? "Iniciando sesión..." : "Iniciar sesión"}
                     </button>
                   </form>
 
@@ -230,14 +255,19 @@ export default function LoginModal({
           <RecuperarModal
             isOpen={isRecoverOpen}
             onClose={() => setIsRecoverOpen(false)}
-            onRecoverySent={(message) =>
+            onRecoverySent={(msg) =>
               Swal.fire({
                 title: "Éxito",
-                text: message,
+                text: msg,
                 icon: "success",
                 confirmButtonColor: "#581517",
               })
             }
+          />
+
+          <VerifyEmailModal
+            isOpen={isVerifyOpen}
+            onClose={() => setIsVerifyOpen(false)}
           />
         </motion.div>
       )}

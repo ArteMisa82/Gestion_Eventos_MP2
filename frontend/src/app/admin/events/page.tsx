@@ -5,21 +5,56 @@ import AddEventModal from "./AgregarEventModal";
 import EditEventModal from "./EditarModal"; 
 import { EventItem } from "./types";
 import Swal from "sweetalert2";
+import { eventosAPI } from "@/services/api";
 
 const EventsPage: React.FC = () => {
   const [events, setEvents] = useState<EventItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
   const [eventToEdit, setEventToEdit] = useState<EventItem | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // 🔄 Simulación de carga de datos
+  // 🔄 Cargar eventos reales desde el backend
   useEffect(() => {
-    setEvents([
-      { id: 1, title: "Curso de Marketing Digital", person: "John Smith" },
-      { id: 2, title: "Gestión de Proyectos", person: "Clara David" },
-      { id: 3, title: "Liderazgo Estratégico", person: "Carlos Ruiz" },
-      { id: 4, title: "Finanzas para No Financieros", person: "Ana López" },
-    ]);
+    const fetchEventos = async () => {
+      try {
+        const response = await eventosAPI.getAll();
+        const data = response.data || response; // Extraer data de la respuesta del backend
+        
+        // Verificar que sea un array antes de mapear
+        if (!Array.isArray(data)) {
+          console.error("Los datos de eventos no son un array:", data);
+          setEvents([]);
+          return;
+        }
+        
+        // Transformar datos del backend al formato del frontend
+        const eventosTransformados: EventItem[] = data.map((evento: any, index: number) => ({
+          id: index + 1, // Usar índice temporal para la UI
+          realId: evento.id_evt, // Guardar el ID real del backend
+          title: evento.nom_evt,
+          person: evento.responsable 
+            ? `${evento.responsable.nom_usu} ${evento.responsable.ape_usu}`
+            : "Sin asignar",
+          start: new Date(evento.fec_evt).toLocaleDateString(),
+          end: "Por definir",
+        }));
+
+        setEvents(eventosTransformados);
+      } catch (error) {
+        console.error("Error al cargar eventos:", error);
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "No se pudieron cargar los eventos",
+          confirmButtonColor: "#581517",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchEventos();
   }, []);
 
   // 🔍 Filtro por búsqueda
@@ -30,8 +65,8 @@ const EventsPage: React.FC = () => {
   );
 
   // 🗑️ Confirmar eliminación
-  const handleDelete = (id: number) => {
-    Swal.fire({
+  const handleDelete = async (event: EventItem) => {
+    const result = await Swal.fire({
       title: "¿Eliminar curso?",
       text: "Esta acción no se puede deshacer.",
       icon: "warning",
@@ -40,17 +75,31 @@ const EventsPage: React.FC = () => {
       cancelButtonColor: "#6b7280",
       confirmButtonText: "Sí, eliminar",
       cancelButtonText: "Cancelar",
-    }).then((result) => {
-      if (result.isConfirmed) {
-        setEvents((prev) => prev.filter((e) => e.id !== id));
+    });
+
+    if (result.isConfirmed) {
+      try {
+        // Usar el ID real del backend
+        const idToDelete = event.realId || event.id.toString();
+        await eventosAPI.delete(idToDelete);
+        
+        setEvents((prev) => prev.filter((e) => e.id !== event.id));
+        
         Swal.fire({
           icon: "success",
           title: "Curso eliminado",
           showConfirmButton: false,
           timer: 1500,
         });
+      } catch (error: any) {
+        Swal.fire({
+          icon: "error",
+          title: "Error al eliminar",
+          text: error.message || "No se pudo eliminar el curso",
+          confirmButtonColor: "#581517",
+        });
       }
-    });
+    }
   };
 
   // 💾 Guardar cambios desde el modal de edición
@@ -91,17 +140,22 @@ const EventsPage: React.FC = () => {
         <button
           onClick={() => setShowAddModal(true)}
           className="flex items-center justify-center gap-2 bg-[#581517] text-white px-4 py-2 rounded-lg hover:bg-[#6d1a1a] transition"
+          disabled={isLoading}
         >
           <Plus size={18} /> Añadir curso
         </button>
       </div>
 
       {/* Lista de cursos */}
-      {filteredEvents.length > 0 ? (
+      {isLoading ? (
+        <div className="text-center py-12">
+          <p className="text-gray-500">Cargando eventos...</p>
+        </div>
+      ) : filteredEvents.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredEvents.map((event) => (
             <div
-              key={event.id}
+              key={event.realId || event.id}
               className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition rounded-xl p-5 flex flex-col justify-between"
             >
               <div>
@@ -121,7 +175,7 @@ const EventsPage: React.FC = () => {
                   <Pencil size={18} />
                 </button>
                 <button
-                  onClick={() => handleDelete(event.id)}
+                  onClick={() => handleDelete(event)}
                   className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
                 >
                   <Trash2 size={18} />

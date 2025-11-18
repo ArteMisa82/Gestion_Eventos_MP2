@@ -107,7 +107,19 @@ Registra un nuevo usuario y automáticamente detecta su rol según su correo ele
 
 Autentica un usuario y devuelve un token JWT.
 
-**Body:**
+**Formatos Soportados:**
+- ✅ `email` y `password`
+- ✅ `cor_usu` y `pas_usu`
+
+**Body (Formato 1):**
+```json
+{
+  "email": "admin@uta.edu.ec",
+  "password": "contraseña123"
+}
+```
+
+**Body (Formato 2):**
 ```json
 {
   "cor_usu": "admin@uta.edu.ec",
@@ -129,15 +141,23 @@ Autentica un usuario y devuelve un token JWT.
       "ape_usu": "Pérez",
       "adm_usu": 1,
       "stu_usu": 0,
-      "Administrador": true
+      "Administrador": true,
+      "niv_usu": null
     }
   }
 }
 ```
 
+**Características:**
+- ✅ Token JWT con expiración de 7 días
+- ✅ Sesión creada en backend con express-session
+- ✅ Almacenamiento en localStorage: `token` + `user`
+- ✅ Redirección automática según rol en frontend
+
 **Errores:**
 - `401`: Credenciales incorrectas
 - `404`: Usuario no encontrado
+- `500`: Error interno del servidor
 
 ---
 
@@ -326,7 +346,7 @@ Authorization: Bearer <token_administrador>
 
 **PUT** `/:id`
 
-Actualiza un evento. **Solo el responsable asignado** puede actualizar.
+Actualiza un evento y sus detalles. **Solo el responsable asignado** puede actualizar.
 
 **Headers:**
 ```
@@ -336,9 +356,44 @@ Authorization: Bearer <token_responsable>
 **Body:**
 ```json
 {
-  "des_eve": "Descripción actualizada",
-  "est_eve": "En Preparación"
+  "fec_evt": "2024-06-15",
+  "fec_fin_evt": "2024-06-20",
+  "mod_evt": "PRESENCIAL",
+  "tip_pub_evt": "ESTUDIANTES",
+  "cos_evt": "GRATUITO",
+  "detalles": {
+    "cup_det": 35,
+    "hor_det": 40,
+    "cat_det": "CURSO",
+    "are_det": "TECNOLOGIA E INGENIERIA"
+  }
 }
+```
+
+**Campos de Detalles:**
+- `cup_det` (number): Capacidad del evento (default: 30)
+- `hor_det` (number): Horas de duración (default: 40)
+- `cat_det` (string): Categoría - valores permitidos:
+  - `CURSO`
+  - `CONGRESO`
+  - `WEBINAR`
+  - `CONFERENCIAS`
+  - `SOCIALIZACIONES`
+  - `CASAS ABIERTAS`
+  - `SEMINARIOS`
+  - `OTROS`
+- `are_det` (string): Área del evento
+
+**Mapeo Automático cat_det → tip_evt:**
+```typescript
+'CONFERENCIAS' → 'CONFERENCIA'
+'SOCIALIZACIONES' → 'CURSO'
+'SEMINARIOS' → 'CURSO'
+'OTROS' → 'CURSO'
+'CURSO' → 'CURSO'
+'CONGRESO' → 'CONGRESO'
+'WEBINAR' → 'WEBINAR'
+'CASAS ABIERTAS' → 'CASAS ABIERTAS'
 ```
 
 **Respuesta Exitosa (200):**
@@ -347,16 +402,37 @@ Authorization: Bearer <token_responsable>
   "success": true,
   "message": "Evento actualizado exitosamente",
   "data": {
-    "id_eve": 1,
-    "nom_eve": "Conferencia de Tecnología 2024",
-    "des_eve": "Descripción actualizada",
-    "est_eve": "En Preparación"
+    "id_evt": "EVT123456",
+    "nom_evt": "Conferencia de Tecnología 2024",
+    "fec_evt": "2024-06-15",
+    "fec_fin_evt": "2024-06-20",
+    "mod_evt": "PRESENCIAL",
+    "tip_pub_evt": "ESTUDIANTES",
+    "cos_evt": "GRATUITO",
+    "detalle_eventos": [
+      {
+        "id_det": "DET789012",
+        "cup_det": 35,
+        "hor_det": 40,
+        "are_det": "TECNOLOGIA E INGENIERIA",
+        "cat_det": "CURSO",
+        "tip_evt": "CURSO"
+      }
+    ]
   }
 }
 ```
 
+**Características:**
+- ✅ Creación/actualización automática de `detalle_eventos`
+- ✅ Conversión automática de tipos (Number para cup_det/hor_det)
+- ✅ Validación de restricciones CHECK de PostgreSQL
+- ✅ Valores por defecto si no se proporcionan
+
 **Errores:**
 - `403`: Solo el responsable asignado puede actualizar el evento
+- `400`: Violación de restricción CHECK (valores inválidos)
+- `500`: Error interno del servidor
 
 ---
 
@@ -388,7 +464,7 @@ Authorization: Bearer <token_administrador>
 
 **GET** `/usuarios/administrativos`
 
-Lista todos los usuarios que pueden ser asignados como responsables (adm_usu = 1).
+Lista todos los usuarios que pueden ser asignados como responsables (adm_usu = 1), excluyendo al super admin.
 
 **Headers:**
 ```
@@ -399,7 +475,6 @@ Authorization: Bearer <token>
 ```json
 {
   "success": true,
-  "message": "Usuarios administrativos obtenidos",
   "data": [
     {
       "id_usu": 2,
@@ -421,7 +496,54 @@ Authorization: Bearer <token>
 
 ---
 
-### 8. Obtener Mis Eventos (Responsable)
+### 8. Obtener Responsables Activos
+
+**GET** `/usuarios/responsables-activos`
+
+Lista todos los usuarios que actualmente son responsables de al menos un curso/evento. Incluye el conteo de eventos asignados a cada responsable.
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
+
+**Respuesta Exitosa (200):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id_usu": 2,
+      "nom_usu": "María",
+      "ape_usu": "López",
+      "cor_usu": "maria@uta.edu.ec",
+      "adm_usu": 1,
+      "_count": {
+        "eventos": 3
+      }
+    },
+    {
+      "id_usu": 4,
+      "nom_usu": "Carlos",
+      "ape_usu": "Ramírez",
+      "cor_usu": "carlos@uta.edu.ec",
+      "adm_usu": 1,
+      "_count": {
+        "eventos": 1
+      }
+    }
+  ]
+}
+```
+
+**Notas:**
+- Solo devuelve usuarios que tienen al menos 1 evento asignado
+- El campo `_count.eventos` indica cuántos eventos tiene asignados cada responsable
+- Útil para mostrar estadísticas de carga de trabajo de responsables
+
+---
+
+### 9. Obtener Mis Eventos (Responsable)
 
 **GET** `/mis-eventos`
 
@@ -553,14 +675,19 @@ Invoke-RestMethod -Uri "http://localhost:3000/api/eventos/$eventoId" -Method Put
 
 ## Notas Importantes
 
-1. **Tokens JWT**: Expiran en 7 días. Incluir en header `Authorization: Bearer <token>`.
+1. **Tokens JWT**: 
+   - Expiran en 7 días
+   - Incluir en header `Authorization: Bearer <token>`
+   - Generados con `jwt.util.ts` usando SECRET del .env
 
 2. **Detección Automática de Roles**: 
    - `admin@uta.edu.ec` → Administrador = true
    - `profesor@uta.edu.ec` → adm_usu = 1
    - `estudiante1234@uta.edu.ec` → stu_usu = 1
 
-3. **Responsables**: Solo usuarios con `adm_usu = 1` pueden ser asignados como responsables.
+3. **Responsables**: 
+   - Solo usuarios con `adm_usu = 1` pueden ser asignados
+   - Excepción especial: `admin@admin.com` puede ser responsable
 
 4. **Permisos de Eventos**:
    - Crear/Eliminar: Solo `Administrador = true`
@@ -568,3 +695,42 @@ Invoke-RestMethod -Uri "http://localhost:3000/api/eventos/$eventoId" -Method Put
    - Actualizar: Solo el responsable asignado
 
 5. **Formato de Fechas**: ISO 8601 (`YYYY-MM-DDTHH:mm:ss.sssZ`)
+
+6. **Detalles de Eventos**:
+   - Se crean/actualizan automáticamente al guardar cambios
+   - Valores por defecto: capacidad=30, horas=40, área='TECNOLOGIA E INGENIERIA'
+   - Mapeo automático de categorías a tipos de evento
+
+7. **Sesiones**:
+   - Backend maneja sesiones con `express-session`
+   - Frontend almacena token y usuario en localStorage
+   - Redirección automática según rol después del login
+
+8. **Compatibilidad**:
+   - Backend soporta formatos duales: `email/password` y `cor_usu/pas_usu`
+   - Frontend usa Next.js 16.0.1 con App Router
+   - Base de datos: PostgreSQL con restricciones CHECK validadas
+
+---
+
+## Cambios Recientes (Feature: Conexiones-Front-Back)
+
+### ✨ Nuevas Funcionalidades
+- ✅ Integración completa frontend-backend con autenticación JWT
+- ✅ Soporte dual de formatos de credenciales
+- ✅ Creación automática de `detalle_eventos` al editar eventos
+- ✅ Mapeo inteligente de categorías (cat_det → tip_evt)
+- ✅ Validación de restricciones CHECK de PostgreSQL
+- ✅ Sistema de sesiones con express-session
+
+### 🔧 Mejoras Técnicas
+- ✅ Método `actualizarEventoCompleto()` en eventos.service
+- ✅ Conversión automática de tipos (Number para cup_det/hor_det)
+- ✅ Middleware de autenticación mejorado
+- ✅ handleResponse optimizado en frontend
+
+### 🐛 Correcciones
+- ✅ Eliminación de imports/exports duplicados post-merge
+- ✅ Corrección de useRouter en componentes Next.js 16
+- ✅ Implementación de handleImageChange en ModalEditar
+- ✅ Fix de restricción CHECK violada en tip_evt

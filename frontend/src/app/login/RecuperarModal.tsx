@@ -1,5 +1,7 @@
 "use client";
 import { useState } from "react";
+import { authAPI } from "@/services/api";
+import Swal from "sweetalert2";
 
 interface RecoveryModalProps {
   isOpen: boolean;
@@ -14,14 +16,21 @@ export default function RecoveryModal({ isOpen, onClose, onRecoverySent }: Recov
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    try {
+      const res = await authAPI.forgotPassword(recoveryEmail);
 
-    // Simulación de envío
-    await new Promise(resolve => setTimeout(resolve, 1500));
-
-    onRecoverySent("Se ha enviado un enlace de recuperación a tu correo ✅");
-    setRecoveryEmail("");
-    setIsLoading(false);
-    onClose();
+      // backend may return { message } or { data }
+      const message = (res && (res.message || res.data || res)) || "Se ha enviado un enlace de recuperación a tu correo ✅";
+      onRecoverySent(typeof message === 'string' ? message : JSON.stringify(message));
+      setRecoveryEmail("");
+      setIsLoading(false);
+      onClose();
+    } catch (err: any) {
+      // If blocked (e.g., @uta.edu.ec) backend should return 403 with message
+      const text = err?.message || "No se pudo procesar la solicitud";
+      Swal.fire({ title: "Error", text, icon: "error", confirmButtonColor: "#581517" });
+      setIsLoading(false);
+    }
   };
 
   if (!isOpen) return null;

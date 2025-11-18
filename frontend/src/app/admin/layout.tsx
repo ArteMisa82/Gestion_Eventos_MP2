@@ -48,15 +48,6 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
             ))}
           </nav>
         </div>
-
-        {/* Botón de salida */}
-        <button
-          onClick={handleLogout}
-          className="flex items-center justify-center gap-2 mt-6 text-white hover:bg-white/10 px-3 py-2 rounded-md transition"
-        >
-          <LogOut size={18} />
-          Cerrar sesión
-        </button>
       </aside>
 
       {/* Main content */}

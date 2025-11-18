@@ -112,11 +112,69 @@ export class EventosController {
       const userId = (req as any).userId;
       const data: UpdateEventoDto = req.body;
 
-      const evento = await eventosService.actualizarEvento(
-        req.params.id,
-        data,
-        userId
-      );
+      console.log("=== ACTUALIZAR EVENTO ===");
+      console.log("ID evento:", req.params.id);
+      console.log("User ID:", userId);
+      console.log("Data recibida:", JSON.stringify(data, null, 2));
+
+      // Validar datos básicos
+      if (data.detalles) {
+        // Validar cupos
+        if (data.detalles.cup_det !== undefined) {
+          const cupos = Number(data.detalles.cup_det);
+          if (isNaN(cupos) || cupos <= 0) {
+            return res.status(400).json({
+              success: false,
+              message: 'Los cupos deben ser un número válido mayor a 0',
+              field: 'cup_det'
+            });
+          }
+        }
+
+        // Validar horas
+        if (data.detalles.hor_det !== undefined) {
+          const horas = Number(data.detalles.hor_det);
+          if (isNaN(horas) || horas <= 0) {
+            return res.status(400).json({
+              success: false,
+              message: 'Las horas de duración deben ser un número válido mayor a 0',
+              field: 'hor_det'
+            });
+          }
+        }
+
+        // Validar categoría
+        if (data.detalles.cat_det !== undefined) {
+          const validCategories = [
+            'CURSO', 'CONGRESO', 'WEBINAR', 'CONFERENCIAS', 
+            'SOCIALIZACIONES', 'CASAS ABIERTAS', 'SEMINARIOS', 'OTROS'
+          ];
+          
+          if (!validCategories.includes(data.detalles.cat_det)) {
+            return res.status(400).json({
+              success: false,
+              message: `Tipo de evento inválido. Valores permitidos: ${validCategories.join(', ')}`,
+              field: 'cat_det'
+            });
+          }
+        }
+      }
+
+      // Si se envían detalles, carreras o semestres en el body, usar actualización completa
+      const tieneDetalles = data.detalles && 
+        (data.detalles.cup_det || data.detalles.hor_det || data.detalles.cat_det);
+      const tieneCarrerasOSemestres = (data.carreras && data.carreras.length > 0) || 
+                                       (data.semestres && data.semestres.length > 0);
+
+      console.log('🔍 Verificando tipo de actualización:');
+      console.log('  - tieneDetalles:', tieneDetalles);
+      console.log('  - tieneCarrerasOSemestres:', tieneCarrerasOSemestres);
+      console.log('  - carreras:', data.carreras);
+      console.log('  - semestres:', data.semestres);
+
+      const evento = (tieneDetalles || tieneCarrerasOSemestres)
+        ? await eventosService.actualizarEventoCompleto(req.params.id, data, userId)
+        : await eventosService.actualizarEvento(req.params.id, data, userId);
 
       res.json({
         success: true,
@@ -124,9 +182,47 @@ export class EventosController {
         data: evento
       });
     } catch (error: any) {
-      res.status(403).json({
+      console.error("=== ERROR AL ACTUALIZAR EVENTO ===");
+      console.error("Error:", error);
+      console.error("Message:", error.message);
+      console.error("Code:", error.code);
+      
+      // Errores específicos de base de datos
+      let message = 'Error al actualizar evento';
+      let statusCode = 500;
+      
+      if (error.code) {
+        switch (error.code) {
+          case 'P2002': // Unique constraint violation
+            message = 'Ya existe un evento con esos datos';
+            statusCode = 400;
+            break;
+          case 'P2003': // Foreign key constraint violation
+            message = 'Referencia inválida a otro registro';
+            statusCode = 400;
+            break;
+          case 'P2025': // Record not found
+            message = 'Evento no encontrado';
+            statusCode = 404;
+            break;
+          default:
+            message = error.message || 'Error de base de datos';
+            statusCode = 500;
+        }
+      } else if (error.message) {
+        message = error.message;
+        if (error.message.includes('permission') || error.message.includes('access')) {
+          statusCode = 403;
+        } else if (error.message.includes('not found')) {
+          statusCode = 404;
+        } else if (error.message.includes('invalid') || error.message.includes('validation')) {
+          statusCode = 400;
+        }
+      }
+
+      res.status(statusCode).json({
         success: false,
-        message: error.message || 'Error al actualizar evento'
+        message: message
       });
     }
   }
@@ -159,6 +255,22 @@ export class EventosController {
       res.status(500).json({
         success: false,
         message: error.message || 'Error al obtener usuarios administrativos'
+      });
+    }
+  }
+
+  // GET /api/eventos/usuarios/responsables-activos - Listar usuarios que son responsables de algún curso
+  async obtenerResponsablesActivos(req: Request, res: Response) {
+    try {
+      const responsables = await eventosService.obtenerResponsablesActivos();
+      res.json({
+        success: true,
+        data: responsables
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Error al obtener responsables activos'
       });
     }
   }
@@ -317,6 +429,43 @@ export class EventosController {
       res.status(403).json({
         success: false,
         message: error.message || 'Error al eliminar detalle de evento'
+      });
+    }
+  }
+
+  // ==========================================
+  // ENDPOINTS PÚBLICOS (SIN AUTENTICACIÓN)
+  // ==========================================
+
+  // GET /api/eventos/publicos - PÚBLICO: Obtener eventos publicados
+  async obtenerEventosPublicados(req: Request, res: Response) {
+    try {
+      // Parsear filtros que pueden ser arrays (separados por coma)
+      const parseFiltro = (value: any): string | string[] | undefined => {
+        if (!value) return undefined;
+        if (typeof value === 'string' && value.includes(',')) {
+          return value.split(',').map(v => v.trim());
+        }
+        return value as string;
+      };
+
+      const filtros = {
+        mod_evt: parseFiltro(req.query.mod_evt),
+        tip_pub_evt: parseFiltro(req.query.tip_pub_evt),
+        cos_evt: parseFiltro(req.query.cos_evt),
+        busqueda: req.query.busqueda as string | undefined,
+      };
+
+      const eventos = await eventosService.obtenerEventosPublicados(filtros);
+      
+      res.json({
+        success: true,
+        data: eventos
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Error al obtener eventos publicados'
       });
     }
   }
