@@ -10,6 +10,7 @@ import VerifyEmailModal from "@/app/login/VerifyEmailModal";
 import RegisterForm from "@/app/login/registroForm";
 import logo from "../../public/logo_UTA.png";
 import { authAPI } from "@/services/api";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function LoginModal({
   isOpen,
@@ -23,6 +24,7 @@ export default function LoginModal({
   onLoginSuccess?: (userData: any) => void;
 }) {
   const router = useRouter();
+  const { login: authLogin, user: authUser } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -61,18 +63,26 @@ export default function LoginModal({
     setIsLoading(true);
 
     try {
-      // ✅ Llamada real al backend
-      const response = await authAPI.login(email, password);
+      // ✅ Usar el hook de autenticación
+      await authLogin(email, password);
       
-      // El backend responde con el usuario en la propiedad `user` (o directamente data.user)
-      const usuario = response?.user || response?.usuario || response;
-
+      // Esperar un momento para que el hook actualice el estado
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Obtener el usuario desde localStorage (ya guardado por el hook)
+      const storedUser = localStorage.getItem('user');
+      let usuario = null;
+      
+      if (storedUser) {
+        usuario = JSON.parse(storedUser);
+      }
+      
       if (!usuario) {
         throw new Error("Respuesta inválida del servidor");
       }
       
-      // No hay token (usamos sesiones). Guardamos solo el usuario localmente.
-      localStorage.setItem("user", JSON.stringify(usuario));
+      console.log("=== USUARIO DESPUÉS DEL LOGIN ===");
+      console.log("Usuario completo:", usuario);
       
       // Si necesitas el id o propiedades de sesión, úsalas desde `usuario`.
       // Mantén el resto del flujo (mensajes, redirección, verificación de email):

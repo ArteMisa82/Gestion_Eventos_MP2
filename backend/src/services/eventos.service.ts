@@ -210,7 +210,9 @@ export class EventosService {
         tip_evt?: string;
         are_det?: string;
         cat_det?: string;
-      } 
+      };
+      carreras?: string[];
+      semestres?: string[];
     }, 
     userId: number
   ) {
@@ -256,6 +258,11 @@ export class EventosService {
           where: { id_det: detalleExistente.id_det },
           data: detalleData
         });
+        
+        // Crear registros de evento si se proporcionaron carreras y semestres
+        if (data.carreras && data.carreras.length > 0 && data.semestres && data.semestres.length > 0) {
+          await this.crearRegistrosEvento(detalleExistente.id_det, data.carreras, data.semestres);
+        }
       } else {
         // Crear nuevo detalle
         const { generateDetalleId } = await import('../utils/id-generator.util');
@@ -269,6 +276,11 @@ export class EventosService {
             est_evt_det: 'INSCRIPCIONES'
           }
         });
+        
+        // Crear registros de evento si se proporcionaron carreras y semestres
+        if (data.carreras && data.carreras.length > 0 && data.semestres && data.semestres.length > 0) {
+          await this.crearRegistrosEvento(id_det, data.carreras, data.semestres);
+        }
       }
     }
 
@@ -440,5 +452,89 @@ export class EventosService {
         fec_evt: 'desc'
       }
     });
+  }
+
+  /**
+   * Crea registros de evento para cada combinación de carrera y semestre
+   */
+  private async crearRegistrosEvento(
+    id_det: string,
+    carreras?: string[],
+    semestres?: string[]
+  ): Promise<void> {
+    if (!carreras || carreras.length === 0 || !semestres || semestres.length === 0) {
+      return;
+    }
+
+    // Mapeo de semestres a niveles
+    const semestreToNivel: Record<string, string> = {
+      '1er': 'NIV001',
+      '2do': 'NIV002',
+      '3er': 'NIV003',
+      '4to': 'NIV004',
+      '5to': 'NIV005',
+      '6to': 'NIV006',
+      '7mo': 'NIV007',
+      '8vo': 'NIV008',
+      '9no': 'NIV009',
+      '10mo': 'NIV010'
+    };
+
+    // Obtener todas las carreras
+    const carrerasDb = await prisma.carreras.findMany({
+      where: {
+        nom_car: {
+          in: carreras
+        }
+      },
+      select: {
+        id_car: true,
+        nom_car: true
+      }
+    });
+
+    // Crear un mapa de nombre de carrera a ID
+    const carreraMap = new Map(
+      carrerasDb.map(c => [c.nom_car, c.id_car])
+    );
+
+    // Generar todos los registros de evento
+    const registrosEvento = [];
+    
+    for (const carrera of carreras) {
+      const id_car = carreraMap.get(carrera);
+      if (!id_car) {
+        console.warn(`Carrera no encontrada: ${carrera}`);
+        continue;
+      }
+
+      for (const semestre of semestres) {
+        const id_niv = semestreToNivel[semestre];
+        if (!id_niv) {
+          console.warn(`Semestre no reconocido: ${semestre}`);
+          continue;
+        }
+
+        // Generar ID único para el registro
+        const count = await prisma.registro_evento.count();
+        const id_reg_evt = `REG${String(count + 1).padStart(3, '0')}`;
+
+        registrosEvento.push({
+          id_reg_evt,
+          id_det,
+          id_niv
+        });
+      }
+    }
+
+    // Crear todos los registros en una transacción
+    if (registrosEvento.length > 0) {
+      await prisma.registro_evento.createMany({
+        data: registrosEvento,
+        skipDuplicates: true
+      });
+
+      console.log(`✅ Creados ${registrosEvento.length} registros de evento para ${id_det}`);
+    }
   }
 }

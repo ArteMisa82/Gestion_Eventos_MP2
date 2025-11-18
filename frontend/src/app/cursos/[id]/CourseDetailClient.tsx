@@ -60,27 +60,41 @@ export default function CourseDetailClient({ evento }: { evento: EventoDetalle }
     // Verificación adicional: revisar localStorage directamente
     const localToken = localStorage.getItem('token');
     const localUser = localStorage.getItem('user');
+    let parsedLocalUser = null;
+    
+    try {
+      if (localUser) {
+        const parsed = JSON.parse(localUser);
+        // El usuario puede estar en parsed.data.usuario o directamente en parsed
+        parsedLocalUser = parsed.data?.usuario || parsed.usuario || parsed;
+        
+        // Si parsedLocalUser tiene la estructura {success, data, message}, extraer el usuario correcto
+        if (parsedLocalUser.success && parsedLocalUser.data) {
+          parsedLocalUser = parsedLocalUser.data.usuario || parsedLocalUser.data;
+        }
+      }
+    } catch (e) {
+      console.error("Error parsing localStorage user:", e);
+    }
     
     console.log("=== VERIFICACIÓN LOCALSTORAGE ===");
     console.log("Token en localStorage:", !!localToken);
     console.log("User en localStorage:", !!localUser);
+    console.log("Parsed user:", parsedLocalUser);
     
-    // Verificar si hay sesión usando el hook de autenticación
-    if (!isAuthenticated || !user || !token) {
-      console.log("Falta algún dato de autenticación:", {
-        isAuthenticated,
-        hasUser: !!user,
-        hasToken: !!token,
-        localToken: !!localToken,
-        localUser: !!localUser
-      });
-      
-      // Si hay datos en localStorage pero no en el context, intentar refrescar la página
-      if (localToken && localUser) {
-        console.log("Datos encontrados en localStorage pero no en context. Refrescando...");
-        window.location.reload();
-        return;
-      }
+    // Si hay datos en localStorage pero no en el context, usar los de localStorage
+    const finalUser = user || parsedLocalUser;
+    const finalToken = token || localToken;
+    const finalIsAuthenticated = isAuthenticated || (!!finalToken && !!finalUser);
+    
+    console.log("=== DATOS FINALES PARA VALIDACIÓN ===");
+    console.log("finalIsAuthenticated:", finalIsAuthenticated);
+    console.log("finalUser:", finalUser);
+    console.log("finalToken:", !!finalToken);
+    
+    // 1. VERIFICAR AUTENTICACIÓN BÁSICA
+    if (!finalIsAuthenticated || !finalUser || !finalToken) {
+      console.log("Usuario no autenticado - redirigiendo al login");
       
       Swal.fire({
         icon: "warning",
@@ -95,12 +109,37 @@ export default function CourseDetailClient({ evento }: { evento: EventoDetalle }
       });
       return;
     }
+    
+    // 2. VERIFICAR COMPLETITUD DEL PERFIL
+    const perfilCompleto = finalUser.nom_usu && finalUser.ape_usu && finalUser.ced_usu;
+    
+    if (!perfilCompleto) {
+      console.log("Perfil incompleto - redirigiendo a /perfil");
+      console.log("Datos del perfil:", {
+        nombre: !!finalUser.nom_usu,
+        apellido: !!finalUser.ape_usu,
+        cedula: !!finalUser.ced_usu
+      });
+      
+      Swal.fire({
+        icon: "info",
+        title: "Completa tu perfil",
+        text: "Para inscribirte en eventos, necesitas completar tu información personal.",
+        showCancelButton: true,
+        confirmButtonText: "Completar perfil",
+        cancelButtonText: "Cancelar",
+        confirmButtonColor: "#7f1d1d",
+      }).then((r) => {
+        if (r.isConfirmed) router.push("/usuarios/perfil");
+      });
+      return;
+    }
 
     try {
       console.log("=== DATOS DE AUTENTICACIÓN ===");
-      console.log("Usuario:", user);
-      console.log("Token disponible:", !!token);
-      console.log("Autenticado:", isAuthenticated);
+      console.log("Usuario:", finalUser);
+      console.log("Token disponible:", !!finalToken);
+      console.log("Autenticado:", finalIsAuthenticated);
       
       Swal.fire({
         icon: "info",
@@ -118,7 +157,7 @@ export default function CourseDetailClient({ evento }: { evento: EventoDetalle }
         confirmButtonColor: "#7f1d1d",
       }).then(async (result) => {
         if (result.isConfirmed) {
-          await procesarInscripcion(user.id_usu);
+          await procesarInscripcion(finalUser.id_usu, finalToken);
         }
       });
 
@@ -133,7 +172,7 @@ export default function CourseDetailClient({ evento }: { evento: EventoDetalle }
     }
   }
 
-  async function procesarInscripcion(id_usu: number) {
+  async function procesarInscripcion(id_usu: number, authToken: string) {
     if (!detalle) {
       Swal.fire({
         icon: "error",
@@ -144,8 +183,8 @@ export default function CourseDetailClient({ evento }: { evento: EventoDetalle }
       return;
     }
 
-    // Verificar autenticación usando el hook
-    if (!token || !isAuthenticated) {
+    // Verificar autenticación usando el token pasado
+    if (!authToken) {
       Swal.fire({
         icon: "warning",
         title: "Sesión expirada",
@@ -162,15 +201,14 @@ export default function CourseDetailClient({ evento }: { evento: EventoDetalle }
       console.log("=== INICIANDO PROCESO DE INSCRIPCIÓN ===");
       console.log("ID Usuario:", id_usu);
       console.log("ID Detalle:", detalle.id_det);
-      console.log("Token disponible:", !!token);
-      console.log("Token preview:", token ? token.substring(0, 20) + "..." : "null");
-      console.log("isAuthenticated:", isAuthenticated);
+      console.log("Token disponible:", !!authToken);
+      console.log("Token preview:", authToken ? authToken.substring(0, 20) + "..." : "null");
       
       // Test de validación de token antes de continuar
       console.log("=== Validando token con backend ===");
       try {
         // Usar el API service existente para validar el token
-        const profileResponse = await authAPI.getProfile(token);
+        const profileResponse = await authAPI.getProfile(authToken);
         console.log("Perfil obtenido exitosamente:", !!profileResponse);
       } catch (error: any) {
         console.error("Error validando token:", error);
@@ -206,7 +244,7 @@ export default function CourseDetailClient({ evento }: { evento: EventoDetalle }
         }
       });
 
-      const registrosResponse = await registroEventoAPI.getPorDetalle(token, detalle.id_det);
+      const registrosResponse = await registroEventoAPI.getPorDetalle(authToken, detalle.id_det);
       console.log("Registros encontrados:", registrosResponse);
       
       if (!registrosResponse.success || !registrosResponse.data || registrosResponse.data.length === 0) {
@@ -237,7 +275,7 @@ export default function CourseDetailClient({ evento }: { evento: EventoDetalle }
         }
       });
 
-      const validacion = await inscripcionesAPI.validar(token, {
+      const validacion = await inscripcionesAPI.validar(authToken, {
         id_usu,
         id_reg_evt
       });
@@ -291,7 +329,7 @@ export default function CourseDetailClient({ evento }: { evento: EventoDetalle }
         }
       });
 
-      const inscripcion = await inscripcionesAPI.inscribir(token, {
+      const inscripcion = await inscripcionesAPI.inscribir(authToken, {
         id_usu,
         id_reg_evt
       });
