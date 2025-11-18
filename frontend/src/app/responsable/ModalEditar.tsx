@@ -244,13 +244,87 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
   };
 
   const handleGuardar = async () => {
+    console.log("=== INICIANDO handleGuardar ===");
+    console.log("formData al inicio:", JSON.stringify(formData, null, 2));
+    console.log("formData.tipoEvento:", formData.tipoEvento);
+    console.log("formData.nombre:", formData.nombre);
+    console.log("formData.horas:", formData.horas);
+    console.log("formData.cupos:", formData.cupos);
+    
     try {
       // validaciones básicas
+      if (!formData.nombre || formData.nombre.trim() === "") {
+        console.error("❌ Error: Nombre requerido - formData.nombre:", formData.nombre);
+        Swal.fire({ 
+          icon: "warning", 
+          title: "Nombre requerido", 
+          text: "El nombre del evento es obligatorio.", 
+          confirmButtonColor: "#581517" 
+        });
+        return;
+      }
+
       if (!formData.fechaInicio || !formData.fechaFin) {
+        console.error("❌ Error: Fechas requeridas - fechaInicio:", formData.fechaInicio, "fechaFin:", formData.fechaFin);
         Swal.fire({ 
           icon: "warning", 
           title: "Fechas requeridas", 
           text: "Debes ingresar la fecha de inicio y de fin del evento.", 
+          confirmButtonColor: "#581517" 
+        });
+        return;
+      }
+
+      if (!formData.tipoEvento || formData.tipoEvento === "") {
+        console.error("❌ Error: Tipo evento requerido - formData.tipoEvento:", formData.tipoEvento);
+        Swal.fire({ 
+          icon: "warning", 
+          title: "Tipo de evento requerido", 
+          text: "Debes seleccionar un tipo de evento.", 
+          confirmButtonColor: "#581517" 
+        });
+        return;
+      }
+
+      if (!formData.horas || formData.horas <= 0) {
+        Swal.fire({ 
+          icon: "warning", 
+          title: "Duración requerida", 
+          text: "El número de horas debe ser mayor a 0.", 
+          confirmButtonColor: "#581517" 
+        });
+        return;
+      }
+
+      // Validar que horas sea un número válido
+      const horasNum = Number(formData.horas);
+      if (isNaN(horasNum) || horasNum <= 0 || !Number.isInteger(horasNum)) {
+        Swal.fire({ 
+          icon: "error", 
+          title: "Duración inválida", 
+          text: `La duración debe ser un número entero positivo (ej: 2, 4, 8). Valor actual: "${formData.horas}"`, 
+          confirmButtonColor: "#581517" 
+        });
+        return;
+      }
+
+      if (!formData.cupos || formData.cupos <= 0) {
+        Swal.fire({ 
+          icon: "warning", 
+          title: "Cupos requeridos", 
+          text: "El número de cupos debe ser mayor a 0.", 
+          confirmButtonColor: "#581517" 
+        });
+        return;
+      }
+
+      // Validar que cupos sea un número válido
+      const cuposNum = Number(formData.cupos);
+      if (isNaN(cuposNum) || cuposNum <= 0 || !Number.isInteger(cuposNum)) {
+        Swal.fire({ 
+          icon: "error", 
+          title: "Cupos inválidos", 
+          text: `Los cupos deben ser un número entero positivo (ej: 10, 25, 50). Valor actual: "${formData.cupos}"`, 
           confirmButtonColor: "#581517" 
         });
         return;
@@ -312,23 +386,68 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
       const publicoEvento = formData.publico === "General" ? "GENERAL" : 
                            formData.publico === "Estudiantes" ? "ESTUDIANTES" : "ADMINISTRATIVOS";
 
+      // Mapear tipo de evento del frontend al backend
+      const mapearTipoEvento = (tipo: string): string => {
+        const mapeo: { [key: string]: string } = {
+          "CONFERENCIA": "CONFERENCIAS",
+          "CURSO": "CURSO",
+          "WEBINAR": "WEBINAR", 
+          "CONGRESO": "CONGRESO",
+          "CASAS ABIERTAS": "CASAS ABIERTAS"
+        };
+        return mapeo[tipo] || tipo;
+      };
+
+      const tipoEventoMapeado = mapearTipoEvento(formData.tipoEvento);
+      
+      console.log("=== MAPEO DE TIPO DE EVENTO ===");
+      console.log("Tipo original:", formData.tipoEvento);
+      console.log("Tipo mapeado:", tipoEventoMapeado);
+      
+      // Validar que el tipo mapeado sea válido
+      const tiposValidos = ['CURSO', 'CONGRESO', 'WEBINAR', 'CONFERENCIAS', 'SOCIALIZACIONES', 'CASAS ABIERTAS', 'SEMINARIOS', 'OTROS'];
+      if (!tiposValidos.includes(tipoEventoMapeado)) {
+        console.error("❌ Error: Tipo de evento no válido después del mapeo:", tipoEventoMapeado);
+        throw new Error(`Tipo de evento no válido: ${formData.tipoEvento} → ${tipoEventoMapeado}`);
+      }
+
+      // Validar y limpiar datos antes de enviar
       const eventoData = {
-        nom_evt: formData.nombre,
+        nom_evt: formData.nombre.trim(),
         fec_evt: formData.fechaInicio,
         fec_fin_evt: formData.fechaFin,
-        lug_evt: formData.lugar || "",
+        lug_evt: formData.lugar ? formData.lugar.trim() : "",
         mod_evt: modalidadEvento,
         tip_pub_evt: publicoEvento,
         cos_evt: costoEvento,
         ima_evt: formData.imagen || imageDefault,
         detalles: {
-          cup_det: formData.cupos ?? formData.capacidad ?? 0,
-          hor_det: formData.horas,
-          cat_det: formData.tipoEvento,
-          asi_evt_det: formData.asistenciaMinima || 0,
-          not_min_evt: formData.nota || 0
+          cup_det: Number(formData.cupos ?? formData.capacidad ?? 30),
+          hor_det: Number(formData.horas || 40),
+          cat_det: tipoEventoMapeado,
+          asi_evt_det: Number(formData.asistenciaMinima || 0),
+          not_min_evt: Number(formData.nota || 0),
+          are_det: "TECNOLOGIA E INGENIERIA" // Área por defecto
         }
       };
+
+      // VALIDACIONES CRÍTICAS DE CONVERSIÓN NUMÉRICA
+      console.log("=== VALIDANDO CONVERSIONES NUMÉRICAS ===");
+      console.log("formData.cupos original:", formData.cupos, "tipo:", typeof formData.cupos);
+      console.log("formData.horas original:", formData.horas, "tipo:", typeof formData.horas);
+      
+      // Validar que los números sean válidos después de conversión
+      if (isNaN(eventoData.detalles.cup_det) || eventoData.detalles.cup_det <= 0) {
+        console.error("Error en conversión de cupos:", formData.cupos, "->", eventoData.detalles.cup_det);
+        throw new Error(`El número de cupos debe ser un número válido mayor a 0. Valor recibido: "${formData.cupos}"`);
+      }
+      if (isNaN(eventoData.detalles.hor_det) || eventoData.detalles.hor_det <= 0) {
+        console.error("Error en conversión de horas:", formData.horas, "->", eventoData.detalles.hor_det);
+        throw new Error(`Las horas de duración deben ser un número válido mayor a 0. Valor recibido: "${formData.horas}"`);
+      }
+      
+      console.log("Cupos convertido:", eventoData.detalles.cup_det);
+      console.log("Horas convertido:", eventoData.detalles.hor_det);
 
       console.log("Datos transformados a enviar:", JSON.parse(JSON.stringify(eventoData)));
       console.log("ID del evento a actualizar:", evento.id);
@@ -353,6 +472,7 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
     } catch (error: any) {
       console.error("=== Error completo al guardar evento ===");
       console.error("Error object:", error);
+      console.error("FormData que causó el error:", JSON.parse(JSON.stringify(formData)));
       
       if (error && typeof error === 'object') {
         if (error.stack) console.error("Stack:", error.stack);
@@ -365,7 +485,24 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
       
       if (error && typeof error === 'object') {
         if (error.message && typeof error.message === 'string') {
-          errorMessage = error.message;
+          // Errores específicos más amigables
+          if (error.message.includes('cup_det')) {
+            errorMessage = "Error en el número de cupos. Debe ser un número válido mayor a 0.";
+          } else if (error.message.includes('hor_det')) {
+            errorMessage = "Error en las horas de duración. Debe ser un número válido mayor a 0.";
+          } else if (error.message.includes('cat_det')) {
+            errorMessage = "Error en el tipo de evento. Selecciona un tipo válido.";
+          } else if (error.message.includes('tip_pub_evt')) {
+            errorMessage = "Error en el tipo de público. Selecciona una opción válida.";
+          } else if (error.message.includes('mod_evt')) {
+            errorMessage = "Error en la modalidad. Selecciona una modalidad válida.";
+          } else if (error.message.includes('fec_evt')) {
+            errorMessage = "Error en las fechas. Verifica que las fechas sean válidas.";
+          } else if (error.message.includes('validation') || error.message.includes('constraint')) {
+            errorMessage = "Error de validación: " + error.message;
+          } else {
+            errorMessage = error.message;
+          }
         } else if (error.response && error.response.message) {
           errorMessage = `Error del servidor: ${error.response.message}`;
         } else if (typeof error === 'string') {
@@ -378,7 +515,7 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
         title: "Error al actualizar",
         text: errorMessage,
         confirmButtonColor: "#581517",
-        footer: '<small>Revisa la consola del navegador (F12) para más detalles</small>'
+        footer: '<small>Revisa los datos ingresados. Si el problema persiste, contacta al administrador.</small>'
       });
     }
   };
@@ -428,9 +565,11 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
                 <label className="block text-sm font-medium text-gray-700 mb-2">Nombre del evento</label>
                 <input 
                   type="text" 
+                  name="nombre"
                   value={formData.nombre} 
-                  disabled 
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-50 text-gray-600 text-sm" 
+                  onChange={handleInputChange}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#581517]" 
+                  placeholder="Ingrese el nombre del evento"
                 />
               </div>
 

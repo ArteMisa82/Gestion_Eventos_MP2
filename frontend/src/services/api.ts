@@ -422,6 +422,17 @@ export const registroEventoAPI = {
   },
 
   /**
+   * Obtener registros por detalle de evento
+   * GET /api/registro-evento/detalle/:id_det
+   */
+  getPorDetalle: async (token: string, id_det: string) => {
+    const response = await fetch(`${API_URL}/registro-evento/detalle/${id_det}`, {
+      headers: getHeaders(token),
+    });
+    return handleResponse(response);
+  },
+
+  /**
    * Obtener cursos filtrados (ADMIN/ENCARGADO)
    * GET /api/registro-evento/filtrados
    */
