@@ -5,7 +5,7 @@ import { Usuario } from "@/types/usuario";
 interface Props {
   usuario: Usuario;
   setUsuario: React.Dispatch<React.SetStateAction<Usuario | null>>;
-  setMostrarModal: React.Dispatch<React.SetStateAction<boolean>>; // <-- agregado
+  setMostrarModal: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 export default function InfoPersonal({ usuario, setUsuario, setMostrarModal }: Props) {
@@ -16,6 +16,7 @@ export default function InfoPersonal({ usuario, setUsuario, setMostrarModal }: P
   return (
     <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-200">
       <h2 className="text-lg font-semibold mb-4">Información Personal</h2>
+
       <div className="space-y-3">
         <input
           type="text"
@@ -40,7 +41,6 @@ export default function InfoPersonal({ usuario, setUsuario, setMostrarModal }: P
         />
       </div>
 
-      {/* Botón para abrir el modal de cambio de contraseña */}
       <button
         onClick={() => setMostrarModal(true)}
         className="mt-4 bg-[#7A1C1C] text-white px-6 py-2 rounded-xl"

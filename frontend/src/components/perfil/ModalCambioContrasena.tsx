@@ -10,7 +10,7 @@ interface Props {
   setUsuario: React.Dispatch<React.SetStateAction<Usuario | null>>;
 }
 
-export default function ModalCambioContraseña({ isOpen, onClose, usuario, setUsuario }: Props) {
+export default function ModalCambioContrasena({ isOpen, onClose, usuario, setUsuario }: Props) {
   const [form, setForm] = useState({ actual: "", nueva: "", confirmar: "" });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -20,13 +20,12 @@ export default function ModalCambioContraseña({ isOpen, onClose, usuario, setUs
       return alert("Las contraseñas no coinciden");
     }
 
-    // (Opcional) Validar contraseña actual en frontend
     if (form.actual !== usuario.pas_usu) {
       return alert("La contraseña actual no es correcta");
     }
 
     if (usuario.id_usu) {
-      await fetch(`/api/user/id/${usuario.id_usu}/password`, {
+      await fetch(`http://localhost:4000/user/id/${usuario.id_usu}/password`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ pas_usu: form.nueva }),
@@ -66,6 +65,7 @@ export default function ModalCambioContraseña({ isOpen, onClose, usuario, setUs
           required
           className="w-full border rounded px-3 py-2"
         />
+
         <div className="flex justify-end gap-3 mt-4">
           <button type="submit" className="bg-[#7A1C1C] text-white px-6 py-2 rounded-xl">
             Guardar

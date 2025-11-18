@@ -1,63 +1,58 @@
+// src/controllers/user.controller.ts
+
 import { Request, Response } from 'express';
-import fs from 'fs';
 import { UserService } from '../services/user.service';
-import { IUser } from '../types/user';
 
 const userService = new UserService();
 
 export class UserController {
-  async getAll(req: Request, res: Response) {
-    const data = await userService.getAll();
-    return res.json(data);
+
+  async getById(req: Request, res: Response) {
+    try {
+      const id = Number(req.params.id);
+      const user = await userService.getById(id);
+
+      if (!user) {
+        return res.status(404).json({ msg: "Usuario no encontrado" });
+      }
+
+      res.json(user);
+    } catch (error) {
+      res.status(500).json({ msg: "Error interno", error });
+    }
   }
 
   async getByCedula(req: Request, res: Response) {
-    const ced = req.params.ced;
-    const user = await userService.getByCedula(ced);
-    if (!user) return res.status(404).json({ msg: 'Usuario no encontrado' });
-    return res.json(user);
+    try {
+      const ced = req.params.ced;
+      const user = await userService.getByCedula(ced);
+      res.json(user);
+    } catch (error) {
+      res.status(500).json({ msg: "Error interno" });
+    }
   }
 
-  async getById(req: Request, res: Response) {
-    const id = Number(req.params.id);
-    const user = await userService.getById(id);
-    if (!user) return res.status(404).json({ msg: "Usuario no encontrado" });
-    return res.json(user);
+  async getAll(req: Request, res: Response) {
+    const users = await userService.getAll();
+    res.json(users);
   }
 
   async create(req: Request, res: Response) {
-    let imgBase64: string | null = null;
-    if (req.file) {
-      const fileData = fs.readFileSync(req.file.path, { encoding: 'base64' });
-      imgBase64 = `data:${req.file.mimetype};base64,${fileData}`;
-      fs.unlinkSync(req.file.path);
-    }
-
-    const userData: IUser = { ...req.body, img_usu: imgBase64 } as IUser;
-    const user = await userService.create(userData);
-    return res.status(201).json(user);
+    const data = req.body;
+    const created = await userService.create(data);
+    res.json(created);
   }
 
   async update(req: Request, res: Response) {
-    const ced = req.params.ced;
-
-    let imgBase64: string | null = null;
-    if (req.file) {
-      const fileData = fs.readFileSync(req.file.path, { encoding: 'base64' });
-      imgBase64 = `data:${req.file.mimetype};base64,${fileData}`;
-      fs.unlinkSync(req.file.path);
-    }
-
-    const userData: Partial<IUser> = { ...req.body };
-    if (imgBase64) userData.img_usu = imgBase64;
-
-    const user = await userService.update(ced, userData);
-    return res.json(user);
+    const cedula = req.params.ced;
+    const data = req.body;
+    const updated = await userService.update(cedula, data);
+    res.json(updated);
   }
 
   async delete(req: Request, res: Response) {
-    const ced = req.params.ced;
-    await userService.delete(ced);
-    return res.status(204).send();
+    const cedula = req.params.ced;
+    const deleted = await userService.delete(cedula);
+    res.json(deleted);
   }
 }

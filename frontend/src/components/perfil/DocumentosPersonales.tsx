@@ -4,7 +4,7 @@ import { Usuario } from "@/types/usuario";
 
 interface Props {
   usuario: Usuario;
-  setUsuario: React.Dispatch<React.SetStateAction<Usuario | null>>; // coherente con FotoPerfil
+  setUsuario: React.Dispatch<React.SetStateAction<Usuario | null>>;
 }
 
 export default function DocumentosPersonales({ usuario, setUsuario }: Props) {
@@ -18,18 +18,17 @@ export default function DocumentosPersonales({ usuario, setUsuario }: Props) {
     reader.onload = async () => {
       const base64 = reader.result as string;
 
-      // Actualiza el estado verificando que prev no sea null
       setUsuario(prev => prev ? { ...prev, pdf_ced_usu: base64 } : prev);
 
-      // Subir al backend (ruta por id)
       if (usuario.id_usu) {
-        await fetch(`/api/user/id/${usuario.id_usu}`, {
+        await fetch(`http://localhost:4000/user/id/${usuario.id_usu}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ pdf_ced_usu: base64 }),
         });
       }
     };
+
     reader.readAsDataURL(file);
   };
 
