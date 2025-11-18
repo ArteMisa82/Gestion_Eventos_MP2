@@ -421,6 +421,8 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
         tip_pub_evt: publicoEvento,
         cos_evt: costoEvento,
         ima_evt: formData.imagen || imageDefault,
+        carreras: formData.carreras || [], // Agregar carreras seleccionadas
+        semestres: formData.semestres || [], // Agregar semestres seleccionados
         detalles: {
           cup_det: Number(formData.cupos ?? formData.capacidad ?? 30),
           hor_det: Number(formData.horas || 40),
