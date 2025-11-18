@@ -10,6 +10,7 @@ import VerifyEmailModal from "@/app/login/VerifyEmailModal";
 import RegisterForm from "@/app/login/registroForm";
 import logo from "../../public/logo_UTA.png";
 import { authAPI } from "@/services/api";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function LoginModal({
   isOpen,
@@ -23,6 +24,7 @@ export default function LoginModal({
   onLoginSuccess?: (userData: any) => void;
 }) {
   const router = useRouter();
+  const { login: authLogin, user: authUser } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -58,32 +60,30 @@ export default function LoginModal({
     setIsLoading(true);
 
     try {
-      const response = await authAPI.login(email, password);
-
-      // 📌 Tu backend envía esto:
-      // { success, message, data: { token, usuario: {...} } }
-      const usuario =
-        response?.data?.usuario ||
-        response?.usuario ||
-        response?.user ||
-        response;
-
+      // ✅ Usar el hook de autenticación
+      await authLogin(email, password);
+      
+      // Esperar un momento para que el hook actualice el estado
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Obtener el usuario desde localStorage (ya guardado por el hook)
+      const storedUser = localStorage.getItem('user');
+      let usuario = null;
+      
+      if (storedUser) {
+        usuario = JSON.parse(storedUser);
+      }
+      
       if (!usuario) {
         throw new Error("Respuesta inválida del servidor");
       }
-
-      // Guarda el usuario completo
-      localStorage.setItem("user", JSON.stringify(usuario));
-
-      // 👉 GUARDA EL ID REAL: id_usu
-      if (usuario.id_usu) {
-        localStorage.setItem("userId", usuario.id_usu.toString());
-      } else {
-        console.warn("⚠ Backend no envía id_usu");
-      }
-
-      // Si no verificó email
-      if (usuario.email_verified === false) {
+      
+      console.log("=== USUARIO DESPUÉS DEL LOGIN ===");
+      console.log("Usuario completo:", usuario);
+      
+      // Si necesitas el id o propiedades de sesión, úsalas desde `usuario`.
+      // Mantén el resto del flujo (mensajes, redirección, verificación de email):
+      if (usuario && usuario.email_verified === false) {
         setIsVerifyOpen(true);
       }
 

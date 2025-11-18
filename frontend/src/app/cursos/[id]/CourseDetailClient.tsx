@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Swal from "sweetalert2";
-import { inscripcionesAPI } from "@/services/api";
+import { inscripcionesAPI, registroEventoAPI, authAPI } from "@/services/api";
+import { useAuth } from "@/hooks/useAuth";
 
 interface EventoDetalle {
   id_evt: string;
@@ -29,17 +30,72 @@ interface EventoDetalle {
 
 export default function CourseDetailClient({ evento }: { evento: EventoDetalle }) {
   const router = useRouter();
+  const { user, token, isAuthenticated, logout, isLoading } = useAuth();
   const tabs = ["Información del evento"] as const;
   const [active, setActive] = useState<(typeof tabs)[number]>(tabs[0]);
   const [inscribiendo, setInscribiendo] = useState(false);
 
   const detalle = evento.detalle_eventos?.[0];
 
-  async function handleRegister() {
-    // Verificar si hay sesión
-    const usuarioStr = localStorage.getItem('user');
+  // Debug del estado de autenticación
+  console.log("=== ESTADO DE AUTENTICACIÓN EN COMPONENTE ===");
+  console.log("isLoading:", isLoading);
+  console.log("isAuthenticated:", isAuthenticated);
+  console.log("user:", user);
+  console.log("token available:", !!token);
 
-    if (!usuarioStr) {
+  async function handleRegister() {
+    console.log("=== HANDLE REGISTER - VERIFICACIÓN INICIAL ===");
+    console.log("isLoading:", isLoading);
+    console.log("isAuthenticated:", isAuthenticated);
+    console.log("user:", user);
+    console.log("token:", !!token);
+    
+    // Si aún está cargando, esperar un momento
+    if (isLoading) {
+      console.log("Aún cargando datos de autenticación...");
+      return;
+    }
+    
+    // Verificación adicional: revisar localStorage directamente
+    const localToken = localStorage.getItem('token');
+    const localUser = localStorage.getItem('user');
+    let parsedLocalUser = null;
+    
+    try {
+      if (localUser) {
+        const parsed = JSON.parse(localUser);
+        // El usuario puede estar en parsed.data.usuario o directamente en parsed
+        parsedLocalUser = parsed.data?.usuario || parsed.usuario || parsed;
+        
+        // Si parsedLocalUser tiene la estructura {success, data, message}, extraer el usuario correcto
+        if (parsedLocalUser.success && parsedLocalUser.data) {
+          parsedLocalUser = parsedLocalUser.data.usuario || parsedLocalUser.data;
+        }
+      }
+    } catch (e) {
+      console.error("Error parsing localStorage user:", e);
+    }
+    
+    console.log("=== VERIFICACIÓN LOCALSTORAGE ===");
+    console.log("Token en localStorage:", !!localToken);
+    console.log("User en localStorage:", !!localUser);
+    console.log("Parsed user:", parsedLocalUser);
+    
+    // Si hay datos en localStorage pero no en el context, usar los de localStorage
+    const finalUser = user || parsedLocalUser;
+    const finalToken = token || localToken;
+    const finalIsAuthenticated = isAuthenticated || (!!finalToken && !!finalUser);
+    
+    console.log("=== DATOS FINALES PARA VALIDACIÓN ===");
+    console.log("finalIsAuthenticated:", finalIsAuthenticated);
+    console.log("finalUser:", finalUser);
+    console.log("finalToken:", !!finalToken);
+    
+    // 1. VERIFICAR AUTENTICACIÓN BÁSICA
+    if (!finalIsAuthenticated || !finalUser || !finalToken) {
+      console.log("Usuario no autenticado - redirigiendo al login");
+      
       Swal.fire({
         icon: "warning",
         title: "Necesitas una cuenta",
@@ -53,9 +109,37 @@ export default function CourseDetailClient({ evento }: { evento: EventoDetalle }
       });
       return;
     }
+    
+    // 2. VERIFICAR COMPLETITUD DEL PERFIL
+    const perfilCompleto = finalUser.nom_usu && finalUser.ape_usu && finalUser.ced_usu;
+    
+    if (!perfilCompleto) {
+      console.log("Perfil incompleto - redirigiendo a /perfil");
+      console.log("Datos del perfil:", {
+        nombre: !!finalUser.nom_usu,
+        apellido: !!finalUser.ape_usu,
+        cedula: !!finalUser.ced_usu
+      });
+      
+      Swal.fire({
+        icon: "info",
+        title: "Completa tu perfil",
+        text: "Para inscribirte en eventos, necesitas completar tu información personal.",
+        showCancelButton: true,
+        confirmButtonText: "Completar perfil",
+        cancelButtonText: "Cancelar",
+        confirmButtonColor: "#7f1d1d",
+      }).then((r) => {
+        if (r.isConfirmed) router.push("/usuarios/perfil");
+      });
+      return;
+    }
 
     try {
-      const usuario = JSON.parse(usuarioStr);
+      console.log("=== DATOS DE AUTENTICACIÓN ===");
+      console.log("Usuario:", finalUser);
+      console.log("Token disponible:", !!finalToken);
+      console.log("Autenticado:", finalIsAuthenticated);
       
       Swal.fire({
         icon: "info",
@@ -73,7 +157,7 @@ export default function CourseDetailClient({ evento }: { evento: EventoDetalle }
         confirmButtonColor: "#7f1d1d",
       }).then(async (result) => {
         if (result.isConfirmed) {
-          await procesarInscripcion(usuario.id_usu);
+          await procesarInscripcion(finalUser.id_usu, finalToken);
         }
       });
 
@@ -88,7 +172,7 @@ export default function CourseDetailClient({ evento }: { evento: EventoDetalle }
     }
   }
 
-  async function procesarInscripcion(id_usu: number) {
+  async function procesarInscripcion(id_usu: number, authToken: string) {
     if (!detalle) {
       Swal.fire({
         icon: "error",
@@ -99,24 +183,205 @@ export default function CourseDetailClient({ evento }: { evento: EventoDetalle }
       return;
     }
 
+    // Verificar autenticación usando el token pasado
+    if (!authToken) {
+      Swal.fire({
+        icon: "warning",
+        title: "Sesión expirada",
+        text: "Por favor, inicia sesión nuevamente.",
+        confirmButtonColor: "#7f1d1d",
+      });
+      router.push('/');
+      return;
+    }
+
     try {
       setInscribiendo(true);
 
+      console.log("=== INICIANDO PROCESO DE INSCRIPCIÓN ===");
+      console.log("ID Usuario:", id_usu);
+      console.log("ID Detalle:", detalle.id_det);
+      console.log("Token disponible:", !!authToken);
+      console.log("Token preview:", authToken ? authToken.substring(0, 20) + "..." : "null");
+      
+      // Test de validación de token antes de continuar
+      console.log("=== Validando token con backend ===");
+      try {
+        // Usar el API service existente para validar el token
+        const profileResponse = await authAPI.getProfile(authToken);
+        console.log("Perfil obtenido exitosamente:", !!profileResponse);
+      } catch (error: any) {
+        console.error("Error validando token:", error);
+        
+        // Si es un error de autorización, el token está expirado
+        if (error.message && (
+          error.message.includes('401') || 
+          error.message.includes('403') || 
+          error.message.includes('Unauthorized') ||
+          error.message.includes('token')
+        )) {
+          console.log("Token inválido o expirado - redirigiendo al login");
+          Swal.fire({
+            icon: "warning",
+            title: "Sesión expirada", 
+            text: "Tu sesión ha expirado. Por favor, inicia sesión nuevamente.",
+            confirmButtonColor: "#7f1d1d",
+          });
+          logout(); // Usar la función del contexto para limpiar todo
+          router.push('/');
+          return;
+        }
+        // Si es otro tipo de error, continuar con el proceso normal
+      }
+      
+      // PASO 1: Obtener registros de evento para este detalle
       Swal.fire({
-        icon: "success",
-        title: "¡Inscripción exitosa!",
-        text: "Te has inscrito correctamente al evento.",
-        confirmButtonColor: "#7f1d1d",
-      }).then(() => {
-        router.push("/cursos");
+        title: 'Obteniendo información del curso...',
+        text: 'Verificando disponibilidad',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
       });
+
+      const registrosResponse = await registroEventoAPI.getPorDetalle(authToken, detalle.id_det);
+      console.log("Registros encontrados:", registrosResponse);
+      
+      if (!registrosResponse.success || !registrosResponse.data || registrosResponse.data.length === 0) {
+        Swal.fire({
+          icon: "error",
+          title: "Curso no disponible",
+          text: "Este curso no está disponible para inscripciones actualmente.",
+          confirmButtonColor: "#7f1d1d",
+        });
+        return;
+      }
+
+      // Por simplicidad, tomamos el primer registro encontrado
+      // En una implementación más compleja, podrías permitir al usuario elegir el nivel
+      const registroEvento = registrosResponse.data[0];
+      const id_reg_evt = registroEvento.id_reg_evt;
+      
+      console.log("Usando registro de evento:", id_reg_evt);
+      console.log("Nivel del curso:", registroEvento.nivel?.nom_niv);
+
+      // PASO 2: Validar si el usuario puede inscribirse
+      Swal.fire({
+        title: 'Validando requisitos...',
+        text: 'Verificando nivel académico y disponibilidad',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+
+      const validacion = await inscripcionesAPI.validar(authToken, {
+        id_usu,
+        id_reg_evt
+      });
+      
+      console.log("Resultado de validación:", validacion);
+
+      if (!validacion.success || !validacion.data?.valido) {
+        const mensaje = validacion.data?.mensaje || validacion.message || "No cumples con los requisitos para este curso.";
+        
+        Swal.fire({
+          icon: "error",
+          title: "No puedes inscribirte",
+          text: mensaje,
+          confirmButtonColor: "#7f1d1d",
+        });
+        return;
+      }
+
+      // PASO 3: Confirmar inscripción con el usuario
+      const confirmResult = await Swal.fire({
+        icon: "question",
+        title: "Confirmar inscripción",
+        html: `
+          <p><strong>✅ Validación exitosa</strong></p>
+          <br>
+          <p>¿Confirmas tu inscripción a:</p>
+          <p><strong>${evento.nom_evt}</strong></p>
+          <p style="color: #6b7280; font-size: 14px;">
+            Nivel: ${registroEvento.nivel?.nom_niv}<br>
+            Duración: ${detalle.hor_det} horas<br>
+            Modalidad: ${evento.mod_evt}
+          </p>
+        `,
+        showCancelButton: true,
+        confirmButtonText: "Sí, inscribirme",
+        cancelButtonText: "Cancelar",
+        confirmButtonColor: "#7f1d1d",
+      });
+
+      if (!confirmResult.isConfirmed) {
+        return;
+      }
+
+      // PASO 4: Realizar inscripción
+      Swal.fire({
+        title: 'Procesando inscripción...',
+        text: 'Registrando tu participación',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+
+      const inscripcion = await inscripcionesAPI.inscribir(authToken, {
+        id_usu,
+        id_reg_evt
+      });
+      
+      console.log("Resultado de inscripción:", inscripcion);
+
+      if (inscripcion.success) {
+        Swal.fire({
+          icon: "success",
+          title: "¡Inscripción exitosa!",
+          html: `
+            <p>Te has inscrito correctamente al evento.</p>
+            <p><strong>${evento.nom_evt}</strong></p>
+            <br>
+            <p style="color: #6b7280; font-size: 14px;">
+              Puedes ver tus cursos en la sección "Mis Cursos"
+            </p>
+          `,
+          confirmButtonColor: "#7f1d1d",
+        }).then(() => {
+          router.push("/usuarios/cursos");
+        });
+      } else {
+        throw new Error(inscripcion.message || "Error al procesar inscripción");
+      }
 
     } catch (error: any) {
       console.error('Error al inscribir:', error);
+      
+      let errorMessage = "No se pudo completar la inscripción.";
+      
+      // Personalizar mensajes de error según el tipo
+      if (error.message) {
+        if (error.message.includes('nivel')) {
+          errorMessage = "No estás matriculado en el nivel requerido para este curso.";
+        } else if (error.message.includes('cupo')) {
+          errorMessage = "Lo sentimos, ya no hay cupos disponibles para este curso.";
+        } else if (error.message.includes('inscrito')) {
+          errorMessage = "Ya estás inscrito en este curso.";
+        } else if (error.message.includes('instructor')) {
+          errorMessage = "No puedes inscribirte en un curso donde eres instructor.";
+        } else if (error.message.includes('responsable')) {
+          errorMessage = "No puedes inscribirte en un evento donde eres responsable.";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       Swal.fire({
         icon: "error",
         title: "Error al inscribirse",
-        text: error.message || "No se pudo completar la inscripción.",
+        text: errorMessage,
         confirmButtonColor: "#7f1d1d",
       });
     } finally {
@@ -223,9 +488,9 @@ export default function CourseDetailClient({ evento }: { evento: EventoDetalle }
       <div style={{ display: "flex", justifyContent: "center", marginTop: 22 }}>
         <button
           onClick={handleRegister}
-          disabled={inscribiendo || !detalle || detalle.est_evt_det !== 'INSCRIPCIONES'}
+          disabled={isLoading || inscribiendo || !detalle || detalle.est_evt_det !== 'INSCRIPCIONES'}
           style={{
-            background: inscribiendo || !detalle || detalle.est_evt_det !== 'INSCRIPCIONES' ? "#9ca3af" : "#7f1d1d",
+            background: isLoading || inscribiendo || !detalle || detalle.est_evt_det !== 'INSCRIPCIONES' ? "#9ca3af" : "#7f1d1d",
             color: "#fff",
             border: 0,
             borderRadius: 10,
@@ -233,10 +498,11 @@ export default function CourseDetailClient({ evento }: { evento: EventoDetalle }
             fontWeight: 700,
             letterSpacing: ".2px",
             boxShadow: "0 6px 18px rgba(127,29,29,.25)",
-            cursor: inscribiendo || !detalle || detalle.est_evt_det !== 'INSCRIPCIONES' ? "not-allowed" : "pointer",
+            cursor: isLoading || inscribiendo || !detalle || detalle.est_evt_det !== 'INSCRIPCIONES' ? "not-allowed" : "pointer",
           }}
         >
-          {inscribiendo ? "PROCESANDO..." : 
+          {isLoading ? "CARGANDO..." :
+           inscribiendo ? "PROCESANDO..." : 
            !detalle ? "NO DISPONIBLE" :
            detalle.est_evt_det !== 'INSCRIPCIONES' ? "INSCRIPCIONES CERRADAS" :
            "REGISTRARME EN ESTE EVENTO"}

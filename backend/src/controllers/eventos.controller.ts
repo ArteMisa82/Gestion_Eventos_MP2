@@ -112,11 +112,67 @@ export class EventosController {
       const userId = (req as any).userId;
       const data: UpdateEventoDto = req.body;
 
-      // Si se envían detalles en el body, usar actualización completa
+      console.log("=== ACTUALIZAR EVENTO ===");
+      console.log("ID evento:", req.params.id);
+      console.log("User ID:", userId);
+      console.log("Data recibida:", JSON.stringify(data, null, 2));
+
+      // Validar datos básicos
+      if (data.detalles) {
+        // Validar cupos
+        if (data.detalles.cup_det !== undefined) {
+          const cupos = Number(data.detalles.cup_det);
+          if (isNaN(cupos) || cupos <= 0) {
+            return res.status(400).json({
+              success: false,
+              message: 'Los cupos deben ser un número válido mayor a 0',
+              field: 'cup_det'
+            });
+          }
+        }
+
+        // Validar horas
+        if (data.detalles.hor_det !== undefined) {
+          const horas = Number(data.detalles.hor_det);
+          if (isNaN(horas) || horas <= 0) {
+            return res.status(400).json({
+              success: false,
+              message: 'Las horas de duración deben ser un número válido mayor a 0',
+              field: 'hor_det'
+            });
+          }
+        }
+
+        // Validar categoría
+        if (data.detalles.cat_det !== undefined) {
+          const validCategories = [
+            'CURSO', 'CONGRESO', 'WEBINAR', 'CONFERENCIAS', 
+            'SOCIALIZACIONES', 'CASAS ABIERTAS', 'SEMINARIOS', 'OTROS'
+          ];
+          
+          if (!validCategories.includes(data.detalles.cat_det)) {
+            return res.status(400).json({
+              success: false,
+              message: `Tipo de evento inválido. Valores permitidos: ${validCategories.join(', ')}`,
+              field: 'cat_det'
+            });
+          }
+        }
+      }
+
+      // Si se envían detalles, carreras o semestres en el body, usar actualización completa
       const tieneDetalles = data.detalles && 
         (data.detalles.cup_det || data.detalles.hor_det || data.detalles.cat_det);
+      const tieneCarrerasOSemestres = (data.carreras && data.carreras.length > 0) || 
+                                       (data.semestres && data.semestres.length > 0);
 
-      const evento = tieneDetalles 
+      console.log('🔍 Verificando tipo de actualización:');
+      console.log('  - tieneDetalles:', tieneDetalles);
+      console.log('  - tieneCarrerasOSemestres:', tieneCarrerasOSemestres);
+      console.log('  - carreras:', data.carreras);
+      console.log('  - semestres:', data.semestres);
+
+      const evento = (tieneDetalles || tieneCarrerasOSemestres)
         ? await eventosService.actualizarEventoCompleto(req.params.id, data, userId)
         : await eventosService.actualizarEvento(req.params.id, data, userId);
 
@@ -126,9 +182,47 @@ export class EventosController {
         data: evento
       });
     } catch (error: any) {
-      res.status(403).json({
+      console.error("=== ERROR AL ACTUALIZAR EVENTO ===");
+      console.error("Error:", error);
+      console.error("Message:", error.message);
+      console.error("Code:", error.code);
+      
+      // Errores específicos de base de datos
+      let message = 'Error al actualizar evento';
+      let statusCode = 500;
+      
+      if (error.code) {
+        switch (error.code) {
+          case 'P2002': // Unique constraint violation
+            message = 'Ya existe un evento con esos datos';
+            statusCode = 400;
+            break;
+          case 'P2003': // Foreign key constraint violation
+            message = 'Referencia inválida a otro registro';
+            statusCode = 400;
+            break;
+          case 'P2025': // Record not found
+            message = 'Evento no encontrado';
+            statusCode = 404;
+            break;
+          default:
+            message = error.message || 'Error de base de datos';
+            statusCode = 500;
+        }
+      } else if (error.message) {
+        message = error.message;
+        if (error.message.includes('permission') || error.message.includes('access')) {
+          statusCode = 403;
+        } else if (error.message.includes('not found')) {
+          statusCode = 404;
+        } else if (error.message.includes('invalid') || error.message.includes('validation')) {
+          statusCode = 400;
+        }
+      }
+
+      res.status(statusCode).json({
         success: false,
-        message: error.message || 'Error al actualizar evento'
+        message: message
       });
     }
   }

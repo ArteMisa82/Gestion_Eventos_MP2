@@ -210,65 +210,112 @@ export class EventosService {
         tip_evt?: string;
         are_det?: string;
         cat_det?: string;
-      } 
+      };
+      carreras?: string[];
+      semestres?: string[];
     }, 
     userId: number
   ) {
     // Actualizar el evento primero
     const evento = await this.actualizarEvento(idEvento, data, userId);
 
-    // Si se proporcionan detalles, crear o actualizar
-    if (data.detalles && (data.detalles.cup_det || data.detalles.hor_det || data.detalles.tip_evt)) {
+    // Verificar si hay detalles o carreras/semestres para procesar
+    const tieneDetalles = data.detalles && (data.detalles.cup_det || data.detalles.hor_det || data.detalles.tip_evt || data.detalles.cat_det);
+    const tieneCarrerasSemestres = (data.carreras && data.carreras.length > 0 && data.semestres && data.semestres.length > 0);
+
+    console.log('📋 Procesando actualización completa:');
+    console.log('  - Tiene detalles:', tieneDetalles);
+    console.log('  - Tiene carreras/semestres:', tieneCarrerasSemestres);
+
+    if (tieneDetalles || tieneCarrerasSemestres) {
       // Verificar si ya existe un detalle para este evento
       const detalleExistente = await prisma.detalle_eventos.findFirst({
         where: { id_evt_per: idEvento }
       });
 
-      // Mapear cat_det a tip_evt (tip_evt tiene valores más limitados)
-      const catDetValue = data.detalles.cat_det?.toUpperCase() || 'CURSO';
-      let tipEvtValue = 'CURSO'; // valor por defecto
-      
-      // Mapeo de cat_det a tip_evt según restricciones de la BD
-      const catDetToTipEvt: Record<string, string> = {
-        'CURSO': 'CURSO',
-        'CONGRESO': 'CONGRESO',
-        'WEBINAR': 'WEBINAR',
-        'CONFERENCIAS': 'CONFERENCIA', // singular en tip_evt
-        'SOCIALIZACIONES': 'CURSO',    // mapear a CURSO
-        'CASAS ABIERTAS': 'CASAS ABIERTAS',
-        'SEMINARIOS': 'CURSO',         // mapear a CURSO
-        'OTROS': 'CURSO'               // mapear a CURSO
-      };
-      
-      tipEvtValue = catDetToTipEvt[catDetValue] || 'CURSO';
+      console.log('  - Detalle existente:', detalleExistente?.id_det || 'ninguno');
 
-      const detalleData: any = {
-        cup_det: Number(data.detalles.cup_det) || 30,
-        hor_det: Number(data.detalles.hor_det) || 40,
-        are_det: data.detalles.are_det || 'TECNOLOGIA E INGENIERIA',
-        cat_det: catDetValue,
-        tip_evt: tipEvtValue,
-      };
+      let id_det_final: string;
 
-      if (detalleExistente) {
-        // Actualizar detalle existente
-        await prisma.detalle_eventos.update({
-          where: { id_det: detalleExistente.id_det },
-          data: detalleData
-        });
-      } else {
-        // Crear nuevo detalle
-        const { generateDetalleId } = await import('../utils/id-generator.util');
-        const id_det = await generateDetalleId();
+      if (tieneDetalles) {
+        // Mapear cat_det a tip_evt (tip_evt tiene valores más limitados)
+        const catDetValue = data.detalles!.cat_det?.toUpperCase() || 'CURSO';
+        let tipEvtValue = 'CURSO'; // valor por defecto
         
-        await prisma.detalle_eventos.create({
-          data: {
-            id_det,
-            id_evt_per: idEvento,
-            ...detalleData,
-            est_evt_det: 'INSCRIPCIONES'
-          }
-        });
+        // Mapeo de cat_det a tip_evt según restricciones de la BD
+        const catDetToTipEvt: Record<string, string> = {
+          'CURSO': 'CURSO',
+          'CONGRESO': 'CONGRESO',
+          'WEBINAR': 'WEBINAR',
+          'CONFERENCIAS': 'CONFERENCIA', // singular en tip_evt
+          'SOCIALIZACIONES': 'CURSO',    // mapear a CURSO
+          'CASAS ABIERTAS': 'CASAS ABIERTAS',
+          'SEMINARIOS': 'CURSO',         // mapear a CURSO
+          'OTROS': 'CURSO'               // mapear a CURSO
+        };
+        
+        tipEvtValue = catDetToTipEvt[catDetValue] || 'CURSO';
+
+        const detalleData: any = {
+          cup_det: Number(data.detalles!.cup_det) || 30,
+          hor_det: Number(data.detalles!.hor_det) || 40,
+          are_det: data.detalles!.are_det || 'TECNOLOGIA E INGENIERIA',
+          cat_det: catDetValue,
+          tip_evt: tipEvtValue,
+        };
+
+        if (detalleExistente) {
+          // Actualizar detalle existente
+          await prisma.detalle_eventos.update({
+            where: { id_det: detalleExistente.id_det },
+            data: detalleData
+          });
+          id_det_final = detalleExistente.id_det;
+          console.log('  ✅ Detalle actualizado:', id_det_final);
+        } else {
+          // Crear nuevo detalle
+          const { generateDetalleId } = await import('../utils/id-generator.util');
+          id_det_final = await generateDetalleId();
+          
+          await prisma.detalle_eventos.create({
+            data: {
+              id_det: id_det_final,
+              id_evt_per: idEvento,
+              ...detalleData,
+              est_evt_det: 'INSCRIPCIONES'
+            }
+          });
+          console.log('  ✅ Detalle creado:', id_det_final);
+        }
+      } else {
+        // Solo hay carreras/semestres pero no detalles
+        if (detalleExistente) {
+          id_det_final = detalleExistente.id_det;
+        } else {
+          // Necesitamos crear un detalle con valores por defecto
+          const { generateDetalleId } = await import('../utils/id-generator.util');
+          id_det_final = await generateDetalleId();
+          
+          await prisma.detalle_eventos.create({
+            data: {
+              id_det: id_det_final,
+              id_evt_per: idEvento,
+              cup_det: 30,
+              hor_det: 40,
+              are_det: 'TECNOLOGIA E INGENIERIA',
+              cat_det: 'CURSO',
+              tip_evt: 'CURSO',
+              est_evt_det: 'INSCRIPCIONES'
+            }
+          });
+          console.log('  ✅ Detalle creado con valores por defecto:', id_det_final);
+        }
+      }
+
+      // Crear registros de evento si se proporcionaron carreras y semestres
+      if (tieneCarrerasSemestres) {
+        console.log('  🎯 Llamando a crearRegistrosEvento...');
+        await this.crearRegistrosEvento(id_det_final, data.carreras, data.semestres);
       }
     }
 
@@ -440,5 +487,127 @@ export class EventosService {
         fec_evt: 'desc'
       }
     });
+  }
+
+  /**
+   * Crea registros de evento para cada combinación de carrera y semestre
+   * IMPORTANTE: En la BD, cada nivel (id_niv) ya incluye la carrera y el semestre
+   * Por ejemplo: NIV001 = "1er Semestre de Software", NIV011 = "1er Semestre de TI"
+   */
+  private async crearRegistrosEvento(
+    id_det: string,
+    carreras?: string[],
+    semestres?: string[]
+  ): Promise<void> {
+    if (!carreras || carreras.length === 0 || !semestres || semestres.length === 0) {
+      console.log(`⚠️ No se crearán registros de evento: carreras=${carreras?.length || 0}, semestres=${semestres?.length || 0}`);
+      return;
+    }
+
+    console.log(`🔍 Creando registros de evento para detalle ${id_det}`);
+    console.log(`Carreras recibidas:`, carreras);
+    console.log(`Semestres recibidos:`, semestres);
+
+    // Normalizar semestres: eliminar la palabra "semestre" si existe
+    // "1er semestre" -> "1er", "2do semestre" -> "2do", etc.
+    const semestresNormalizados = semestres.map(s => 
+      s.replace(/\s+semestre$/i, '').trim()
+    );
+    
+    console.log(`Semestres normalizados:`, semestresNormalizados);
+
+    // Primero eliminar registros existentes para este detalle
+    const registrosAntiguos = await prisma.registro_evento.deleteMany({
+      where: { id_det }
+    });
+    
+    if (registrosAntiguos.count > 0) {
+      console.log(`🗑️ Eliminados ${registrosAntiguos.count} registros antiguos`);
+    }
+
+    // Obtener todas las carreras de la BD
+    const carrerasDb = await prisma.carreras.findMany({
+      where: {
+        nom_car: {
+          in: carreras
+        }
+      },
+      select: {
+        id_car: true,
+        nom_car: true
+      }
+    });
+
+    console.log(`📚 Carreras encontradas en BD:`, carrerasDb);
+
+    if (carrerasDb.length === 0) {
+      console.warn(`⚠️ No se encontraron carreras en la BD para los nombres: ${carreras.join(', ')}`);
+      return;
+    }
+
+    const idsCarreras = carrerasDb.map(c => c.id_car);
+
+    // Buscar los niveles que coincidan con las carreras Y semestres
+    // nom_niv tiene el formato del semestre (1er, 2do, etc.) SIN la palabra "semestre"
+    const niveles = await prisma.nivel.findMany({
+      where: {
+        id_car: {
+          in: idsCarreras
+        },
+        nom_niv: {
+          in: semestresNormalizados
+        }
+      },
+      select: {
+        id_niv: true,
+        nom_niv: true,
+        id_car: true,
+        carreras: {
+          select: {
+            nom_car: true
+          }
+        }
+      }
+    });
+
+    console.log(`🎓 Niveles encontrados en BD:`, niveles);
+
+    if (niveles.length === 0) {
+      console.warn(`⚠️ No se encontraron niveles para las combinaciones de carreras y semestres especificadas`);
+      return;
+    }
+
+    // Obtener el conteo base una sola vez
+    const countBase = await prisma.registro_evento.count();
+    let contador = countBase + 1;
+
+    // Generar todos los registros de evento
+    const registrosEvento = [];
+    
+    for (const nivel of niveles) {
+      // Generar ID único para este registro
+      const id_reg_evt = `REG${String(contador).padStart(3, '0')}`;
+      contador++;
+
+      registrosEvento.push({
+        id_reg_evt,
+        id_det,
+        id_niv: nivel.id_niv
+      });
+
+      console.log(`📝 Preparado registro: ${id_reg_evt} -> ${id_det} + ${nivel.id_niv} (${nivel.carreras.nom_car} - ${nivel.nom_niv})`);
+    }
+
+    // Crear todos los registros en batch
+    if (registrosEvento.length > 0) {
+      await prisma.registro_evento.createMany({
+        data: registrosEvento,
+        skipDuplicates: true
+      });
+
+      console.log(`✅ Creados ${registrosEvento.length} registros de evento para detalle ${id_det}`);
+    } else {
+      console.warn(`⚠️ No se crearon registros de evento (lista vacía)`);
+    }
   }
 }
