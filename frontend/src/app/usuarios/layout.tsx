@@ -2,29 +2,89 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { ChevronDown } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function UsuariosLayout({ children }: { children: React.ReactNode }) {
+  const { user, token, isAuthenticated } = useAuth();
   const [open, setOpen] = useState(false);
-
-  // 🔹 Estos valores deben venir del backend o del JWT
   const [esResponsable, setEsResponsable] = useState(false);
   const [esDocente, setEsDocente] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Aquí debes reemplazar con tus datos reales del usuario logueado
-    // Ejemplo de lectura desde localStorage o API:
+    const verificarRoles = async () => {
+      if (!user || !token) {
+        setLoading(false);
+        return;
+      }
 
-    const rolGuardado = JSON.parse(localStorage.getItem("ROL_USUARIO") || "{}");
+      try {
+        // Verificar si el usuario es responsable de algún evento
+        const responseEventos = await fetch(
+          `http://localhost:3001/api/eventos?id_responsable=${user.id_usu}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          }
+        );
 
-    setEsResponsable(rolGuardado.esResponsable || false);
-    setEsDocente(rolGuardado.esDocente || false);
-  }, []);
+        if (responseEventos.ok) {
+          const resultEventos = await responseEventos.json();
+          const eventos = resultEventos.data || resultEventos;
+          setEsResponsable(Array.isArray(eventos) && eventos.length > 0);
+        }
+
+        // Verificar si el usuario es docente (instructor en algún detalle)
+        const responseDocente = await fetch(
+          `http://localhost:3001/api/estudiantes/instructor/${user.id_usu}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          }
+        );
+
+        if (responseDocente.ok) {
+          const resultDocente = await responseDocente.json();
+          setEsDocente(resultDocente.success && resultDocente.data?.length > 0);
+        }
+      } catch (error) {
+        console.error('Error verificando roles:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    verificarRoles();
+  }, [user, token]);
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-gray-600">Debes iniciar sesión para acceder a esta página.</p>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-gray-600">Cargando...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
       <nav className="w-full bg-[#7f1d1d] text-white shadow-md">
         <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-xl font-bold">Panel de Usuario</h1>
+          <div>
+            <h1 className="text-xl font-bold">Panel de Usuario</h1>
+            {user && (
+              <p className="text-sm text-gray-200">Bienvenido, {user.nom_usu} {user.ape_usu}</p>
+            )}
+          </div>
 
           <div className="relative">
             <button
@@ -51,12 +111,7 @@ export default function UsuariosLayout({ children }: { children: React.ReactNode
                   Mis Cursos
                 </Link>
 
-                <Link
-                  href="/usuarios/eventos"
-                  className="block px-3 py-2 rounded-md hover:bg-gray-200"
-                >
-                  Mis Eventos
-                </Link>
+                
 
                 {/* 🔹 Panel Responsable solo si fue asignado por el ADMINISTRADOR */}
                 {esResponsable && (
