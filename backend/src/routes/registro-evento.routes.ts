@@ -12,8 +12,18 @@ const router = Router();
 // Vincula detalles con niveles académicos
 
 /**
- * GET /api/registro-evento/estudiante/mis-cursos
- * Obtiene cursos disponibles para el estudiante según su nivel
+ * @swagger
+ * /api/registro-evento/estudiante/mis-cursos:
+ *   get:
+ *     summary: Listar cursos disponibles para el estudiante autenticado
+ *     tags: [Registro Evento]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Cursos disponibles para el nivel del estudiante
+ *       401:
+ *         description: No autenticado
  */
 router.get(
   '/estudiante/mis-cursos',
@@ -22,9 +32,40 @@ router.get(
 );
 
 /**
- * GET /api/registro-evento/filtrar
- * Obtiene cursos con filtros (admin/encargado)
- * Query params: id_instructor, id_niv, id_carrera, estado, solo_mis_cursos
+ * @swagger
+ * /api/registro-evento/filtrar:
+ *   get:
+ *     summary: Filtrar cursos registrados por criterio
+ *     tags: [Registro Evento]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: id_instructor
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: id_niv
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: id_carrera
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: estado
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: solo_mis_cursos
+ *         schema:
+ *           type: string
+ *           enum: ['true', 'false']
+ *     responses:
+ *       200:
+ *         description: Cursos filtrados
+ *       401:
+ *         description: No autenticado
  */
 router.get(
   '/filtrar',
@@ -33,9 +74,34 @@ router.get(
 );
 
 /**
- * POST /api/registro-evento
- * Crea un nuevo registro de evento (vincula detalle con nivel)
- * Requiere: id_det, id_niv
+ * @swagger
+ * /api/registro-evento:
+ *   post:
+ *     summary: Crear registro de evento para un nivel
+ *     tags: [Registro Evento]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - id_det
+ *               - id_niv
+ *             properties:
+ *               id_det:
+ *                 type: string
+ *               id_niv:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Registro de evento creado
+ *       400:
+ *         description: Datos inválidos
+ *       401:
+ *         description: No autenticado
  */
 router.post(
   '/',
@@ -44,8 +110,18 @@ router.post(
 );
 
 /**
- * GET /api/registro-evento
- * Obtiene todos los registros de eventos
+ * @swagger
+ * /api/registro-evento:
+ *   get:
+ *     summary: Listar todos los registros de evento
+ *     tags: [Registro Evento]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Registros obtenidos
+ *       401:
+ *         description: No autenticado
  */
 router.get(
   '/',
@@ -54,8 +130,24 @@ router.get(
 );
 
 /**
- * GET /api/registro-evento/detalle/:id_det
- * Obtiene registros por detalle
+ * @swagger
+ * /api/registro-evento/detalle/{id_det}:
+ *   get:
+ *     summary: Listar registros de evento por detalle
+ *     tags: [Registro Evento]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id_det
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Registros asociados al detalle
+ *       401:
+ *         description: No autenticado
  */
 router.get(
   '/detalle/:id_det',
@@ -64,8 +156,24 @@ router.get(
 );
 
 /**
- * GET /api/registro-evento/nivel/:id_niv
- * Obtiene registros por nivel
+ * @swagger
+ * /api/registro-evento/nivel/{id_niv}:
+ *   get:
+ *     summary: Listar registros de evento por nivel académico
+ *     tags: [Registro Evento]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id_niv
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Registros asociados al nivel
+ *       401:
+ *         description: No autenticado
  */
 router.get(
   '/nivel/:id_niv',
@@ -74,8 +182,26 @@ router.get(
 );
 
 /**
- * GET /api/registro-evento/:id
- * Obtiene un registro de evento por ID
+ * @swagger
+ * /api/registro-evento/{id}:
+ *   get:
+ *     summary: Obtener registro de evento por ID
+ *     tags: [Registro Evento]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Registro encontrado
+ *       401:
+ *         description: No autenticado
+ *       404:
+ *         description: Registro no encontrado
  */
 router.get(
   '/:id',
@@ -84,8 +210,39 @@ router.get(
 );
 
 /**
- * PUT /api/registro-evento/:id
- * Actualiza un registro de evento
+ * @swagger
+ * /api/registro-evento/{id}:
+ *   put:
+ *     summary: Actualizar registro de evento
+ *     tags: [Registro Evento]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               id_det:
+ *                 type: string
+ *               id_niv:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Registro actualizado
+ *       400:
+ *         description: Datos inválidos
+ *       401:
+ *         description: No autenticado
+ *       404:
+ *         description: Registro no encontrado
  */
 router.put(
   '/:id',
@@ -94,8 +251,26 @@ router.put(
 );
 
 /**
- * DELETE /api/registro-evento/:id
- * Elimina un registro de evento
+ * @swagger
+ * /api/registro-evento/{id}:
+ *   delete:
+ *     summary: Eliminar registro de evento
+ *     tags: [Registro Evento]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Registro eliminado
+ *       401:
+ *         description: No autenticado
+ *       404:
+ *         description: Registro no encontrado
  */
 router.delete(
   '/:id',
