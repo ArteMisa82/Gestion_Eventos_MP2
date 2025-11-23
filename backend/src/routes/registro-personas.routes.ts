@@ -11,13 +11,31 @@ const registroService = new RegistroService();
 // ============================================
 
 /**
- * POST /api/registro-personas
- * Registrar al usuario autenticado en un curso
- * 
- * Body:
- * {
- *   "id_reg_evt": "REG001"
- * }
+ * @swagger
+ * /api/registro-personas:
+ *   post:
+ *     summary: Registrar al usuario autenticado en un curso
+ *     tags: [Registro Personas]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - id_reg_evt
+ *             properties:
+ *               id_reg_evt:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Registro exitoso
+ *       400:
+ *         description: Datos faltantes
+ *       401:
+ *         description: No autenticado
  */
 router.post('/', authMiddleware, async (req, res, next) => {
   try {
@@ -49,13 +67,31 @@ router.post('/', authMiddleware, async (req, res, next) => {
 });
 
 /**
- * POST /api/registro-personas/validar
- * Validar si el usuario puede registrarse en un curso
- * 
- * Body:
- * {
- *   "id_reg_evt": "REG001"
- * }
+ * @swagger
+ * /api/registro-personas/validar:
+ *   post:
+ *     summary: Validar si el usuario puede registrarse en un curso
+ *     tags: [Registro Personas]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - id_reg_evt
+ *             properties:
+ *               id_reg_evt:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Resultado de la validación
+ *       400:
+ *         description: Datos faltantes
+ *       401:
+ *         description: No autenticado
  */
 router.post('/validar', authMiddleware, async (req, res, next) => {
   try {
@@ -83,14 +119,31 @@ router.post('/validar', authMiddleware, async (req, res, next) => {
 });
 
 /**
- * POST /api/registro-personas/validar-completo
- * Validación COMPLETA pre-inscripción
- * Verifica: datos personales, documentos, permisos, cupo, costo
- * 
- * Body:
- * {
- *   "id_reg_evt": "REG001"
- * }
+ * @swagger
+ * /api/registro-personas/validar-completo:
+ *   post:
+ *     summary: Ejecutar validación completa antes de inscribirse
+ *     tags: [Registro Personas]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - id_reg_evt
+ *             properties:
+ *               id_reg_evt:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Resultado detallado de la validación
+ *       400:
+ *         description: Datos faltantes
+ *       401:
+ *         description: No autenticado
  */
 router.post('/validar-completo', authMiddleware, async (req, res, next) => {
   try {
@@ -118,8 +171,18 @@ router.post('/validar-completo', authMiddleware, async (req, res, next) => {
 });
 
 /**
- * GET /api/registro-personas/mis-registros
- * Obtener todos los registros del usuario autenticado
+ * @swagger
+ * /api/registro-personas/mis-registros:
+ *   get:
+ *     summary: Listar registros del usuario autenticado
+ *     tags: [Registro Personas]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Registros obtenidos
+ *       401:
+ *         description: No autenticado
  */
 router.get('/mis-registros', authMiddleware, async (req, res, next) => {
   try {
@@ -141,8 +204,26 @@ router.get('/mis-registros', authMiddleware, async (req, res, next) => {
 });
 
 /**
- * DELETE /api/registro-personas/:num_reg_per
- * Cancelar un registro (solo si el curso está en INSCRIPCIONES)
+ * @swagger
+ * /api/registro-personas/{num_reg_per}:
+ *   delete:
+ *     summary: Cancelar un registro de curso
+ *     tags: [Registro Personas]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: num_reg_per
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Registro cancelado
+ *       401:
+ *         description: No autenticado
+ *       404:
+ *         description: Registro no encontrado
  */
 router.delete('/:num_reg_per', authMiddleware, async (req, res, next) => {
   try {

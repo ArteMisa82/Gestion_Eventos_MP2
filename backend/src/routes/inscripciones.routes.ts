@@ -8,13 +8,50 @@ import { authMiddleware } from '../middlewares/auth.middleware';
 
 const router = Router();
 
+/**
+ * @swagger
+ * tags:
+ *   name: Inscripciones
+ *   description: Gestión de inscripciones de usuarios a eventos
+ */
+
 // ============= INSCRIPCIONES =============
 // Registro de usuarios en eventos
 
 /**
- * POST /api/inscripciones
- * Inscribe un usuario a un evento
- * Requiere: id_usu, id_reg_evt
+ * @swagger
+ * /api/inscripciones:
+ *   post:
+*     summary: Inscribir usuario a un evento
+*     tags: [Inscripciones]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - id_usu
+ *               - id_reg_evt
+ *             properties:
+ *               id_usu:
+ *                 type: string
+ *                 example: "14"
+ *               id_reg_evt:
+ *                 type: string
+ *                 example: "55"
+ *               fuente:
+ *                 type: string
+ *                 example: "portal_web"
+ *     responses:
+ *       201:
+ *         description: Inscripción creada correctamente
+ *       400:
+ *         description: Datos inválidos o inscripción duplicada
+ *       401:
+ *         description: No autenticado
  */
 router.post(
   '/',
@@ -23,9 +60,37 @@ router.post(
 );
 
 /**
- * POST /api/inscripciones/validar
- * Valida si un usuario puede inscribirse
- * Requiere: id_usu, id_reg_evt
+ * @swagger
+ * /api/inscripciones/validar:
+ *   post:
+ *     summary: Validar inscripción
+ *     description: Verifica requisitos y disponibilidad para inscribir a un usuario en un evento.
+ *     tags: [Inscripciones]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - id_usu
+ *               - id_reg_evt
+ *             properties:
+ *               id_usu:
+ *                 type: string
+ *                 example: "14"
+ *               id_reg_evt:
+ *                 type: string
+ *                 example: "55"
+ *     responses:
+ *       200:
+ *         description: Resultado de la validación
+ *       400:
+ *         description: Datos inválidos
+ *       401:
+ *         description: No autenticado
  */
 router.post(
   '/validar',
@@ -34,8 +99,18 @@ router.post(
 );
 
 /**
- * GET /api/inscripciones
- * Obtiene todas las inscripciones
+ * @swagger
+ * /api/inscripciones:
+ *   get:
+ *     summary: Listar todas las inscripciones
+ *     tags: [Inscripciones]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Inscripciones obtenidas correctamente
+ *       401:
+ *         description: No autenticado
  */
 router.get(
   '/',
@@ -44,8 +119,25 @@ router.get(
 );
 
 /**
- * GET /api/inscripciones/usuario/:id_usu
- * Obtiene inscripciones de un usuario
+ * @swagger
+ * /api/inscripciones/usuario/{id_usu}:
+ *   get:
+ *     summary: Obtener inscripciones de un usuario
+ *     tags: [Inscripciones]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id_usu
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID del usuario
+ *     responses:
+ *       200:
+ *         description: Inscripciones del usuario obtenidas
+ *       401:
+ *         description: No autenticado
  */
 router.get(
   '/usuario/:id_usu',
@@ -54,8 +146,25 @@ router.get(
 );
 
 /**
- * GET /api/inscripciones/evento/:id_reg_evt
- * Obtiene inscripciones de un registro de evento
+ * @swagger
+ * /api/inscripciones/evento/{id_reg_evt}:
+ *   get:
+ *     summary: Obtener inscripciones por registro de evento
+ *     tags: [Inscripciones]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id_reg_evt
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID del registro del evento (detalle_eventos)
+ *     responses:
+ *       200:
+ *         description: Inscripciones obtenidas
+ *       401:
+ *         description: No autenticado
  */
 router.get(
   '/evento/:id_reg_evt',
@@ -64,8 +173,25 @@ router.get(
 );
 
 /**
- * GET /api/inscripciones/estadisticas/:id_reg_evt
- * Obtiene estadísticas de inscripciones por evento
+ * @swagger
+ * /api/inscripciones/estadisticas/{id_reg_evt}:
+ *   get:
+ *     summary: Obtener estadísticas de inscripciones
+ *     tags: [Inscripciones]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id_reg_evt
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID del registro de evento
+ *     responses:
+ *       200:
+ *         description: Estadísticas calculadas
+ *       401:
+ *         description: No autenticado
  */
 router.get(
   '/estadisticas/:id_reg_evt',
@@ -74,8 +200,27 @@ router.get(
 );
 
 /**
- * GET /api/inscripciones/:id
- * Obtiene una inscripción por ID
+ * @swagger
+ * /api/inscripciones/{id}:
+ *   get:
+ *     summary: Obtener una inscripción específica
+ *     tags: [Inscripciones]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de la inscripción
+ *     responses:
+ *       200:
+ *         description: Inscripción encontrada
+ *       401:
+ *         description: No autenticado
+ *       404:
+ *         description: Inscripción no encontrada
  */
 router.get(
   '/:id',
@@ -84,8 +229,27 @@ router.get(
 );
 
 /**
- * DELETE /api/inscripciones/:id
- * Cancela una inscripción
+ * @swagger
+ * /api/inscripciones/{id}:
+ *   delete:
+ *     summary: Cancelar una inscripción
+ *     tags: [Inscripciones]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de la inscripción
+ *     responses:
+ *       200:
+ *         description: Inscripción cancelada correctamente
+ *       401:
+ *         description: No autenticado
+ *       404:
+ *         description: Inscripción no encontrada
  */
 router.delete(
   '/:id',

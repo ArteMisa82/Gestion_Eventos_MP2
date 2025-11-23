@@ -6,6 +6,7 @@ import routes from './routes';
 import { sessionConfig } from './utils/session.util';
 import prisma from './config/database';
 import { errorHandler } from './middlewares/errorHandler.middleware';
+import { swaggerUi, swaggerSpec } from './config/swagger';
 
 dotenv.config();
 
@@ -31,6 +32,12 @@ app.get('/', (req, res) => {
   res.send('Backend funcionando 🚀');
 });
 
+// 📚 Documentación Swagger
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: "API Gestión de Eventos - UTA"
+}));
+
 // ✔ Aquí se conectan TODAS tus rutas del proyecto (API REST)
 app.use('/api', routes);
 
@@ -46,6 +53,7 @@ app.listen(PORT, async () => {
     console.log(`✅ Base de datos conectada`);
     console.log(`🚀 Servidor backend en puerto ${PORT}`);
     console.log(`📡 API disponible en http://localhost:${PORT}/api`);
+    console.log(`📚 Documentación Swagger disponible en http://localhost:${PORT}/api-docs`);
   } catch (error) {
     console.error('❌ Error conectando a la base de datos:', error);
     process.exit(1);
