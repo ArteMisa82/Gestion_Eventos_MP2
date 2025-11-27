@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from "react";
-import { Pencil, Search } from "lucide-react";
+import { Pencil, Search, Star } from "lucide-react";
 import EditEventModal from "../EditarEventoModal"; // 👈 subimos un nivel
 
 interface Evento {
@@ -12,6 +12,7 @@ interface Evento {
   tip_pub_evt: string;
   est_evt_det: string;
   img_evt: string;
+  esFavorito: boolean;      // 👈 NUEVO
 }
 
 const EventosCompletosPage: React.FC = () => {
@@ -28,6 +29,7 @@ const EventosCompletosPage: React.FC = () => {
       tip_pub_evt: "GENERAL",
       est_evt_det: "EN CURSO",
       img_evt: "/Default_Image.png",
+      esFavorito: false,    // 👈 por defecto no favorito
     },
     {
       id_evt: "EVT002",
@@ -38,6 +40,7 @@ const EventosCompletosPage: React.FC = () => {
       tip_pub_evt: "USUARIOS UTA",
       est_evt_det: "FINALIZADO",
       img_evt: "/Default_Image.png",
+      esFavorito: false,
     },
     {
       id_evt: "EVT003",
@@ -48,17 +51,32 @@ const EventosCompletosPage: React.FC = () => {
       tip_pub_evt: "GENERAL",
       est_evt_det: "INSCRIPCIONES",
       img_evt: "/Default_Image.png",
+      esFavorito: false,
     },
   ]);
 
   const [eventoEditando, setEventoEditando] = useState<Evento | null>(null);
 
-  // Filtra por estado y búsqueda
+  // 🔄 Cambiar favorito / no favorito
+  const toggleFavorito = (id_evt: string) => {
+    setEventos((prev) =>
+      prev.map((evt) =>
+        evt.id_evt === id_evt
+          ? { ...evt, esFavorito: !evt.esFavorito }
+          : evt
+      )
+    );
+  };
+
+  // Filtra por estado y búsqueda (lista principal)
   const eventosFiltrados = eventos.filter(
     (e) =>
       e.est_evt_det === filtro &&
       e.nom_evt.toLowerCase().includes(busqueda.toLowerCase())
   );
+
+  // Lista de favoritos (sin importar el filtro de estado)
+  const eventosFavoritos = eventos.filter((e) => e.esFavorito);
 
   return (
     <div className="p-8 font-sans text-gray-800 min-h-screen bg-white">
@@ -102,7 +120,7 @@ const EventosCompletosPage: React.FC = () => {
         ))}
       </div>
 
-      {/* Tarjetas de cursos */}
+      {/* Tarjetas de cursos (lista principal) */}
       {eventosFiltrados.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {eventosFiltrados.map((evt) => (
@@ -133,10 +151,38 @@ const EventosCompletosPage: React.FC = () => {
                   <span className="font-medium">Modalidad:</span> {evt.mod_evt}
                 </p>
                 <p className="text-sm text-gray-600 mb-4">
-                  <span className="font-medium">Público:</span> {evt.tip_pub_evt}
+                  <span className="font-medium">Público:</span>{" "}
+                  {evt.tip_pub_evt}
                 </p>
 
-                <div className="flex justify-end">
+                <div className="flex justify-between items-center">
+                  {/* Botón favoritos */}
+                  <button
+                    onClick={() => toggleFavorito(evt.id_evt)}
+                    className="flex items-center gap-1 text-sm font-medium"
+                  >
+                    <Star
+                      size={16}
+                      className={
+                        evt.esFavorito
+                          ? "text-yellow-400 fill-yellow-400"
+                          : "text-gray-400"
+                      }
+                    />
+                    <span
+                      className={
+                        evt.esFavorito
+                          ? "text-yellow-500"
+                          : "text-gray-600 hover:text-gray-800"
+                      }
+                    >
+                      {evt.esFavorito
+                        ? "Quitar de favoritos"
+                        : "Añadir a favoritos"}
+                    </span>
+                  </button>
+
+                  {/* Botón editar */}
                   <button
                     onClick={() => setEventoEditando(evt)}
                     className="flex items-center gap-2 text-[#581517] hover:text-[#7a1c1c] text-sm font-medium"
@@ -153,6 +199,57 @@ const EventosCompletosPage: React.FC = () => {
           No hay cursos que coincidan con la búsqueda o el estado seleccionado.
         </p>
       )}
+
+      {/* Apartado de favoritos */}
+      <div className="mt-10">
+        <h2 className="text-xl font-semibold mb-4 text-center">
+          Eventos marcados como favoritos
+        </h2>
+
+        {eventosFavoritos.length > 0 ? (
+          <div className="flex gap-4 overflow-x-auto pb-2">
+            {eventosFavoritos.map((evt) => (
+              <div
+                key={evt.id_evt}
+                className="min-w-[260px] bg-white border border-yellow-200 rounded-lg shadow-sm p-4 flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-sm font-semibold text-gray-800">
+                      {evt.nom_evt}
+                    </h3>
+                    <Star
+                      size={16}
+                      className="text-yellow-400 fill-yellow-400"
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 mb-1">
+                    <span className="font-medium">Fecha:</span> {evt.fec_evt}
+                  </p>
+                  <p className="text-xs text-gray-500 mb-1">
+                    <span className="font-medium">Lugar:</span> {evt.lug_evt}
+                  </p>
+                  <p className="text-xs text-gray-500 mb-1">
+                    <span className="font-medium">Modalidad:</span>{" "}
+                    {evt.mod_evt}
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => toggleFavorito(evt.id_evt)}
+                  className="mt-3 text-[11px] text-[#581517] font-medium hover:text-[#7a1c1c] self-end"
+                >
+                  Quitar de favoritos
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-center text-gray-400 text-sm">
+            Aún no has marcado ningún evento como favorito.
+          </p>
+        )}
+      </div>
 
       {/* Modal de edición */}
       {eventoEditando && (
