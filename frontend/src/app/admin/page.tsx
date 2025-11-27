@@ -11,7 +11,6 @@ import {
 } from "lucide-react";
 
 type EstadoEvento = "NUEVO" | "EN_PROCESO" | "FINALIZADO";
-
 type TipoEvento = "CURSO" | "TALLER" | "SEMINARIO" | "WEBINAR";
 
 interface EventoDashboard {
@@ -74,7 +73,6 @@ const eventosMock: EventoDashboard[] = [
 ];
 
 const AdminDashboard: React.FC = () => {
-  // 📊 Cálculos centralizados (luego vendrán del backend)
   const {
     totalEventos,
     totalInscritos,
@@ -84,6 +82,7 @@ const AdminDashboard: React.FC = () => {
     favoritos,
     porcentajePorTipo,
     recientes,
+    totalInscritosGlobal,
   } = useMemo(() => {
     const totalEventos = eventosMock.length;
     const totalInscritos = eventosMock.reduce(
@@ -129,7 +128,6 @@ const AdminDashboard: React.FC = () => {
       return { tipo, valor, porcentaje };
     });
 
-    // Ordenar eventos recientes por fecha (desc)
     const recientes = [...eventosMock].sort(
       (a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime()
     );
@@ -143,8 +141,37 @@ const AdminDashboard: React.FC = () => {
       favoritos,
       porcentajePorTipo,
       recientes,
+      totalInscritosGlobal,
     };
   }, []);
+
+  // 🎨 Colores para categorías (si se añaden más, se reutilizan cíclicamente)
+  const palette = [
+    "#b91c1c", // rojo oscuro
+    "#f97316", // naranja
+    "#0ea5e9", // celeste
+    "#22c55e", // verde
+    "#6366f1", // índigo
+    "#eab308", // amarillo
+  ];
+
+  const donutData = porcentajePorTipo.map((item, index) => {
+    const label =
+      item.tipo === "CURSO"
+        ? "Cursos"
+        : item.tipo === "TALLER"
+        ? "Talleres"
+        : item.tipo === "SEMINARIO"
+        ? "Seminarios"
+        : "Webinars";
+
+    return {
+      label,
+      value: item.valor,
+      color: palette[index % palette.length],
+      porcentaje: item.porcentaje,
+    };
+  });
 
   return (
     <div className="p-8 font-sans text-gray-800 min-h-screen bg-white">
@@ -268,7 +295,7 @@ const AdminDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Gráfico porcentual por tipo de evento */}
+        {/* Gráfico porcentual por tipo de evento + Donut */}
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-5 xl:col-span-2">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
@@ -280,31 +307,93 @@ const AdminDashboard: React.FC = () => {
             </span>
           </div>
 
-          <div className="space-y-3">
-            {porcentajePorTipo.map(({ tipo, porcentaje, valor }) => (
-              <div key={tipo} className="space-y-1">
-                <div className="flex justify-between text-xs text-gray-600">
-                  <span className="font-medium">
-                    {tipo === "CURSO"
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+            {/* Barras horizontales */}
+            <div className="space-y-3">
+              {porcentajePorTipo.map(({ tipo, porcentaje, valor }, index) => {
+                const label =
+                  tipo === "CURSO"
+                    ? "Cursos"
+                    : tipo === "TALLER"
+                    ? "Talleres"
+                    : tipo === "SEMINARIO"
+                    ? "Seminarios"
+                    : "Webinars";
+
+                const color = palette[index % palette.length];
+
+                return (
+                  <div key={tipo} className="space-y-1">
+                    <div className="flex justify-between text-xs text-gray-600">
+                      <span className="font-medium">{label}</span>
+                      <span>
+                        {porcentaje}% · {valor} estudiantes
+                      </span>
+                    </div>
+                    <div className="w-full h-2 rounded-full bg-gray-100 overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all"
+                        style={{
+                          width: `${porcentaje}%`,
+                          backgroundColor: color,
+                        }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Donut circular */}
+            <div className="flex flex-col items-center justify-center gap-4">
+              <DonutChart
+                data={porcentajePorTipo.map((item, index) => {
+                  const label =
+                    item.tipo === "CURSO"
                       ? "Cursos"
-                      : tipo === "TALLER"
+                      : item.tipo === "TALLER"
                       ? "Talleres"
-                      : tipo === "SEMINARIO"
+                      : item.tipo === "SEMINARIO"
                       ? "Seminarios"
-                      : "Webinars"}
-                  </span>
-                  <span>
-                    {porcentaje}% · {valor} estudiantes
-                  </span>
-                </div>
-                <div className="w-full h-2 rounded-full bg-gray-100 overflow-hidden">
-                  <div
-                    className="h-full bg-[#581517] rounded-full transition-all"
-                    style={{ width: `${porcentaje}%` }}
-                  />
-                </div>
+                      : "Webinars";
+
+                  return {
+                    label,
+                    value: item.valor,
+                    color: palette[index % palette.length],
+                  };
+                })}
+                total={totalInscritosGlobal}
+              />
+
+              {/* Leyenda */}
+              <div className="grid grid-cols-2 gap-2 text-[11px] text-gray-600 w-full">
+                {porcentajePorTipo.map((item, index) => {
+                  const label =
+                    item.tipo === "CURSO"
+                      ? "Cursos"
+                      : item.tipo === "TALLER"
+                      ? "Talleres"
+                      : item.tipo === "SEMINARIO"
+                      ? "Seminarios"
+                      : "Webinars";
+
+                  const color = palette[index % palette.length];
+
+                  return (
+                    <div key={item.tipo} className="flex items-center gap-2">
+                      <span
+                        className="w-3 h-3 rounded-full"
+                        style={{ backgroundColor: color }}
+                      />
+                      <span>
+                        {label} ({item.porcentaje}%)
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
-            ))}
+            </div>
           </div>
         </div>
       </section>
@@ -400,14 +489,10 @@ const EstadoItem: React.FC<EstadoItemProps> = ({
 );
 
 const EstadoBadge: React.FC<{ estado: EstadoEvento }> = ({ estado }) => {
-  const map: Record<
-    EstadoEvento,
-    { label: string; classes: string }
-  > = {
+  const map: Record<EstadoEvento, { label: string; classes: string }> = {
     NUEVO: {
       label: "Nuevo",
-      classes:
-        "bg-emerald-50 text-emerald-700 border border-emerald-100",
+      classes: "bg-emerald-50 text-emerald-700 border border-emerald-100",
     },
     EN_PROCESO: {
       label: "En proceso",
@@ -427,6 +512,58 @@ const EstadoBadge: React.FC<{ estado: EstadoEvento }> = ({ estado }) => {
     >
       {label}
     </span>
+  );
+};
+
+// 🔵 Donut chart dinámico: se adapta al número de categorías
+interface DonutItem {
+  label: string;
+  value: number;
+  color: string;
+}
+
+const DonutChart: React.FC<{ data: DonutItem[]; total: number }> = ({
+  data,
+  total,
+}) => {
+  if (!data.length || total === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center text-xs text-gray-400">
+        <p>Sin datos suficientes para generar el gráfico.</p>
+      </div>
+    );
+  }
+
+  let acumulado = 0;
+  const segments = data.map((item) => {
+    const startAngle = (acumulado / total) * 360;
+    acumulado += item.value;
+    const endAngle = (acumulado / total) * 360;
+    return { ...item, startAngle, endAngle };
+  });
+
+  const gradient = segments
+    .map(
+      (seg) =>
+        `${seg.color} ${seg.startAngle.toFixed(2)}deg ${seg.endAngle.toFixed(
+          2
+        )}deg`
+    )
+    .join(", ");
+
+  return (
+    <div className="relative flex items-center justify-center">
+      <div
+        className="w-32 h-32 rounded-full"
+        style={{ backgroundImage: `conic-gradient(${gradient})` }}
+      />
+      <div className="absolute w-20 h-20 rounded-full bg-white flex flex-col items-center justify-center shadow-sm">
+        <p className="text-[10px] text-gray-400 uppercase tracking-wide">
+          Total
+        </p>
+        <p className="text-sm font-semibold text-gray-800">{total}</p>
+      </div>
+    </div>
   );
 };
 
