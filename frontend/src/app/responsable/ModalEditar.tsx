@@ -2,8 +2,8 @@
 import React, { useRef, useState, useEffect } from "react";
 import { X, Upload, Image as ImageIcon, ChevronDown, ChevronUp, Plus } from "lucide-react";
 import Swal from "sweetalert2";
-import { eventosAPI, usuariosAPI } from "@/services/api";
 import { useCategorias } from "@/contexts/CategoriasContext";
+import { eventosAPI, usuariosAPI, tarifasAPI } from "@/services/api";
 
 interface Evento {
   id: string;
@@ -474,10 +474,42 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
       console.log("Respuesta del servidor:", response);
 
       if (response && response.success) {
+          // === PATCH: Actualizar tarifas después de editar evento ===
+          try {
+            // Actualizar tarifa para ESTUDIANTE
+            await tarifasAPI.createOrUpdate({
+              id_evt: evento.id,
+              tip_par: 'ESTUDIANTE',
+              val_evt: Number(formData.precioEstudiantes ?? 0)
+            });
+            // Actualizar tarifa para PERSONA
+            await tarifasAPI.createOrUpdate({
+              id_evt: evento.id,
+              tip_par: 'PERSONA',
+              val_evt: Number(formData.precioGeneral ?? 0)
+            });
+          } catch (tarifaError: any) {
+            console.error('Error al actualizar tarifas:', tarifaError);
+            let tarifaErrorMsg = 'No se pudo actualizar la tarifa del evento.';
+            if (tarifaError && typeof tarifaError === 'object' && 'message' in tarifaError && typeof tarifaError.message === 'string') {
+              tarifaErrorMsg = tarifaError.message;
+            } else if (typeof tarifaError === 'string') {
+              tarifaErrorMsg = tarifaError;
+            }
+            Swal.fire({
+              icon: 'error',
+              title: 'Error al actualizar tarifas',
+              text: tarifaErrorMsg,
+              confirmButtonColor: '#581517'
+            });
+            // No retornamos, permitimos continuar con el flujo
+          }
         await Swal.fire({
           icon: "success",
           title: "¡Éxito!",
-          text: response.message || "El evento ha sido actualizado correctamente",
+          text: (response && typeof response === 'object' && 'message' in response && typeof response.message === 'string')
+            ? response.message
+            : "El evento ha sido actualizado correctamente",
           confirmButtonColor: "#581517"
         });
         onGuardar({ ...formData, imagen: formData.imagen || imageDefault });

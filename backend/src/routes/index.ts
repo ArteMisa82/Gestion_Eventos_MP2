@@ -15,6 +15,7 @@ import materialesRoutes from './materiales.routes';
 import calificacionesRoutes from './calificaciones.routes';
 
 import certificadosRoutes from './certificados.routes';
+import tarifasEventoRoutes from './tarifas-evento.routes';
 
 const router = Router();
 
@@ -34,5 +35,7 @@ router.use('/materiales', materialesRoutes);
 router.use('/calificaciones', calificacionesRoutes);
 
 router.use('/certificados', certificadosRoutes);
+
+router.use('/tarifas-evento', tarifasEventoRoutes);
 
 export default router;
