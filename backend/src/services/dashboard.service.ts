@@ -33,7 +33,8 @@ export const getDashboardMetrics = async (): Promise<DashboardSummary> => {
 
   // 1. Cards: totales principales
   const [totalStudents, totalEvents, favoriteEvents] = await Promise.all([
-    prisma.registro_personas.count(),
+    // Total de estudiantes (tabla estudiantes)
+    prisma.estudiantes.count(),
     prisma.eventos.count(),
     prisma.eventos.count({ where: { fav_evt: 1 } }),
   ]);
@@ -61,7 +62,7 @@ export const getDashboardMetrics = async (): Promise<DashboardSummary> => {
 
   const activeEvents = enProceso; // para la card "Actividad actual"
 
-  // 3. Distribución por tipo de evento (join grande -> queryRaw)
+  // 3. Distribución por tipo de evento (por inscripciones)
   const rawDistribution = await prisma.$queryRaw<
     Array<{ tipo: string | null; inscritos: bigint }>
   >`
@@ -91,7 +92,10 @@ export const getDashboardMetrics = async (): Promise<DashboardSummary> => {
           ),
   }));
 
-  // 4. Eventos recientes (últimos 5)
+  // 4. Eventos recientes: eventos que recientemente pasaron
+  //    -> Solo eventos con fec_evt < hoy
+  //    -> Ordenados del más reciente al menos reciente
+  //    -> Máximo 5
   const recentEventsRaw = await prisma.$queryRaw<
     Array<{
       id_evt: string;
@@ -113,6 +117,7 @@ export const getDashboardMetrics = async (): Promise<DashboardSummary> => {
     LEFT JOIN detalle_eventos d ON d.id_evt_per = e.id_evt
     LEFT JOIN registro_evento re ON re.id_det = d.id_det
     LEFT JOIN registro_personas rp ON rp.id_reg_evt = re.id_reg_evt
+    WHERE e.fec_evt < CURRENT_DATE
     GROUP BY e.id_evt, e.nom_evt, e.fec_evt, e.est_evt
     ORDER BY e.fec_evt DESC
     LIMIT 5;
