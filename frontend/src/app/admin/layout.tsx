@@ -17,6 +17,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     { name: "Eventos", icon: <Calendar size={18} />, href: "/admin/events" },
     { name: "Validaciones", icon: <FileCheck size={18} />, href: "/admin/validaciones" },
     { name: "Contenido", icon: <Settings size={18} />, href: "/admin/contenido" },
+    { name: "Categorías", icon: <Settings size={18} />, href: "/admin/categorias" },
   ];
 
   const handleLogout = () => {
