@@ -7,6 +7,7 @@ import { sessionConfig } from './utils/session.util';
 import prisma from './config/database';
 import { errorHandler } from './middlewares/errorHandler.middleware';
 
+
 dotenv.config();
 
 const app = express();
