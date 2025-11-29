@@ -1,0 +1,190 @@
+.wrapper {
+  padding: 24px 32px;
+  min-height: 100%;
+  background: var(--panel-bg, #ffffff);
+}
+
+.title {
+  text-align: center;
+  color: #161616;
+  letter-spacing: 1px;
+  font-weight: 600;
+  margin: 8px 0 24px;
+}
+
+/* (se mantiene por compatibilidad, pero ya no lo usamos) */
+.grid {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 24px;
+}
+
+/* === NUEVO: grid para cursos (3 por fila) === */
+.coursesGrid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 22px;
+  margin-bottom: 30px;
+}
+
+/* 3 cards por fila en desktop (antes: span 6) */
+.card {
+  grid-column: span 4;
+  background: #f4f4f7;
+  border-radius: 10px;
+  padding: 10px 14px 18px;
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  border: 1px solid #e6e6ea;
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 24px rgba(0,0,0,.12);
+}
+
+.thumb {
+  border-radius: 12px;
+  overflow: hidden;
+  height: 180px;
+  background: #ddd;
+  margin-bottom: 10px;
+}
+.thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.metaRow {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  margin: 6px 0 8px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #7a6b6b;
+  border: 1px solid #eee;
+  text-transform: uppercase;
+  letter-spacing: .3px;
+}
+
+.courseTitle {
+  margin: 4px 0 0;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: .3px;
+  text-transform: uppercase;
+  color: #33323a;
+  line-height: 1.25;
+}
+
+/* Responsivo */
+@media (max-width: 1024px) {
+  .card { grid-column: span 12; } /* 1 por fila en tablet/móvil */
+  .thumb { height: 160px; }
+}
+
+.titleLeft {
+  text-align: left;
+  color: #333;
+  font-size: 22px;
+  font-weight: 700;
+  margin: 20px 0 10px 10px;
+}
+
+/* === AJUSTE: eventos dentro del contenedor === */
+.eventsGrid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 24px;
+  margin: 10px 0 40px; /* sin max-width ni auto, para alinearse al container */
+}
+
+.eventCard {
+  grid-column: span 4;
+  background: #f9f9fb;
+  border-radius: 12px;
+  overflow: hidden;
+  padding-bottom: 15px;
+  border: 1px solid #e6e6e6;
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+
+.eventCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 24px rgba(0,0,0,.12);
+}
+
+.eventCard img {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+}
+
+.eventCard h3 {
+  margin: 12px 12px 6px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.eventCard p {
+  margin: 0 12px;
+  color: #666;
+}
+
+/* Responsivo */
+@media (max-width: 1024px) {
+  .eventCard { grid-column: span 12; }
+}
+
+/* Barra superior interna */
+.topBar {
+  background: #7a1e1e;   /* rojo institucional */
+  color: #fff;
+  padding: 14px 0;
+  margin-bottom: 10px;
+}
+.topBarInner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.topBarInner h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+/* Contenedor para alinear títulos y grids */
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 12px;
+}
+
+/* === NUEVO: título de sección dentro del container === */
+.sectionTitle {
+  text-align: left;
+  color: #333;
+  font-size: 22px;
+  font-weight: 800;
+  margin: 16px 0 12px;
+  letter-spacing: .3px;
+}
