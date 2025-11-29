@@ -55,7 +55,7 @@ export class PagosService {
     // MÉTODO AUXILIAR: OBTENER DATOS PARA LA ORDEN DE PAGO
     // --------------------------------------------------------
 
-    async getOrderData(numRegPer: number): Promise<OrderData> {
+    async getOrderData(numRegPer: number): Promise<OrderData & { requisitos_completos: boolean }> {
 
         const registrationData = await prisma.registro_personas.findUnique({
             where: { num_reg_per: numRegPer },
@@ -64,7 +64,7 @@ export class PagosService {
                     select: {
                         nom_usu: true,
                         ape_usu: true,
-                        ced_usu: true, // OPCIONAL en Prisma
+                        ced_usu: true,
                     }
                 },
                 registro_evento: {
@@ -82,6 +82,7 @@ export class PagosService {
                         }
                     }
                 },
+                requisitos: true, // <- Asumimos que existe un campo que indica requisitos completados
             }
         });
 
@@ -101,15 +102,15 @@ export class PagosService {
                 tip_par: "",
                 nom_per: user.nom_usu,
                 ape_per: user.ape_usu,
-                ced_per: user.ced_usu ?? "",   // <-- CORREGIDO
+                ced_per: user.ced_usu ?? "",
                 fec_limite: "",
-                metodos_pago: ""
+                metodos_pago: "",
+                requisitos_completos: true
             };
         }
 
         const eventId = registrationData.registro_evento.detalle_eventos.id_evt_per;
 
-        // Buscar tarifa
         const tarifa = await prisma.tarifas_evento.findFirst({
             where: { id_evt: eventId },
             select: { val_evt: true, tip_par: true }
@@ -119,24 +120,19 @@ export class PagosService {
             throw new Error('El evento requiere pago, pero no existe tarifa definida.');
         }
 
-        // Construcción del objeto final
-        const orderData: OrderData = {
+        const orderData: OrderData & { requisitos_completos: boolean } = {
             num_orden: numRegPer,
             nom_evt: event.nom_evt,
             val_evt: tarifa.val_evt.toNumber(),
             tip_par: tarifa.tip_par,
-
             nom_per: user.nom_usu,
             ape_per: user.ape_usu,
-            ced_per: user.ced_usu ?? "",   // <-- CORREGIDO (evita error)
-
-            fec_limite: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-                .toISOString()
-                .split('T')[0],
-
+            ced_per: user.ced_usu ?? "",
+            fec_limite: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
             metodos_pago:
                 'Transferencia bancaria a cuenta UTA: XXXXXX\n' +
-                'Pago en ventanilla Banco Pichincha.'
+                'Pago en ventanilla Banco Pichincha.',
+            requisitos_completos: registrationData.requisitos ?? false
         };
 
         return orderData;
@@ -149,6 +145,10 @@ export class PagosService {
     async generatePaymentOrder(numRegPer: number): Promise<Buffer | string> {
 
         const orderData = await this.getOrderData(numRegPer);
+
+        if (!orderData.requisitos_completos) {
+            return 'No se puede generar la orden de pago: requisitos incompletos.';
+        }
 
         if (orderData.val_evt === 0) {
             return `El evento "${orderData.nom_evt}" es GRATUITO. No necesita orden de pago.`;
@@ -198,5 +198,28 @@ export class PagosService {
             where: { num_pag: pagoExistente.num_pag },
             data: { pag_o_no: aprobado ? 1 : 0 }
         });
+    }
+
+    // --------------------------------------------------------
+    // NUEVO MÉTODO: OBTENER DATA DEL PAGO (PARA VERIFICACIÓN DE RESPONSABLE)
+    // --------------------------------------------------------
+    async getPagoData(numRegPer: number) {
+
+        const pago = await prisma.pagos.findFirst({
+            where: { num_reg_per: numRegPer },
+            include: {
+                registro_personas: true, // Para acceder a quien puede validar
+            }
+        });
+
+        if (!pago) return null;
+
+        return {
+            ...pago,
+            esResponsable: (userId: number) => {
+                // Lógica: si el userId coincide con el responsable o es admin
+                return pago.registro_personas.responsable_id === userId || pago.registro_personas.es_admin;
+            }
+        };
     }
 }
