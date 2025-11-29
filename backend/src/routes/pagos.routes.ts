@@ -1,11 +1,13 @@
+// backend/src/routes/pagos.routes.ts
 import { Router } from 'express';
 import { PagosController } from '../controllers/pagos.controller';
 import multer from 'multer';
-import { authMiddleware, adminMiddleware } from '../middlewares/auth.middleware'; 
+import { authMiddleware, adminMiddleware } from '../middlewares/auth.middleware';
 
 const router = Router();
 const pagosController = new PagosController();
 
+// Configuración de subida de archivos
 const upload = multer({ dest: 'uploads/comprobantes/' });
 
 /**
@@ -60,7 +62,6 @@ router.get('/tarifas/:idEvento', pagosController.getTarifas);
  */
 router.post('/registrar', pagosController.registrarPago);
 
-// PDF Orden de Pago
 /**
  * @swagger
  * /api/pagos/orden_pago/{numRegPer}:
@@ -76,13 +77,8 @@ router.post('/registrar', pagosController.registrarPago);
  *     responses:
  *       200:
  *         description: PDF generado correctamente
- *         content:
- *           application/pdf:
- *             schema:
- *               type: string
- *               format: binary
  *       400:
- *         description: Identificador inválido
+ *         description: Identificador inválido o requisitos faltantes
  *       404:
  *         description: Registro o evento no encontrado
  */
@@ -124,8 +120,8 @@ router.get('/orden_pago/:numRegPer', pagosController.getPaymentOrder);
  */
 router.post(
     '/subir-comprobante/:numRegPer',
-    authMiddleware,                // <--- Nombre correcto del middleware
-    upload.single('comprobante'),  // Campo del archivo
+    authMiddleware,                 // Requiere login
+    upload.single('comprobante'),   // Subida del archivo
     pagosController.subirComprobante
 );
 
@@ -167,7 +163,7 @@ router.post(
  */
 router.put(
     '/validar/:numRegPer',
-    adminMiddleware,               // <--- Nombre correcto
+    adminMiddleware,                // Solo el responsable/admin puede validar
     pagosController.validarComprobante
 );
 
