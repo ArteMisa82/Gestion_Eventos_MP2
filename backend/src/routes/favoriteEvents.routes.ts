@@ -1,15 +1,27 @@
+// backend/src/routes/favoriteEvents.routes.ts
 import { Router } from "express";
 import {
   toggleFavorito,
   listarFavoritos,
-} from "../controllers/favoriteEvents.controller";  // Importar los controladores
+} from "../controllers/favoriteEvents.controller";
+import {
+  requireAuth,
+  requireAdmin,
+} from "../middlewares/session.middleware";
 
-const router = Router();    
+const router = Router();
 
-// Ruta para marcar/desmarcar evento como favorito
-router.patch("/:id_evt/favorito", toggleFavorito);
+// Solo un usuario autenticado **y** Administrador
+// puede marcar / desmarcar favoritos
+router.patch(
+  "/:id_evt/favorito",
+  requireAuth,
+  requireAdmin,
+  toggleFavorito
+);
 
-// Ruta para obtener los eventos favoritos
+// La lista de favoritos SÍ puede ser pública
+// (si quieren también se puede proteger)
 router.get("/favoritos/list", listarFavoritos);
 
-export default router;  // Exportar las rutas para ser usadas en `main.ts`
+export default router;
