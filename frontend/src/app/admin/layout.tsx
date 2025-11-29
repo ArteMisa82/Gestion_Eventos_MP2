@@ -2,7 +2,7 @@
 import React, { ReactNode } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { Calendar, FileCheck, LayoutDashboard, Settings, LogOut } from "lucide-react";
+import { Calendar, FileCheck, LayoutDashboard, Settings, LogOut, Folder } from "lucide-react";
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -17,7 +17,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     { name: "Eventos", icon: <Calendar size={18} />, href: "/admin/events" },
     { name: "Validaciones", icon: <FileCheck size={18} />, href: "/admin/validaciones" },
     { name: "Contenido", icon: <Settings size={18} />, href: "/admin/contenido" },
-    { name: "Categorías", icon: <Settings size={18} />, href: "/admin/categorias" },
+    { name: "Categorías", icon: <Folder size={18} />, href: "/admin/categoria" },
   ];
 
   const handleLogout = () => {

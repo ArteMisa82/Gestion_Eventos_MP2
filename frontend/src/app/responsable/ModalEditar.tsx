@@ -1,8 +1,9 @@
 "use client";
 import React, { useRef, useState, useEffect } from "react";
-import { X, Upload, Image as ImageIcon, ChevronDown, ChevronUp } from "lucide-react";
+import { X, Upload, Image as ImageIcon, ChevronDown, ChevronUp, Plus } from "lucide-react";
 import Swal from "sweetalert2";
 import { eventosAPI, usuariosAPI } from "@/services/api";
+import { useCategorias } from "@/contexts/CategoriasContext";
 
 interface Evento {
   id: string;
@@ -10,7 +11,7 @@ interface Evento {
   fechaInicio: string;
   fechaFin: string;
   modalidad: string;
-  cupos?: number; // Alias de capacidad
+  cupos?: number;
   capacidad?: number;
   publico: string;
   horas: number;
@@ -27,9 +28,10 @@ interface Evento {
   semestres: string[];
   tipoEvento: string;
   docentes?: string[];
-  docente?: string; // Para compatibilidad
+  docente?: string;
   imagen?: string;
-  // Campos del backend
+  categoria?: string;
+  requisitosCategoria?: string[];
   id_evt?: string;
   nom_evt?: string;
   fec_evt?: string;
@@ -62,6 +64,10 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
   const hoy = new Date().toISOString().split("T")[0];
   const imageDefault = "/Default_Image.png";
 
+  const { categorias } = useCategorias();
+  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string>("");
+  const [requisitosCargados, setRequisitosCargados] = useState<string[]>([]);
+
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [docFilter, setDocFilter] = useState("");
   const [docFiltered, setDocFiltered] = useState<Usuario[]>([]);
@@ -91,6 +97,8 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
     tipoEvento: evento.tipoEvento || "",
     docentes: evento.docentes || (evento.docente ? [evento.docente] : []),
     imagen: evento.imagen || imageDefault,
+    categoria: evento.categoria || "",
+    requisitosCategoria: evento.requisitosCategoria || [],
   });
 
   // Cargar usuarios desde el backend
@@ -142,14 +150,36 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
     };
   }, []);
 
+  // Cargar categoría y requisitos cuando cambie la selección
+  useEffect(() => {
+    if (categoriaSeleccionada) {
+      const categoriaEncontrada = categorias.find(cat => cat.id === categoriaSeleccionada);
+      if (categoriaEncontrada) {
+        setRequisitosCargados(categoriaEncontrada.requisitos);
+        setFormData(prev => ({
+          ...prev,
+          categoria: categoriaEncontrada.nombre,
+          requisitosCategoria: categoriaEncontrada.requisitos
+        }));
+      }
+    } else {
+      setRequisitosCargados([]);
+      setFormData(prev => ({
+        ...prev,
+        categoria: "",
+        requisitosCategoria: []
+      }));
+    }
+  }, [categoriaSeleccionada, categorias]);
+
+  const handleCategoriaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const categoriaId = e.target.value;
+    setCategoriaSeleccionada(categoriaId);
+  };
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const carrerasDisponibles = ["Software", "TI", "Telecomunicaciones", "Robótica"];
-  const semestresDisponibles = [
-    "1er semestre", "2do semestre", "3er semestre", "4to semestre", 
-    "5to semestre", "6to semestre", "7mo semestre", "8vo semestre", 
-    "9no semestre", "10mo semestre"
-  ];
+  
   const tiposEventos = ["CONFERENCIA", "CURSO", "WEBINAR", "CONGRESO", "CASAS ABIERTAS"];
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -192,15 +222,12 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
     const nombreCompleto = `${docente.nom_usu} ${docente.ape_usu}`;
     const docentesActuales = formData.docentes || [];
     
-    // Verificar si ya está seleccionado
     if (docentesActuales.includes(nombreCompleto)) {
-      // Si ya está, quitarlo
       setFormData((prev) => ({ 
         ...prev, 
         docentes: docentesActuales.filter(d => d !== nombreCompleto) 
       }));
     } else {
-      // Si no está y hay espacio (máximo 2), agregarlo
       if (docentesActuales.length < 2) {
         setFormData((prev) => ({ 
           ...prev, 
@@ -222,7 +249,6 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
     const value = e.target.value;
     setDocFilter(value);
     
-    // Abrir el combo box cuando el usuario empiece a escribir
     if (!isComboOpen) {
       setIsComboOpen(true);
     }
@@ -230,7 +256,6 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
 
   const handleToggleCombo = () => {
     setIsComboOpen(!isComboOpen);
-    // Si se abre el combo y no hay filtro, mostrar todos los docentes
     if (!isComboOpen && !docFilter) {
       setDocFiltered(usuarios);
     }
@@ -245,14 +270,11 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
 
   const handleGuardar = async () => {
     console.log("=== INICIANDO handleGuardar ===");
+    console.log("Categoría seleccionada:", formData.categoria);
+    console.log("Requisitos cargados:", formData.requisitosCategoria);
     console.log("formData al inicio:", JSON.stringify(formData, null, 2));
-    console.log("formData.tipoEvento:", formData.tipoEvento);
-    console.log("formData.nombre:", formData.nombre);
-    console.log("formData.horas:", formData.horas);
-    console.log("formData.cupos:", formData.cupos);
     
     try {
-      // validaciones básicas
       if (!formData.nombre || formData.nombre.trim() === "") {
         console.error("❌ Error: Nombre requerido - formData.nombre:", formData.nombre);
         Swal.fire({ 
@@ -296,7 +318,6 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
         return;
       }
 
-      // Validar que horas sea un número válido
       const horasNum = Number(formData.horas);
       if (isNaN(horasNum) || horasNum <= 0 || !Number.isInteger(horasNum)) {
         Swal.fire({ 
@@ -318,7 +339,6 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
         return;
       }
 
-      // Validar que cupos sea un número válido
       const cuposNum = Number(formData.cupos);
       if (isNaN(cuposNum) || cuposNum <= 0 || !Number.isInteger(cuposNum)) {
         Swal.fire({ 
@@ -329,6 +349,7 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
         });
         return;
       }
+
       if (formData.fechaFin < formData.fechaInicio) {
         Swal.fire({ 
           icon: "error", 
@@ -339,7 +360,6 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
         return;
       }
 
-      // si es CURSO, validar nota (0-10)
       if (formData.tipoEvento === "CURSO") {
         if (formData.nota! < 0 || formData.nota! > 10) {
           Swal.fire({ 
@@ -352,7 +372,6 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
         }
       }
 
-      // si es pago, validar precios
       if (formData.pago === "Pago") {
         if ((formData.precioEstudiantes ?? 0) < 0 || (formData.precioGeneral ?? 0) < 0) {
           Swal.fire({ 
@@ -380,13 +399,11 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
       console.log("FormData completo:", JSON.parse(JSON.stringify(formData)));
       console.log("Evento original:", JSON.parse(JSON.stringify(evento)));
       
-      // Mapear datos del frontend a la estructura del backend
       const costoEvento = formData.pago === "Gratuito" ? "GRATUITO" : "DE PAGO";
       const modalidadEvento = formData.modalidad === "Presencial" ? "PRESENCIAL" : "VIRTUAL";
       const publicoEvento = formData.publico === "General" ? "GENERAL" : 
                            formData.publico === "Estudiantes" ? "ESTUDIANTES" : "ADMINISTRATIVOS";
 
-      // Mapear tipo de evento del frontend al backend
       const mapearTipoEvento = (tipo: string): string => {
         const mapeo: { [key: string]: string } = {
           "CONFERENCIA": "CONFERENCIAS",
@@ -404,14 +421,12 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
       console.log("Tipo original:", formData.tipoEvento);
       console.log("Tipo mapeado:", tipoEventoMapeado);
       
-      // Validar que el tipo mapeado sea válido
       const tiposValidos = ['CURSO', 'CONGRESO', 'WEBINAR', 'CONFERENCIAS', 'SOCIALIZACIONES', 'CASAS ABIERTAS', 'SEMINARIOS', 'OTROS'];
       if (!tiposValidos.includes(tipoEventoMapeado)) {
         console.error("❌ Error: Tipo de evento no válido después del mapeo:", tipoEventoMapeado);
         throw new Error(`Tipo de evento no válido: ${formData.tipoEvento} → ${tipoEventoMapeado}`);
       }
 
-      // Validar y limpiar datos antes de enviar
       const eventoData = {
         nom_evt: formData.nombre.trim(),
         fec_evt: formData.fechaInicio,
@@ -421,24 +436,24 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
         tip_pub_evt: publicoEvento,
         cos_evt: costoEvento,
         ima_evt: formData.imagen || imageDefault,
-        carreras: formData.carreras || [], // Agregar carreras seleccionadas
-        semestres: formData.semestres || [], // Agregar semestres seleccionados
+        carreras: formData.carreras || [],
+        semestres: formData.semestres || [],
+        categoria: formData.categoria || "", // Incluir categoría
+        requisitosCategoria: formData.requisitosCategoria || [], // Incluir requisitos
         detalles: {
           cup_det: Number(formData.cupos ?? formData.capacidad ?? 30),
           hor_det: Number(formData.horas || 40),
           cat_det: tipoEventoMapeado,
           asi_evt_det: Number(formData.asistenciaMinima || 0),
           not_min_evt: Number(formData.nota || 0),
-          are_det: "TECNOLOGIA E INGENIERIA" // Área por defecto
+          are_det: "TECNOLOGIA E INGENIERIA"
         }
       };
 
-      // VALIDACIONES CRÍTICAS DE CONVERSIÓN NUMÉRICA
       console.log("=== VALIDANDO CONVERSIONES NUMÉRICAS ===");
       console.log("formData.cupos original:", formData.cupos, "tipo:", typeof formData.cupos);
       console.log("formData.horas original:", formData.horas, "tipo:", typeof formData.horas);
       
-      // Validar que los números sean válidos después de conversión
       if (isNaN(eventoData.detalles.cup_det) || eventoData.detalles.cup_det <= 0) {
         console.error("Error en conversión de cupos:", formData.cupos, "->", eventoData.detalles.cup_det);
         throw new Error(`El número de cupos debe ser un número válido mayor a 0. Valor recibido: "${formData.cupos}"`);
@@ -458,7 +473,6 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
       
       console.log("Respuesta del servidor:", response);
 
-      // El backend devuelve { success: true, message: string, data: any }
       if (response && response.success) {
         await Swal.fire({
           icon: "success",
@@ -482,12 +496,10 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
         if (error.response) console.error("Response:", error.response);
       }
       
-      // Intentar obtener más detalles del error
       let errorMessage = "No se pudo actualizar el evento. Por favor, intenta de nuevo.";
       
       if (error && typeof error === 'object') {
         if (error.message && typeof error.message === 'string') {
-          // Errores específicos más amigables
           if (error.message.includes('cup_det')) {
             errorMessage = "Error en el número de cupos. Debe ser un número válido mayor a 0.";
           } else if (error.message.includes('hor_det')) {
@@ -603,6 +615,60 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
                   <option value="General">Público General</option>
                 </select>
               </div>
+
+              {/* Selector de Categoría - CORREGIDO */}
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Categoría del Evento
+                </label>
+                <div className="flex gap-3">
+                  <select 
+                    value={categoriaSeleccionada}
+                    onChange={handleCategoriaChange}
+                    className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#581517]"
+                  >
+                    <option value="">Seleccionar categoría</option>
+                    {categorias.map((categoria) => (
+                      <option key={categoria.id} value={categoria.id}>
+                        {categoria.nombre}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => window.open('/admin/categorias', '_blank')}
+                    className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors"
+                  >
+                    <Plus size={16} />
+                    Nueva Categoría
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  Selecciona una categoría para cargar automáticamente sus requisitos
+                </p>
+              </div>
+
+              {/* Mostrar requisitos de la categoría seleccionada */}
+              {requisitosCargados.length > 0 && (
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Requisitos de la categoría "{formData.categoria}"
+                  </label>
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <ul className="space-y-2">
+                      {requisitosCargados.map((requisito, index) => (
+                        <li key={index} className="flex items-center gap-3 text-sm text-gray-700">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                          {requisito}
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="text-xs text-blue-600 mt-3 font-medium">
+                      ✓ Estos requisitos se aplicarán automáticamente al evento
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </section>
 
@@ -892,52 +958,8 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
           </section>
 
           {/* Público objetivo específico (solo si Estudiantes) */}
-          {formData.publico === "Estudiantes" && (
-            <section>
-              <h3 className="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100">Público - Estudiantes</h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">Carreras dirigidas</label>
-                  <div className="flex flex-wrap gap-2">
-                    {carrerasDisponibles.map((carrera) => (
-                      <button 
-                        key={carrera} 
-                        onClick={() => handleMultiSelect("carreras" as keyof Evento, carrera)} 
-                        type="button" 
-                        className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all ${
-                          formData.carreras.includes(carrera) 
-                            ? "bg-[#581517] text-white border-[#581517] shadow-sm" 
-                            : "border-gray-300 text-gray-700 hover:border-[#581517] hover:text-[#581517] bg-white"
-                        }`}
-                      >
-                        {carrera}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">Semestres dirigidos</label>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
-                    {semestresDisponibles.map((semestre) => (
-                      <button 
-                        key={semestre} 
-                        onClick={() => handleMultiSelect("semestres" as keyof Evento, semestre)} 
-                        type="button" 
-                        className={`px-3 py-2 rounded-lg text-sm font-medium border transition-all ${
-                          formData.semestres.includes(semestre) 
-                            ? "bg-[#581517] text-white border-[#581517] shadow-sm" 
-                            : "border-gray-300 text-gray-700 hover:border-[#581517] hover:text-[#581517] bg-white"
-                        }`}
-                      >
-                        {semestre}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </section>
-          )}
+          
+          
         </div>
 
         {/* Footer */}

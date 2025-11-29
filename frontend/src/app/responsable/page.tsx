@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Calendar, Edit, Loader2, ArrowLeft } from "lucide-react";
+import { Calendar, Edit, Loader2, ArrowLeft, Users, GraduationCap } from "lucide-react";
 import ModalEditarEvento from "./ModalEditar";
 import Swal from "sweetalert2";
 import { eventosAPI } from "@/services/api";
@@ -20,8 +20,6 @@ interface Evento {
   semestres: string[];
   tipoEvento: string;
   camposExtra: Record<string, string>;
-
-  // 🆕 Nuevo campo
   estado: "Editando" | "Publicado" | "Cerrado";
   // Campos del backend
   id_evt?: string;
@@ -45,37 +43,34 @@ export default function DashboardResponsable() {
   useEffect(() => {
     const fetchMisEventos = async () => {
       try {
-        // ✅ Llamar al endpoint de mis eventos (usa cookies de sesión)
         const response = await eventosAPI.getMisEventos();
-        const data = response.data || response; // Extraer data de la respuesta del backend
+        const data = response.data || response;
         
-        // Verificar que sea un array antes de mapear
         if (!Array.isArray(data)) {
           console.error("Los datos no son un array:", data);
           throw new Error("Formato de datos inválido recibido del servidor");
         }
         
-        // Transformar datos del backend al formato del frontend
         const eventosTransformados: Evento[] = data.map((evento: any) => ({
           id: evento.id_evt,
           id_evt: evento.id_evt,
           nombre: evento.nom_evt,
           nom_evt: evento.nom_evt,
           fechaInicio: evento.fec_evt ? new Date(evento.fec_evt).toLocaleDateString() : "",
-          fechaFin: "", // Por definir
+          fechaFin: "",
           fec_evt: evento.fec_evt,
           modalidad: evento.mod_evt || "",
           mod_evt: evento.mod_evt,
-          capacidad: 0, // Por definir desde detalle_eventos
+          capacidad: 0,
           publico: evento.tip_pub_evt === "PUBLICO" ? "General" : "Estudiantes",
           tip_pub_evt: evento.tip_pub_evt,
-          horas: 0, // Por definir desde detalle_eventos
+          horas: 0,
           pago: evento.cos_evt === "GRATIS" ? "Gratis" : "Pago",
           cos_evt: evento.cos_evt,
-          carreras: [],
-          semestres: [],
-          tipoEvento: "",
-          camposExtra: {},
+          carreras: evento.carreras || [],
+          semestres: evento.semestres || [],
+          tipoEvento: evento.tipoEvento || "",
+          camposExtra: evento.camposExtra || {},
           lug_evt: evento.lug_evt,
           des_evt: evento.des_evt,
           est_evt: evento.est_evt,
@@ -100,7 +95,6 @@ export default function DashboardResponsable() {
   }, []);
 
   const handleGuardar = (eventoActualizado: any) => {
-    // Asegurarse de que tenga todas las propiedades necesarias
     const eventoCompleto: Evento = {
       id: eventoActualizado.id,
       nombre: eventoActualizado.nombre,
@@ -117,7 +111,6 @@ export default function DashboardResponsable() {
       camposExtra: eventoActualizado.camposExtra || {},
       docente: eventoActualizado.docente,
       estado: eventoActualizado.estado || "Editando",
-      // Campos del backend - actualizar con los valores del modal
       id_evt: eventoActualizado.id_evt,
       nom_evt: eventoActualizado.nom_evt,
       fec_evt: eventoActualizado.fechaInicio,
@@ -133,23 +126,18 @@ export default function DashboardResponsable() {
       prev.map((ev) => (ev.id === eventoCompleto.id ? eventoCompleto : ev))
     );
     setEventoEditando(null);
-
-    // El mensaje de éxito ya lo muestra el modal
   };
 
   const handleEstadoChange = async (id: string, nuevoEstado: Evento["estado"]) => {
     try {
-      // Mapear el estado del frontend al backend
       let estadoBackend = "EDITANDO";
       if (nuevoEstado === "Publicado") estadoBackend = "PUBLICADO";
       else if (nuevoEstado === "Cerrado") estadoBackend = "CERRADO";
 
-      // ✅ Enviar actualización al backend
       await eventosAPI.update(id, {
         est_evt: estadoBackend
       });
 
-      // Actualizar estado local
       setEventos((prev) =>
         prev.map((ev) =>
           ev.id === id ? { ...ev, estado: nuevoEstado, est_evt: estadoBackend } : ev
@@ -175,22 +163,110 @@ export default function DashboardResponsable() {
     }
   };
 
-  {/* Función para colores */}
-const getEstadoColor = (estado: string) => {
-  switch (estado) {
-    case "Publicado":
-      return "bg-green-100 text-green-700 border-green-300";
-    case "Cerrado":
-      return "bg-red-100 text-red-700 border-red-300";
-    default:
-      return "bg-yellow-100 text-yellow-700 border-yellow-300"; // Editando
-  }
-};
+  const handleCarrerasChange = async (id: string, nuevasCarreras: string[]) => {
+    try {
+      await eventosAPI.update(id, {
+        carreras: nuevasCarreras
+      });
 
+      setEventos((prev) =>
+        prev.map((ev) =>
+          ev.id === id ? { ...ev, carreras: nuevasCarreras } : ev
+        )
+      );
+
+      await Swal.fire({
+        icon: "success",
+        title: "Carreras actualizadas",
+        text: "Las carreras han sido actualizadas correctamente",
+        confirmButtonColor: "#581517",
+        timer: 1500,
+        showConfirmButton: false
+      });
+    } catch (error: any) {
+      console.error("Error al actualizar carreras:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: error.message || "No se pudieron actualizar las carreras",
+        confirmButtonColor: "#581517",
+      });
+    }
+  };
+
+  const handleSemestresChange = async (id: string, nuevosSemestres: string[]) => {
+    try {
+      await eventosAPI.update(id, {
+        semestres: nuevosSemestres
+      });
+
+      setEventos((prev) =>
+        prev.map((ev) =>
+          ev.id === id ? { ...ev, semestres: nuevosSemestres } : ev
+        )
+      );
+
+      await Swal.fire({
+        icon: "success",
+        title: "Semestres actualizados",
+        text: "Los semestres han sido actualizados correctamente",
+        confirmButtonColor: "#581517",
+        timer: 1500,
+        showConfirmButton: false
+      });
+    } catch (error: any) {
+      console.error("Error al actualizar semestres:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: error.message || "No se pudieron actualizar los semestres",
+        confirmButtonColor: "#581517",
+      });
+    }
+  };
+
+  const getEstadoColor = (estado: string) => {
+    switch (estado) {
+      case "Publicado":
+        return "bg-green-100 text-green-700 border-green-300";
+      case "Cerrado":
+        return "bg-red-100 text-red-700 border-red-300";
+      default:
+        return "bg-yellow-100 text-yellow-700 border-yellow-300";
+    }
+  };
+
+  const carrerasDisponibles = ["Software", "TI", "Telecomunicaciones", "Robótica"];
+  const semestresDisponibles = [
+    "1er semestre", "2do semestre", "3er semestre", "4to semestre", 
+    "5to semestre", "6to semestre", "7mo semestre", "8vo semestre", 
+    "9no semestre", "10mo semestre"
+  ];
+
+  const toggleCarrera = (eventoId: string, carrera: string) => {
+    const evento = eventos.find(ev => ev.id === eventoId);
+    if (!evento) return;
+
+    const nuevasCarreras = evento.carreras.includes(carrera)
+      ? evento.carreras.filter(c => c !== carrera)
+      : [...evento.carreras, carrera];
+
+    handleCarrerasChange(eventoId, nuevasCarreras);
+  };
+
+  const toggleSemestre = (eventoId: string, semestre: string) => {
+    const evento = eventos.find(ev => ev.id === eventoId);
+    if (!evento) return;
+
+    const nuevosSemestres = evento.semestres.includes(semestre)
+      ? evento.semestres.filter(s => s !== semestre)
+      : [...evento.semestres, semestre];
+
+    handleSemestresChange(eventoId, nuevosSemestres);
+  };
 
   return (
     <div className="p-8 font-sans text-gray-800 min-h-screen bg-white">
-
       {/* 🔙 Flecha para regresar */}
       <button
         onClick={() => router.push("/usuarios/cursos")}
@@ -212,7 +288,6 @@ const getEstadoColor = (estado: string) => {
             key={ev.id}
             className="relative bg-white border border-gray-200 rounded-lg shadow-md p-5 hover:shadow-lg transition-all"
           >
-
             {/* 🟢 Badge de estado */}
             <span
               className={`absolute top-3 right-3 px-3 py-1 text-xs font-semibold rounded-full border ${getEstadoColor(
@@ -239,6 +314,71 @@ const getEstadoColor = (estado: string) => {
             <p className="text-sm text-gray-600 mb-3">
               <span className="font-medium">Público:</span> {ev.publico}
             </p>
+
+            {/* Sección de Carreras y Semestres - SOLO para eventos de Estudiantes */}
+            {ev.publico === "Estudiantes" && (
+              <div className="mb-4 space-y-3">
+                {/* Carreras */}
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <GraduationCap size={16} className="text-[#581517]" />
+                    <label className="text-sm font-medium text-gray-700">
+                      Carreras Dirigidas:
+                    </label>
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {carrerasDisponibles.map((carrera) => (
+                      <button
+                        key={carrera}
+                        onClick={() => toggleCarrera(ev.id, carrera)}
+                        className={`px-2 py-1 rounded text-xs font-medium border transition-all ${
+                          ev.carreras.includes(carrera)
+                            ? "bg-[#581517] text-white border-[#581517]"
+                            : "border-gray-300 text-gray-700 hover:border-[#581517] hover:text-[#581517] bg-white"
+                        }`}
+                      >
+                        {carrera}
+                      </button>
+                    ))}
+                  </div>
+                  {ev.carreras.length > 0 && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Seleccionadas: {ev.carreras.length}
+                    </p>
+                  )}
+                </div>
+
+                {/* Semestres */}
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Users size={16} className="text-[#581517]" />
+                    <label className="text-sm font-medium text-gray-700">
+                      Semestres Dirigidos:
+                    </label>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1">
+                    {semestresDisponibles.map((semestre) => (
+                      <button
+                        key={semestre}
+                        onClick={() => toggleSemestre(ev.id, semestre)}
+                        className={`px-2 py-1 rounded text-xs font-medium border transition-all text-center ${
+                          ev.semestres.includes(semestre)
+                            ? "bg-[#581517] text-white border-[#581517]"
+                            : "border-gray-300 text-gray-700 hover:border-[#581517] hover:text-[#581517] bg-white"
+                        }`}
+                      >
+                        {semestre}
+                      </button>
+                    ))}
+                  </div>
+                  {ev.semestres.length > 0 && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Seleccionados: {ev.semestres.length}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Selector de estado */}
             <div className="mb-3">
