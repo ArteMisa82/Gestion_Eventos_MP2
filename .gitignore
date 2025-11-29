@@ -1,0 +1,52 @@
+# ============================================================
+# 🌐 GLOBAL GITIGNORE - GESTION DE EVENTOS ACADEMICOS
+# Ignora archivos y carpetas innecesarias de backend y frontend
+# ============================================================
+
+# --- Dependencias ---
+node_modules/
+.yarn/
+.pnp
+.pnp.*
+.pnpm-debug.log*
+*.ps1
+.ps1
+*.sql
+.sql
+# --- Builds / Compilación ---
+dist/
+build/
+out/
+.next/
+coverage/
+
+# --- Archivos de entorno ---
+.env
+.env.*
+!.env.example  # Ejemplo de variables (sí se versiona)
+
+# --- Logs ---
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# --- IDE / SO ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# --- Docker / Prisma / Temporal ---
+*.db
+docker-compose.override.yml
+tmp/
+*.pid
+*.seed
+
+# --- Archivos generados ---
+*.tsbuildinfo
+
+# --- Deploy / Hosting ---
+.vercel/
+.netlify/
