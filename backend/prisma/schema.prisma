@@ -197,6 +197,7 @@ model usuarios {
   material_curso       material_curso[]
   registro_personas    registro_personas[]
   nivel                nivel?                 @relation(fields: [niv_usu], references: [id_niv])
+  solicitudes          solicitudes[]
 
   @@index([ced_usu], map: "idx_usuarios_cedula")
   @@index([cor_usu], map: "idx_usuarios_correo")
@@ -331,6 +332,7 @@ model material_curso {
   @@index([fec_subida], map: "idx_material_curso_fecha")
   @@index([id_usu_subida], map: "idx_material_curso_usuario")
 }
+
 model solicitudes {
   id_solicitud  Int      @id @default(autoincrement())
   titulo        String   @db.VarChar(100)

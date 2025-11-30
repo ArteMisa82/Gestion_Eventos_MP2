@@ -545,7 +545,7 @@ export class EventosService {
       return;
     }
 
-    const idsCarreras = carrerasDb.map(c => c.id_car);
+    const idsCarreras = carrerasDb.map((c: any) => c.id_car);
 
     // Buscar los niveles que coincidan con las carreras Y semestres
     // nom_niv tiene el formato del semestre (1er, 2do, etc.) SIN la palabra "semestre"
