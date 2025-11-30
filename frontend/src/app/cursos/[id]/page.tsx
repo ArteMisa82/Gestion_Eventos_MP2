@@ -9,7 +9,6 @@ import CourseDetailClient from "./CourseDetailClient";
 
 
 
-
 interface EventoDetalle {
   id_evt: string;
   nom_evt: string;
@@ -44,17 +43,18 @@ export default function CourseDetailPage() {
       try {
         setLoading(true);
         const response = await eventosAPI.getPublicados();
-        const data = response.data || response; // Extraer data de la respuesta del backend
-        
-        // Verificar que sea un array antes de buscar
+        const data = response.data || response;
+
         if (!Array.isArray(data)) {
           console.error("Los datos de eventos no son un array:", data);
           setError(true);
           return;
         }
-        
-        const eventoEncontrado = data.find((e: EventoDetalle) => e.id_evt === id);
-        
+
+        const eventoEncontrado = data.find(
+          (e: EventoDetalle) => e.id_evt === id
+        );
+
         if (eventoEncontrado) {
           setEvento(eventoEncontrado);
           setError(false);
@@ -62,7 +62,7 @@ export default function CourseDetailPage() {
           setError(true);
         }
       } catch (error) {
-        console.error('Error al cargar evento:', error);
+        console.error("Error al cargar evento:", error);
         setError(true);
       } finally {
         setLoading(false);
@@ -78,7 +78,7 @@ export default function CourseDetailPage() {
     return (
       <main style={{ maxWidth: 1100, margin: "24px auto", padding: "0 16px" }}>
         <div style={{ textAlign: "center", padding: "80px 0" }}>
-          <p style={{ color: "#6b7280", fontSize: "18px" }}>Cargando curso...</p>
+          <p style={{ color: "#6b7280", fontSize: 18 }}>Cargando curso...</p>
         </div>
       </main>
     );
@@ -92,7 +92,9 @@ export default function CourseDetailPage() {
         </Link>
         <div style={{ textAlign: "center", padding: "80px 0" }}>
           <h2 style={{ color: "#dc2626" }}>Curso no encontrado</h2>
-          <p style={{ color: "#6b7280" }}>El curso que buscas no existe o no está disponible.</p>
+          <p style={{ color: "#6b7280" }}>
+            El curso que buscas no existe o no está disponible.
+          </p>
         </div>
       </main>
     );
@@ -100,51 +102,58 @@ export default function CourseDetailPage() {
 
   const detalle = evento.detalle_eventos?.[0];
   const horas = detalle?.hor_det || 0;
-  const area = detalle?.are_det || 'General';
-  const esDistancia = evento.mod_evt === 'VIRTUAL' || evento.mod_evt === 'A DISTANCIA';
-  const imagenCurso = evento.ima_evt || '/Default_Image.png';
+  const area = detalle?.are_det || "General";
+  const esDistancia =
+    evento.mod_evt === "VIRTUAL" || evento.mod_evt === "A DISTANCIA";
+  const imagenCurso = evento.ima_evt || "/Default_Image.png";
 
   return (
     <main style={{ maxWidth: 1100, margin: "24px auto", padding: "0 16px" }}>
-      <Link href="/cursos" style={{ textDecoration: "none" }}>
+      <Link href="/cursos" style={{ textDecoration: "none", color: "#111827" }}>
         ← Volver a cursos
       </Link>
 
-      {/* Cabecera: título + meta + imagen */}
-      <header
+      {/* Título y meta */}
+      <div style={{ marginTop: 16 }}>
+        <h1
+          style={{
+            margin: 0,
+            fontWeight: 800,
+            fontSize: "clamp(22px, 2.6vw, 34px)",
+            lineHeight: 1.2,
+          }}
+        >
+          {evento.nom_evt}
+        </h1>
+
+        <p style={{ color: "#6b7280", marginTop: 8 }}>
+          {area} · {horas} horas
+          {esDistancia ? " · A distancia" : ""}{" "}
+          {detalle?.est_evt_det === "PUBLICADO" ? "· Abierto" : ""}
+        </p>
+      </div>
+
+      {/* Layout tipo mockup: tarjeta a la izquierda, imagen a la derecha */}
+      <section
         style={{
           display: "grid",
-          gridTemplateColumns: "1fr 380px",
+          gridTemplateColumns: "minmax(0, 1.4fr) minmax(0, 1fr)",
           gap: 24,
-          alignItems: "start",
-          marginTop: 16,
+          alignItems: "flex-start",
+          marginTop: 20,
         }}
       >
-        <div>
-          <h1
-            style={{
-              margin: 0,
-              fontWeight: 800,
-              fontSize: "clamp(22px, 2.6vw, 34px)",
-              lineHeight: 1.2,
-            }}
-          >
-            {evento.nom_evt}
-          </h1>
+        {/* Tarjeta de información */}
+        <CourseDetailClient evento={evento} />
 
-          <p style={{ color: "#6b7280", marginTop: 8 }}>
-            {area} · {horas} horas
-            {esDistancia ? " · A distancia" : ""}{" "}
-            {evento.detalle_eventos?.[0]?.est_evt_det === 'PUBLICADO' ? "· Abierto" : ""}
-          </p>
-        </div>
-
+        {/* Imagen del curso */}
         <div
           style={{
             width: "100%",
-            height: 230,
+            height: 260,
             borderRadius: 12,
             overflow: "hidden",
+            boxShadow: "0 4px 12px rgba(0,0,0,.12)",
           }}
         >
           <Image
@@ -156,18 +165,7 @@ export default function CourseDetailPage() {
             priority
           />
         </div>
-      </header>
-
-      {/* Componente cliente con detalles del evento */}
-      <CourseDetailClient evento={evento} />
+      </section>
     </main>
   );
 }
-
-
-
-
-
-
-
-
