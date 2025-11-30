@@ -1,13 +1,10 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { eventosAPI } from "@/services/api";
 import CourseDetailClient from "./CourseDetailClient";
-
-
 
 interface EventoDetalle {
   id_evt: string;
@@ -105,7 +102,6 @@ export default function CourseDetailPage() {
   const area = detalle?.are_det || "General";
   const esDistancia =
     evento.mod_evt === "VIRTUAL" || evento.mod_evt === "A DISTANCIA";
-  const imagenCurso = evento.ima_evt || "/Default_Image.png";
 
   return (
     <main style={{ maxWidth: 1100, margin: "24px auto", padding: "0 16px" }}>
@@ -133,39 +129,8 @@ export default function CourseDetailPage() {
         </p>
       </div>
 
-      {/* Layout tipo mockup: tarjeta a la izquierda, imagen a la derecha */}
-      <section
-        style={{
-          display: "grid",
-          gridTemplateColumns: "minmax(0, 1.4fr) minmax(0, 1fr)",
-          gap: 24,
-          alignItems: "flex-start",
-          marginTop: 20,
-        }}
-      >
-        {/* Tarjeta de información */}
-        <CourseDetailClient evento={evento} />
-
-        {/* Imagen del curso */}
-        <div
-          style={{
-            width: "100%",
-            height: 260,
-            borderRadius: 12,
-            overflow: "hidden",
-            boxShadow: "0 4px 12px rgba(0,0,0,.12)",
-          }}
-        >
-          <Image
-            src={imagenCurso}
-            alt={evento.nom_evt}
-            width={760}
-            height={460}
-            style={{ width: "100%", height: "100%", objectFit: "cover" }}
-            priority
-          />
-        </div>
-      </section>
+      {/* Layout del detalle del evento */}
+      <CourseDetailClient evento={evento} />
     </main>
   );
 }

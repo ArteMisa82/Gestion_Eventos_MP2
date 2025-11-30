@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import Swal from "sweetalert2";
 import { inscripcionesAPI, registroEventoAPI, authAPI } from "@/services/api";
 import { useAuth } from "@/hooks/useAuth";
@@ -33,10 +34,13 @@ export default function CourseDetailClient({ evento }: { evento: EventoDetalle }
   const { user, token, isAuthenticated, logout, isLoading } = useAuth();
 
   const [inscribiendo, setInscribiendo] = useState(false);
-  const [showRequirements, setShowRequirements] = useState(false);
 
   const detalle = evento.detalle_eventos?.[0];
+  const inscripcionesAbiertas =
+    !!detalle && detalle.est_evt_det === "INSCRIPCIONES";
+  const imagenCurso = evento.ima_evt || "/Default_Image.png";
 
+  // Helper para fechas
   const fmtDate = (s?: string | null) => {
     if (!s) return "Por confirmar";
     const d = new Date(s);
@@ -48,7 +52,7 @@ export default function CourseDetailClient({ evento }: { evento: EventoDetalle }
     });
   };
 
-  // =============== LÓGICA DE INSCRIPCIÓN (igual que antes) ===============
+  // ================= LÓGICA DE INSCRIPCIÓN (MISMA QUE TENÍAS) =================
   async function handleRegister() {
     if (isLoading) return;
 
@@ -63,7 +67,8 @@ export default function CourseDetailClient({ evento }: { evento: EventoDetalle }
         const parsed = JSON.parse(localUserRaw);
         parsedLocalUser = parsed.data?.usuario || parsed.usuario || parsed;
         if (parsedLocalUser?.success && parsedLocalUser.data) {
-          parsedLocalUser = parsedLocalUser.data.usuario || parsedLocalUser.data;
+          parsedLocalUser =
+            parsedLocalUser.data.usuario || parsedLocalUser.data;
         }
       }
     } catch (e) {
@@ -72,9 +77,9 @@ export default function CourseDetailClient({ evento }: { evento: EventoDetalle }
 
     const finalUser: any = user || parsedLocalUser;
     const finalToken = token || localToken;
-    const finalIsAuthenticated =
-      isAuthenticated || (!!finalToken && !!finalUser);
+    const finalIsAuthenticated = isAuthenticated || (!!finalToken && !!finalUser);
 
+    // 1) Autenticación
     if (!finalIsAuthenticated || !finalUser || !finalToken) {
       await Swal.fire({
         icon: "warning",
@@ -90,6 +95,7 @@ export default function CourseDetailClient({ evento }: { evento: EventoDetalle }
       return;
     }
 
+    // 2) Perfil completo
     const perfilCompleto =
       finalUser.nom_usu && finalUser.ape_usu && finalUser.ced_usu;
 
@@ -164,6 +170,7 @@ export default function CourseDetailClient({ evento }: { evento: EventoDetalle }
     try {
       setInscribiendo(true);
 
+      // Validar token
       try {
         await authAPI.getProfile(authToken);
       } catch (error: any) {
@@ -338,301 +345,212 @@ export default function CourseDetailClient({ evento }: { evento: EventoDetalle }
     }
   }
 
-  const inscripcionesAbiertas =
-    !!detalle && detalle.est_evt_det === "INSCRIPCIONES";
-
-  // =============== UI ===============
-  return (
-    <>
-      {/* Tarjeta estilo mockup */}
+  // ================= UI (IGUAL AL MOCKUP) =================
+  const InfoRow = ({
+    label,
+    value,
+    icon,
+  }: {
+    label: string;
+    value: React.ReactNode;
+    icon?: React.ReactNode;
+  }) => (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "34px 1fr",
+        columnGap: 12,
+        alignItems: "flex-start",
+        marginBottom: 10,
+      }}
+    >
       <div
         style={{
-          background: "#fdf5f0",
-          borderRadius: 16,
-          padding: 14,
-          boxShadow: "0 4px 12px rgba(0,0,0,.08)",
+          width: 30,
+          height: 30,
+          borderRadius: 999,
+          background: "#fef2f2",
+          border: "1px solid #fecaca",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: 14,
+          color: "#7f1d1d",
         }}
       >
-        <div
-          style={{
-            background: "#ffffff",
-            borderRadius: 12,
-            padding: "18px 20px 16px",
-            boxShadow: "0 2px 6px rgba(0,0,0,.05)",
-          }}
-        >
-          {/* Cabecera: título + botón Ver requisitos */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: 10,
-            }}
-          >
-            <h2
-              style={{
-                margin: 0,
-                fontSize: 18,
-                fontWeight: 700,
-                color: "#111827",
-              }}
-            >
-              Información del Curso
-            </h2>
-
-            <button
-              type="button"
-              onClick={() => setShowRequirements(true)}
-              style={{
-                borderRadius: 999,
-                border: "1px solid #7f1d1d",
-                padding: "6px 14px",
-                background: "#fff",
-                color: "#7f1d1d",
-                fontSize: 13,
-                fontWeight: 600,
-                cursor: "pointer",
-              }}
-            >
-              Ver requisitos
-            </button>
-          </div>
-
-          <div
-            style={{
-              borderTop: "1px solid #e5e7eb",
-              paddingTop: 14,
-            }}
-          >
-            {/* Filas con icono + texto */}
-            {[
-              {
-                label: "Público objetivo",
-                value: evento.tip_pub_evt,
-                icon: "👥",
-              },
-              {
-                label: "Tipo de pago",
-                value: evento.cos_evt,
-                icon: "💳",
-              },
-              {
-                label: "Fecha de inicio",
-                value: fmtDate(evento.fec_evt),
-                icon: "📅",
-              },
-              {
-                label: "Fecha de fin",
-                value: fmtDate(evento.fec_fin_evt),
-                icon: "📅",
-              },
-              {
-                label: "Duración (horas)",
-                value: detalle?.hor_det || "Por confirmar",
-                icon: "⏱️",
-              },
-              {
-                label: "Modalidad",
-                value: evento.mod_evt,
-                icon: "💻",
-              },
-              {
-                label: "Capacidad",
-                value: detalle?.cup_det || "Por confirmar",
-                icon: "🧍",
-              },
-              {
-                label: "Ubicación",
-                value: evento.lug_evt,
-                icon: "📍",
-              },
-            ].map((row) => (
-              <div
-                key={row.label}
-                style={{
-                  display: "flex",
-                  alignItems: "flex-start",
-                  gap: 10,
-                  marginBottom: 8,
-                }}
-              >
-                <div
-                  style={{
-                    width: 30,
-                    height: 30,
-                    borderRadius: "999px",
-                    background: "#fef2f2",
-                    border: "1px solid #fee2e2",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 17,
-                  }}
-                >
-                  {row.icon}
-                </div>
-                <div>
-                  <div
-                    style={{
-                      fontWeight: 600,
-                      fontSize: 15,
-                      color: "#111827",
-                    }}
-                  >
-                    {row.label}:
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 15,
-                      color: "#111827",
-                    }}
-                  >
-                    {row.value}
-                  </div>
-                </div>
-              </div>
-            ))}
-
-            {/* Área */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                marginTop: 4,
-                marginBottom: 8,
-              }}
-            >
-              <div
-                style={{
-                  width: 30,
-                  height: 30,
-                  borderRadius: "999px",
-                  background: "#fef2f2",
-                  border: "1px solid #fee2e2",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 17,
-                }}
-              >
-                🏷️
-              </div>
-              <div>
-                <div
-                  style={{
-                    fontWeight: 600,
-                    fontSize: 15,
-                    color: "#111827",
-                  }}
-                >
-                  Área:
-                </div>
-                <div style={{ marginTop: 6 }}>
-                  <span
-                    style={{
-                      display: "inline-block",
-                      padding: "4px 12px",
-                      borderRadius: 999,
-                      border: "1px solid #e5e7eb",
-                      background: "#f9fafb",
-                      fontSize: 12,
-                      color: "#374151",
-                    }}
-                  >
-                    {detalle?.are_det || "General"}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Tipo de evento */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "flex-start",
-                gap: 10,
-              }}
-            >
-              <div
-                style={{
-                  width: 30,
-                  height: 30,
-                  borderRadius: "999px",
-                  background: "#fef2f2",
-                  border: "1px solid #fee2e2",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 17,
-                }}
-              >
-                📚
-              </div>
-              <div>
-                <div
-                  style={{
-                    fontWeight: 600,
-                    fontSize: 15,
-                    color: "#111827",
-                  }}
-                >
-                  Tipo de evento:
-                </div>
-                <div
-                  style={{
-                    fontSize: 15,
-                    color: "#6b7280",
-                    marginTop: 4,
-                  }}
-                >
-                  {detalle?.tip_evt || "Por confirmar"}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        {icon ?? "●"}
       </div>
+      <div style={{ fontSize: 14 }}>
+        <div style={{ fontWeight: 600 }}>{label}</div>
+        <div>{value}</div>
+      </div>
+    </div>
+  );
 
-      {/* MODAL DE REQUISITOS */}
-      {showRequirements && (
-        <div
+  return (
+    <div style={{ marginTop: 28 }}>
+      {/* GRID PRINCIPAL: tarjeta info + columna imagen/requisitos */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "minmax(0, 1.6fr) minmax(0, 1.4fr)",
+          gap: 24,
+          alignItems: "flex-start",
+        }}
+      >
+        {/* TARJETA INFORMACIÓN DEL EVENTO (IZQUIERDA) */}
+        <section
           style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(15,23,42,.45)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 50,
+            background: "#7f1d1d",
+            borderRadius: 18,
+            padding: 18,
+            boxShadow: "0 16px 40px rgba(0,0,0,.06)",
+            border: "1px solid #ef7b7bff",
           }}
         >
-          <div
+          <h2
             style={{
-              background: "#fff",
-              borderRadius: 16,
-              padding: 24,
-              maxWidth: 520,
-              width: "90%",
-              boxShadow: "0 15px 40px rgba(0,0,0,.25)",
+              margin: 0,
+              marginBottom: 8,
+              fontSize: 20,
+              fontWeight: 900,
+              color: "#edeff3ff",
+              textAlign: "center",
             }}
           >
-            <h2
+            Información del evento
+          </h2>
+
+          <div
+            style={{
+              marginTop: 8,
+              background: "#fff",
+              borderRadius: 14,
+              padding: 18,
+              border: "1px solid #f3f4f6",
+            }}
+          >
+            <InfoRow
+              label="Público objetivo:"
+              value={evento.tip_pub_evt || "Por confirmar"}
+              icon="👥"
+            />
+            <InfoRow
+              label="Tipo de pago:"
+              value={evento.cos_evt || "Por confirmar"}
+              icon="💰"
+            />
+            <InfoRow
+              label="Fecha de inicio:"
+              value={fmtDate(evento.fec_evt)}
+              icon="📅"
+            />
+            <InfoRow
+              label="Fecha de fin:"
+              value={fmtDate(evento.fec_fin_evt)}
+              icon="📅"
+            />
+            <InfoRow
+              label="Duración (horas):"
+              value={detalle?.hor_det || "Por confirmar"}
+              icon="⏱️"
+            />
+            <InfoRow
+              label="Modalidad:"
+              value={evento.mod_evt || "Por confirmar"}
+              icon="💻"
+            />
+            <InfoRow
+              label="Capacidad:"
+              value={detalle?.cup_det || "Por confirmar"}
+              icon="👤"
+            />
+            <InfoRow
+              label="Ubicación:"
+              value={evento.lug_evt || "Por confirmar"}
+              icon="📍"
+            />
+
+            <InfoRow
+              label="Área:"
+              value={
+                <span
+                  style={{
+                    display: "inline-block",
+                    padding: "4px 12px",
+                    borderRadius: 999,
+                    border: "1px solid #e5e7eb",
+                    fontSize: 12,
+                    background: "#f9fafb",
+                  }}
+                >
+                  {detalle?.are_det || "General"}
+                </span>
+              }
+              icon="🏷️"
+            />
+
+            <InfoRow
+              label="Tipo de evento:"
+              value={detalle?.tip_evt || "Por confirmar"}
+              icon="📚"
+            />
+          </div>
+        </section>
+
+        {/* COLUMNA DERECHA: IMAGEN + REQUISITOS */}
+        <aside
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 16,
+          }}
+        >
+          {/* Imagen del curso */}
+          <div
+            style={{
+              width: "100%",
+              height: 395,
+              borderRadius: 18,
+              overflow: "hidden",
+              boxShadow: "0 18px 40px rgba(0,0,0,.2)",
+            }}
+          >
+            <Image
+              src={imagenCurso}
+              alt={evento.nom_evt}
+              width={720}
+              height={420}
+              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              priority
+            />
+          </div>
+
+          {/* Tarjeta de requisitos (debajo de la imagen) */}
+          <section
+            style={{
+              background: "#ffffff",
+              borderRadius: 14,
+              padding: 18,
+              border: "1px solid #e5e7eb",
+              boxShadow: "0 12px 30px rgba(0,0,0,.10)",
+            }}
+          >
+            <h3
               style={{
                 marginTop: 0,
                 marginBottom: 6,
-                fontSize: 20,
+                fontSize: 16,
                 fontWeight: 700,
                 color: "#111827",
               }}
             >
               Requisitos para inscribirse
-            </h2>
+            </h3>
             <p
               style={{
                 marginTop: 0,
-                marginBottom: 16,
+                marginBottom: 12,
                 fontSize: 14,
                 color: "#4b5563",
               }}
@@ -646,8 +564,8 @@ export default function CourseDetailClient({ evento }: { evento: EventoDetalle }
                 fontSize: 14,
                 color: "#374151",
                 paddingLeft: 18,
-                lineHeight: 1.7,
-                marginBottom: 20,
+                lineHeight: 1.6,
+                marginBottom: 16,
               }}
             >
               <li>Tener una cuenta activa en el sistema.</li>
@@ -663,68 +581,59 @@ export default function CourseDetailClient({ evento }: { evento: EventoDetalle }
                 style={{
                   fontSize: 13,
                   color: "#b91c1c",
-                  marginBottom: 20,
+                  marginBottom: 0,
                 }}
               >
                 Actualmente las inscripciones se encuentran cerradas para este
                 evento.
               </p>
             )}
+          </section>
+        </aside>
+      </div>
 
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "flex-end",
-                gap: 8,
-              }}
-            >
-              <button
-                type="button"
-                onClick={() => setShowRequirements(false)}
-                style={{
-                  borderRadius: 999,
-                  border: "1px solid #d1d5db",
-                  padding: "8px 16px",
-                  background: "#fff",
-                  color: "#111827",
-                  fontSize: 13,
-                  cursor: "pointer",
-                }}
-              >
-                Cerrar
-              </button>
-
-              {/* El botón de inscripción SOLO aparece aquí */}
-              {inscripcionesAbiertas && (
-                <button
-                  type="button"
-                  onClick={handleRegister}
-                  disabled={isLoading || inscribiendo}
-                  style={{
-                    borderRadius: 999,
-                    border: "none",
-                    padding: "9px 18px",
-                    background:
-                      isLoading || inscribiendo ? "#9ca3af" : "#7f1d1d",
-                    color: "#fff",
-                    fontSize: 13,
-                    fontWeight: 600,
-                    cursor:
-                      isLoading || inscribiendo ? "not-allowed" : "pointer",
-                    boxShadow: "0 6px 18px rgba(127,29,29,.25)",
-                  }}
-                >
-                  {isLoading
-                    ? "CARGANDO..."
-                    : inscribiendo
-                    ? "PROCESANDO..."
-                    : "REGISTRARME EN ESTE EVENTO"}
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-    </>
+      {/* BOTÓN CENTRAL BAJO TODO */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          marginTop: 24,
+          marginBottom: 12,
+        }}
+      >
+        <button
+          type="button"
+          onClick={handleRegister}
+          disabled={
+            isLoading || inscribiendo || !inscripcionesAbiertas || !detalle
+          }
+          style={{
+            borderRadius: 999,
+            border: "none",
+            padding: "12px 26px",
+            background:
+              isLoading || inscribiendo || !inscripcionesAbiertas || !detalle
+                ? "#9ca3af"
+                : "#7f1d1d",
+            color: "#fff",
+            fontSize: 13,
+            fontWeight: 700,
+            cursor:
+              isLoading || inscribiendo || !inscripcionesAbiertas || !detalle
+                ? "not-allowed"
+                : "pointer",
+            boxShadow: "0 8px 20px rgba(127,29,29,.40)",
+          }}
+        >
+          {isLoading
+            ? "CARGANDO..."
+            : inscribiendo
+            ? "PROCESANDO..."
+            : !inscripcionesAbiertas
+            ? "INSCRIPCIONES CERRADAS"
+            : "REGISTRARME EN ESTE EVENTO"}
+        </button>
+      </div>
+    </div>
   );
 }
