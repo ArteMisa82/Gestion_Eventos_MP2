@@ -7,6 +7,9 @@ import { useParams } from "next/navigation";
 import { eventosAPI } from "@/services/api";
 import CourseDetailClient from "./CourseDetailClient";
 
+
+
+
 interface EventoDetalle {
   id_evt: string;
   nom_evt: string;
