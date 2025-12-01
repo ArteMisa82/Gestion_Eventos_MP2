@@ -6,9 +6,14 @@ import { requireAuth } from '../middlewares/session.middleware';
 const router = Router();
 const controller = new ComiteController();
 
-// El admin ya debe estar logueado (requireAuth) para poder usar el comité
+// El admin debe estar logueado
 router.post('/login', requireAuth, controller.login.bind(controller));
 router.get('/session', requireAuth, controller.getCurrentSession.bind(controller));
+
+// 🔹 NUEVOS ENDPOINTS
+router.get('/estado', requireAuth, controller.getEstado.bind(controller));
+router.get('/miembros', requireAuth, controller.getMiembros.bind(controller));
+
 router.post('/logout', requireAuth, controller.logout.bind(controller));
 
 export default router;

@@ -12,7 +12,6 @@ export interface ComiteMember {
 
 export class ComiteService {
   async loginComite(cor_com: string, tok_seg: string): Promise<ComiteMember | null> {
-    // Buscar miembro del comité por correo
     const miembro = await prisma.sc_comite.findUnique({
       where: { cor_com }
     });
@@ -26,5 +25,19 @@ export class ComiteService {
       ape_com: miembro.ape_com,
       cor_com: miembro.cor_com
     };
+  }
+
+  // 🔹 NUEVO: listar todos los miembros del comité
+  async getMiembros(): Promise<ComiteMember[]> {
+    const miembros = await prisma.sc_comite.findMany({
+      select: {
+        id_sc_com: true,
+        nom_com: true,
+        ape_com: true,
+        cor_com: true
+      }
+    });
+
+    return miembros;
   }
 }

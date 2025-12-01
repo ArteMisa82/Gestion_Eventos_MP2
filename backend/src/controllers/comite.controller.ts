@@ -21,11 +21,10 @@ export class ComiteController {
         });
       }
 
-      // ✅ Usar la info REAL que guardas en sesión
       const isAuthenticated = (req.session as any).isAuthenticated;
       const userRole = (req.session as any).userRole;
 
-      // Solo puede usar comité quien esté logueado y sea Administrador
+      // Solo admin puede iniciar sesión como comité
       if (!isAuthenticated || userRole !== 'Administrador') {
         return res.status(403).json({
           success: false,
@@ -42,8 +41,9 @@ export class ComiteController {
         });
       }
 
-      // Guardar info de comité en la sesión de Express
+      // Guardar info de comité en sesión
       (req.session as any).comite = miembro;
+      (req.session as any).comiteLoginAt = new Date().toISOString();
 
       return res.json({
         success: true,
@@ -62,6 +62,7 @@ export class ComiteController {
   // GET /api/comite/session
   async getCurrentSession(req: Request, res: Response) {
     const comite = (req.session as any).comite;
+    const comiteLoginAt = (req.session as any).comiteLoginAt;
 
     if (!comite) {
       return res.status(404).json({
@@ -72,14 +73,65 @@ export class ComiteController {
 
     return res.json({
       success: true,
-      data: comite
+      data: {
+        ...comite,
+        loginAt: comiteLoginAt || null
+      }
     });
+  }
+
+  // 🔹 NUEVO: GET /api/comite/estado
+  // Resumen simple: ¿hay comité activo o no?
+  async getEstado(req: Request, res: Response) {
+    const comite = (req.session as any).comite;
+    const comiteLoginAt = (req.session as any).comiteLoginAt;
+
+    return res.json({
+      success: true,
+      data: {
+        activo: !!comite,
+        miembro: comite || null,
+        loginAt: comite ? comiteLoginAt || null : null
+      }
+    });
+  }
+
+  // 🔹 NUEVO: GET /api/comite/miembros
+  // Solo admin: lista los miembros configurados en sc_comite
+  async getMiembros(req: Request, res: Response) {
+    try {
+      const isAuthenticated = (req.session as any).isAuthenticated;
+      const userRole = (req.session as any).userRole;
+
+      if (!isAuthenticated || userRole !== 'Administrador') {
+        return res.status(403).json({
+          success: false,
+          message: 'Solo un administrador puede listar los miembros del comité'
+        });
+      }
+
+      const miembros = await this.service.getMiembros();
+
+      return res.json({
+        success: true,
+        data: miembros
+      });
+    } catch (error) {
+      console.error('Error obteniendo miembros de comité:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Error interno del servidor'
+      });
+    }
   }
 
   // POST /api/comite/logout
   async logout(req: Request, res: Response) {
     if ((req.session as any).comite) {
       delete (req.session as any).comite;
+    }
+    if ((req.session as any).comiteLoginAt) {
+      delete (req.session as any).comiteLoginAt;
     }
 
     return res.json({
