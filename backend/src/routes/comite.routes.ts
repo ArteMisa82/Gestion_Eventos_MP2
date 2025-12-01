@@ -70,5 +70,13 @@ router.patch(
   requireComite,
   controller.updateSolicitudProgramador.bind(controller)
 );
+// ⭐ PUBLICAR MANUALMENTE A GITHUB ⭐
+router.post(
+  '/solicitudes/:tipo/:id/github',
+  requireAuth,
+  requireComite,
+  controller.publicarEnGitHub.bind(controller)
+);
+
 
 export default router;

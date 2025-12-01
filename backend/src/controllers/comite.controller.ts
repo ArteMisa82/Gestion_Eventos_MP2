@@ -433,4 +433,41 @@ export class ComiteController {
       });
     }
   }
+    // POST /api/comite/solicitudes/:tipo/:id/github
+  async publicarEnGitHub(req: Request, res: Response) {
+    try {
+      const tipoParam = req.params.tipo.toLowerCase();
+      const id = Number(req.params.id);
+
+      if (isNaN(id)) {
+        return res.status(400).json({ success: false, message: 'ID inválido' });
+      }
+
+      let tipo: 'USUARIO' | 'PROGRAMADOR';
+
+      if (tipoParam === 'usuario' || tipoParam === 'usuarios') tipo = 'USUARIO';
+      else if (tipoParam === 'programador' || tipoParam === 'programadores') tipo = 'PROGRAMADOR';
+      else {
+        return res.status(400).json({ success: false, message: 'Tipo inválido' });
+      }
+
+      const result = await this.service.publicarSolicitudEnGitHub(tipo, id);
+
+      if (!result.success) {
+        return res.status(404).json({ success: false, message: result.message });
+      }
+
+      return res.json({
+        success: true,
+        message: `Solicitud ${tipo} #${id} publicada en GitHub correctamente`
+      });
+    } catch (error) {
+      console.error('Error publicando Issue en GitHub:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Error interno del servidor al publicar Issue'
+      });
+    }
+  }
+
 }
