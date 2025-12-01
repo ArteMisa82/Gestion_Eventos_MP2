@@ -5,6 +5,7 @@ import { Calendar, Edit, Loader2, ArrowLeft } from "lucide-react";
 import ModalEditarEvento from "./ModalEditar";
 import Swal from "sweetalert2";
 import { eventosAPI } from "@/services/api";
+import ValidacionesResponsable from "./validaciones";
 
 interface Evento {
   id: string;
