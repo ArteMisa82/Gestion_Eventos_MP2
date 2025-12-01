@@ -2,7 +2,8 @@
 import React, { ReactNode } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { Calendar, FileCheck, LayoutDashboard, Settings, LogOut } from "lucide-react";
+import { Calendar, FileCheck, LayoutDashboard, Settings, CalendarCheck } from "lucide-react";
+
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -15,6 +16,10 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const menuItems = [
     { name: "Dashboard", icon: <LayoutDashboard size={18} />, href: "/admin" },
     { name: "Eventos", icon: <Calendar size={18} />, href: "/admin/events" },
+
+    // ✅ Ruta corregida sin espacios
+    { name: "Eventos Completos", icon: <CalendarCheck size={18} />, href: "/admin/eventos-completos" },
+
     { name: "Validaciones", icon: <FileCheck size={18} />, href: "/admin/validaciones" },
     { name: "Contenido", icon: <Settings size={18} />, href: "/admin/contenido" },
   ];
@@ -38,8 +43,8 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                 href={item.href}
                 className={`flex items-center gap-2 px-3 py-2 rounded-md transition font-medium ${
                   pathname === item.href
-                    ? "bg-white text-[#581517] font-bold" 
-                    : "text-white hover:bg-white/10 hover:text-white" 
+                    ? "bg-white text-[#581517] font-bold"
+                    : "text-white hover:bg-white/10 hover:text-white"
                 }`}
               >
                 {item.icon}
