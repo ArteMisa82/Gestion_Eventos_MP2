@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { X, Save, Loader2, UserCheck, FileText } from 'lucide-react';
+"use client";
+import React, { useState, useEffect } from 'react';
+import { X, Save, Loader2, UserCheck } from 'lucide-react';
 
 interface Inscrito {
   id: string;
@@ -39,7 +40,17 @@ export default function ModalAsistenciaNotas({
   onClose,
   onGuardar
 }: ModalAsistenciaNotasProps) {
-  const [datosAsistencia, setDatosAsistencia] = useState<Inscrito[]>(inscritos);
+  const [datosAsistencia, setDatosAsistencia] = useState<Inscrito[]>([]);
+
+  // 🆕 Inicializar datosAsistencia cuando inscritos cambie
+  useEffect(() => {
+    if (inscritos && Array.isArray(inscritos)) {
+      setDatosAsistencia(inscritos);
+    } else {
+      setDatosAsistencia([]);
+    }
+  }, [inscritos]);
+
   const [isSaving, setIsSaving] = useState(false);
 
   const handleAsistenciaChange = (id: string, asistio: boolean) => {
@@ -83,8 +94,9 @@ export default function ModalAsistenciaNotas({
     }
   };
 
-  const totalAsistentes = datosAsistencia.filter(i => i.asistio).length;
-  const notasValidas = datosAsistencia.filter(i => i.nota !== undefined && i.nota !== null);
+  // 🆕 Validar que datosAsistencia sea un array antes de usar filter
+  const totalAsistentes = datosAsistencia?.filter(i => i.asistio)?.length || 0;
+  const notasValidas = datosAsistencia?.filter(i => i.nota !== undefined && i.nota !== null) || [];
   const promedioNotas = notasValidas.length > 0 
     ? notasValidas.reduce((acc, curr) => acc + (curr.nota || 0), 0) / notasValidas.length 
     : 0;
@@ -127,11 +139,11 @@ export default function ModalAsistenciaNotas({
           <div className="grid grid-cols-4 gap-4 text-sm">
             <div className="flex items-center gap-2">
               <UserCheck size={16} className="text-gray-500" />
-              <span><strong>Total inscritos:</strong> {inscritos.length}</span>
+              <span><strong>Total inscritos:</strong> {datosAsistencia?.length || 0}</span>
             </div>
             {evento.requiereAsistencia && (
               <div>
-                <span className="font-medium">Asistentes:</span> {totalAsistentes} ({Math.round((totalAsistentes / inscritos.length) * 100)}%)
+                <span className="font-medium">Asistentes:</span> {totalAsistentes} ({datosAsistencia?.length ? Math.round((totalAsistentes / datosAsistencia.length) * 100) : 0}%)
               </div>
             )}
             {evento.requiereNota && (
@@ -140,7 +152,7 @@ export default function ModalAsistenciaNotas({
               </div>
             )}
             <div>
-              <span className="font-medium">Con datos:</span> {datosAsistencia.filter(i => i.asistio !== undefined || i.nota !== undefined).length}
+              <span className="font-medium">Con datos:</span> {datosAsistencia?.filter(i => i.asistio !== undefined || i.nota !== undefined)?.length || 0}
             </div>
           </div>
         </div>
@@ -151,6 +163,18 @@ export default function ModalAsistenciaNotas({
             <div className="flex items-center justify-center py-12">
               <Loader2 size={32} className="animate-spin text-[#581517]" />
               <span className="ml-2 text-gray-600">Cargando participantes...</span>
+            </div>
+          ) : !datosAsistencia || datosAsistencia.length === 0 ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <UserCheck size={48} className="mx-auto text-gray-400 mb-4" />
+                <h3 className="text-lg font-medium text-gray-600 mb-2">
+                  No hay participantes inscritos
+                </h3>
+                <p className="text-gray-500">
+                  No se encontraron participantes para este evento.
+                </p>
+              </div>
             </div>
           ) : (
             <table className="w-full">
@@ -259,7 +283,7 @@ export default function ModalAsistenciaNotas({
             </button>
             <button
               onClick={handleGuardar}
-              disabled={isSaving}
+              disabled={isSaving || !datosAsistencia || datosAsistencia.length === 0}
               className="flex items-center gap-2 px-4 py-2 bg-[#581517] text-white rounded-md hover:bg-[#7a1c1c] transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSaving ? (
