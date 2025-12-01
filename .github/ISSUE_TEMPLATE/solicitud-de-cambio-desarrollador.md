@@ -8,10 +8,12 @@ assignees: ''
 ---
 
 ---
-name: "🧑‍💻 Solicitud de Cambio (Desarrollador)"
-about: Registrar el análisis técnico y la implementación requerida para un cambio aprobado.
-title: "DEV - [Título Técnico del Cambio]"
-labels: ["desarrollo", "implementacion"]
+Nombre: "🧑‍💻 Solicitud de Cambio Desarrollador"
+Descripción: Registrar el análisis técnico y la implementación requerida para un cambio aprobado.
+Titulo: "DEV - [Título Técnico del Cambio]"
+Tags: ["desarrollo", "implementación"]
+Solicitante: "Nombre del solicitante"
+Desarrollador Asignado: [nombre-del-desarrollador]
 ---
 
 # 🧑‍💻 Formulario de Solicitud de Cambio — Desarrollador
