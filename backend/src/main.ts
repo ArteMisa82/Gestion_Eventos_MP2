@@ -8,6 +8,7 @@ import prisma from './config/database';
 import { errorHandler } from './middlewares/errorHandler.middleware';
 import { swaggerUi, swaggerSpec } from './config/swagger';
 
+
 dotenv.config();
 
 const app = express();
