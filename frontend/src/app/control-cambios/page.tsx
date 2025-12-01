@@ -1,18 +1,33 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { Search } from "lucide-react";
 import Swal from "sweetalert2";
 import { useRouter } from "next/navigation";
-import { Solicitud, MOCK } from "./components/types";
+import { Solicitud } from "./components/types";
 import CardSolicitud from "./components/CardSolicitud";
+import { solicitudesAPI } from "@/services/api"; // 🔑 Importamos la API real
 
 export default function ControlCambiosPage() {
   const [selected, setSelected] = useState<Solicitud | null>(null);
   const [search, setSearch] = useState("");
   const [filterEstado, setFilterEstado] = useState<string>("");
   const [filterPrioridad, setFilterPrioridad] = useState<string>("");
+  const [solicitudes, setSolicitudes] = useState<Solicitud[]>([]); // 🔑 Estado para la API
   const router = useRouter();
+
+  // 🔑 Traer solicitudes reales
+  useEffect(() => {
+    const fetchSolicitudes = async () => {
+      try {
+        const data = await solicitudesAPI.getSolicitudes();
+        setSolicitudes(data.data || []); // Ajustar según tu backend
+      } catch (err) {
+        console.error("Error cargando solicitudes:", err);
+      }
+    };
+    fetchSolicitudes();
+  }, []);
 
   const handleIrAlComite = () => {
     const CLAVE_COMITE = "C0M1T32025";
@@ -52,7 +67,7 @@ export default function ControlCambiosPage() {
 
   // Memoizamos filtrado (real-time)
   const filtered = useMemo(() => {
-    return MOCK.filter((s) => {
+    return solicitudes.filter((s) => {
       const q = search.trim().toLowerCase();
       const matchSearch =
         q === "" ||
@@ -63,7 +78,7 @@ export default function ControlCambiosPage() {
       const matchPrioridad = !filterPrioridad || s.prioridad === filterPrioridad;
       return matchSearch && matchEstado && matchPrioridad;
     });
-  }, [search, filterEstado, filterPrioridad]);
+  }, [search, filterEstado, filterPrioridad, solicitudes]);
 
   return (
     <div className="min-h-screen bg-white px-6 py-10">
@@ -126,8 +141,8 @@ export default function ControlCambiosPage() {
           {/* Lista con scroll */}
           <div className="lg:col-span-1 border border-gray-200 rounded-2xl p-4 shadow-sm bg-white flex flex-col">
             <h2 className="text-lg font-medium text-gray-700 mb-4">Solicitudes ({filtered.length})</h2>
-            <div className="flex-1 overflow-y-auto max-h-[calc(100vh-12rem)]"> {/* Scroll aquí */}
-              <div className="flex flex-col gap-3 pr-2"> {/* Padding para el scroll */}
+            <div className="flex-1 overflow-y-auto max-h-[calc(100vh-12rem)]">
+              <div className="flex flex-col gap-3 pr-2">
                 {filtered.length === 0 ? (
                   <div className="text-center text-gray-400 py-8">No hay solicitudes que coincidan.</div>
                 ) : (
@@ -142,8 +157,7 @@ export default function ControlCambiosPage() {
                 )}
               </div>
             </div>
-        </div>
-
+          </div>
 
           {/* Detalle */}
           <div className="lg:col-span-2 border border-gray-200 rounded-2xl p-8 shadow-sm bg-white min-h-[320px]">
@@ -176,7 +190,6 @@ export default function ControlCambiosPage() {
 
                 {/* Contenido */}
                 <div className="mt-8 text-gray-700 space-y-6">
-                  {/* Información de contacto */}
                   {(selected.contacto || selected.telefono) && (
                     <div className="grid grid-cols-2 gap-4">
                       {selected.contacto && (
@@ -194,7 +207,6 @@ export default function ControlCambiosPage() {
                     </div>
                   )}
 
-                  {/* Descripción */}
                   <div>
                     <p className="text-sm text-gray-500">Descripción</p>
                     <div className="mt-2 bg-gray-50 p-4 rounded-lg text-gray-700">
@@ -202,7 +214,6 @@ export default function ControlCambiosPage() {
                     </div>
                   </div>
 
-                  {/* Justificación */}
                   {selected.justificacion && (
                     <div>
                       <p className="text-sm text-gray-500">Justificación</p>
@@ -212,7 +223,6 @@ export default function ControlCambiosPage() {
                     </div>
                   )}
 
-                  {/* Campos adicionales */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {selected.impactoNoImplementar && (
                       <div className="p-4 rounded-lg bg-gray-50 border border-gray-200">
@@ -240,7 +250,6 @@ export default function ControlCambiosPage() {
                     )}
                   </div>
 
-                  {/* Grid Info */}
                   <div className="grid grid-cols-2 gap-6">
                     <div className="p-4 rounded-lg bg-gray-50 border border-gray-200">
                       <p className="text-sm text-gray-500">Estado</p>

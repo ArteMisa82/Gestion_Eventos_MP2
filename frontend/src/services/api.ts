@@ -828,19 +828,31 @@ export const solicitudesAPI = {
   getSolicitudes: async (token?: string) => {
     const response = await fetch(`${API_URL}/solicitudes`, {
       headers: getHeaders(token),
-      credentials: 'include'
+      credentials: 'include',
     });
     return handleResponse(response);
   },
 
   getComite: async (token?: string) => {
-    const response = await fetch(`${API_URL}/comite`, {
+    const response = await fetch(`${API_URL}/solicitudes/comite`, { // ⚠ corregí la ruta
       headers: getHeaders(token),
-      credentials: 'include'
+      credentials: 'include',
     });
     return handleResponse(response);
-  }
+  },
+
+  // 🔹 Método nuevo para crear solicitud
+  crearSolicitud: async (payload: any, token?: string) => {
+    const response = await fetch(`${API_URL}/solicitudes`, {
+      method: 'POST',
+      headers: getHeaders(token),
+      credentials: 'include',
+      body: JSON.stringify(payload),
+    });
+    return handleResponse(response);
+  },
 };
+
 
 export default {
   auth: authAPI,
