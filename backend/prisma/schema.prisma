@@ -332,6 +332,7 @@ model material_curso {
   @@index([fec_subida], map: "idx_material_curso_fecha")
   @@index([id_usu_subida], map: "idx_material_curso_usuario")
 }
+<<<<<<< HEAD
 
 model solicitudes {
   id_solicitud  Int      @id @default(autoincrement())
@@ -346,3 +347,5 @@ model solicitudes {
   @@index([usuarioId], map: "idx_solicitudes_usuario")
   @@index([estado], map: "idx_solicitudes_estado")
 }
+=======
+>>>>>>> origin/develop
