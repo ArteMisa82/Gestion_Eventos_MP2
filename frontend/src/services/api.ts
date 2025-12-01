@@ -820,6 +820,27 @@ export const usuariosAPI = {
     return handleResponse(response);
   },
 };
+// ==========================================
+// 📨 SOLICITUDES Y COMITÉ
+// ==========================================
+
+export const solicitudesAPI = {
+  getSolicitudes: async (token?: string) => {
+    const response = await fetch(`${API_URL}/solicitudes`, {
+      headers: getHeaders(token),
+      credentials: 'include'
+    });
+    return handleResponse(response);
+  },
+
+  getComite: async (token?: string) => {
+    const response = await fetch(`${API_URL}/comite`, {
+      headers: getHeaders(token),
+      credentials: 'include'
+    });
+    return handleResponse(response);
+  }
+};
 
 export default {
   auth: authAPI,
@@ -831,4 +852,5 @@ export default {
   carreras: carrerasAPI,
   niveles: nivelesAPI,
   usuarios: usuariosAPI,
+  solicitudes: solicitudesAPI,
 };
