@@ -75,6 +75,7 @@ model eventos {
   est_evt         String?           @default("EDITANDO") @db.VarChar(20)
   ima_evt         String?
   fec_fin_evt     DateTime?         @db.Date
+  fav_evt         Int               @default(0) @db.SmallInt
   detalle_eventos detalle_eventos[]
   usuarios        usuarios?         @relation(fields: [id_res_evt], references: [id_usu], map: "fk_eventos_responsable")
   requerimientos  requerimientos[]
@@ -98,10 +99,10 @@ model nivel {
   nom_niv         String            @db.VarChar(10)
   org_cur_niv     String            @db.VarChar(10)
   id_car          String            @db.VarChar(10)
+  estudiantes     estudiantes[]
   carreras        carreras          @relation(fields: [id_car], references: [id_car], onDelete: Cascade)
   registro_evento registro_evento[]
   usuarios        usuarios[]
-  estudiantes     estudiantes[]
 }
 
 model pagos {
@@ -191,6 +192,7 @@ model usuarios {
   niv_usu              String?                @db.VarChar(10)
   adm_usu              Int?                   @default(0) @db.SmallInt
   Administrador        Boolean                @default(false)
+  existe               Boolean?               @default(true)   // 👈 NUEVO CAMPO
   detalle_instructores detalle_instructores[]
   estudiantes          estudiantes[]
   eventos              eventos[]
@@ -330,4 +332,57 @@ model material_curso {
   @@index([id_det], map: "idx_material_curso_detalle")
   @@index([fec_subida], map: "idx_material_curso_fecha")
   @@index([id_usu_subida], map: "idx_material_curso_usuario")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model sc_comite {
+  id_sc_com Int    @id @default(autoincrement())
+  nom_com   String @db.VarChar(100)
+  ape_com   String @db.VarChar(100)
+  cor_com   String @unique(map: "sc_comite_cor_com_uk") @db.VarChar(150)
+  tok_seg   String @unique(map: "sc_comite_tok_seg_uk") @db.VarChar(200)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model sc_programadores {
+  id_sc_prog Int      @id @default(autoincrement())
+  nom_proy   String   @db.VarChar(150)
+  fec_sol    DateTime @default(dbgenerated("CURRENT_DATE")) @db.Date
+  nom_sol    String   @db.VarChar(100)
+  cor_sol    String   @db.VarChar(150)
+  tel_sol    String   @db.VarChar(20)
+  tit_cam    String   @db.VarChar(200)
+  des_cam    String
+  jus_cam    String?
+  modulo     String   @db.VarChar(100)
+  sub_modulo String?  @db.VarChar(100)
+  imp_no_imp String
+  tip_cam    String   @db.VarChar(50)
+  cla_cam    String   @db.VarChar(50)
+  imp_alc    String?
+  imp_dias   Int?     @db.SmallInt
+  rec_nec    String?
+  riesgos    String?
+  apv_cam    String   @default("EN ESPERA") @db.VarChar(15)
+  prioridad  String   @default("NORMAL") @db.VarChar(20)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model sc_usuarios {
+  id_sc_usu  Int      @id @default(autoincrement())
+  num_sol    String   @unique(map: "sc_usuarios_num_sol_uk") @default(dbgenerated("((('SCR-'::text || to_char((CURRENT_DATE)::timestamp with time zone, 'YYYYMMDD'::text)) || '-'::text) || lpad((nextval('sc_usuarios_num_sol_seq'::regclass))::text, 4, '0'::text))")) @db.VarChar(20)
+  nom_proy   String   @db.VarChar(150)
+  fec_sol    DateTime @default(dbgenerated("CURRENT_DATE")) @db.Date
+  nom_sol    String   @db.VarChar(100)
+  cor_sol    String   @db.VarChar(150)
+  tel_sol    String   @db.VarChar(20)
+  tit_cam    String   @db.VarChar(200)
+  des_cam    String
+  jus_cam    String?
+  modulo     String   @db.VarChar(100)
+  sub_modulo String?  @db.VarChar(100)
+  apv_cam    String   @default("EN ESPERA") @db.VarChar(15)
+  prioridad  String   @default("NORMAL") @db.VarChar(20)
 }

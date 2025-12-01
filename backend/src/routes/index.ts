@@ -13,14 +13,14 @@ import nivelesRoutes from './niveles.routes';
 import pagosRoutes from './pagos.routes';
 import materialesRoutes from './materiales.routes';
 import calificacionesRoutes from './calificaciones.routes';
-
+import comiteRoutes from './comite.routes'; // 👈 NUEVO
 import certificadosRoutes from './certificados.routes';
 
 const router = Router();
 
 // 🔑 Rutas principales
 router.use('/auth', authRoutes);
-router.use('/user', userRoutes); // ← ruta correcta en singular
+router.use('/user', userRoutes);
 router.use('/eventos', eventosRoutes);
 router.use('/detalles', detallesRoutes);
 router.use('/registro-evento', registroEventoRoutes);
@@ -32,7 +32,9 @@ router.use('/niveles', nivelesRoutes);
 router.use('/pagos', pagosRoutes);
 router.use('/materiales', materialesRoutes);
 router.use('/calificaciones', calificacionesRoutes);
-
 router.use('/certificados', certificadosRoutes);
+
+// 👇 ESTA LÍNEA FALTABA
+router.use('/comite', comiteRoutes);
 
 export default router;
