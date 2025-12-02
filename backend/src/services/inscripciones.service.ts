@@ -22,7 +22,19 @@ const INSCRIPCION_INCLUDES = {
       ape_usu: true,
       ape_seg_usu: true,
       tel_usu: true,
-      niv_usu: true
+      estudiantes: {
+        where: {
+          est_activo: 1
+        },
+        include: {
+          nivel: {
+            include: {
+              carreras: true
+            }
+          }
+        },
+        take: 1
+      }
     }
   },
   registro_evento: {
@@ -44,6 +56,9 @@ const INSCRIPCION_INCLUDES = {
 export class InscripcionesService {
   /**
    * Inscribe un usuario a un evento
+   * Soporta dos flujos:
+   * 1. Con id_reg_evt: para eventos de ESTUDIANTES (requiere nivel académico)
+   * 2. Con id_det: para eventos de PÚBLICO GENERAL (inscripción directa)
    */
   async inscribirUsuario(data: CrearInscripcionDTO): Promise<InscripcionResponse> {
     // Validar que el usuario existe
@@ -55,6 +70,23 @@ export class InscripcionesService {
       throw new Error('El usuario no existe');
     }
 
+    // CASO 1: Inscripción con id_reg_evt (ESTUDIANTES)
+    if (data.id_reg_evt) {
+      return await this.inscribirConRegistroEvento(data);
+    }
+    
+    // CASO 2: Inscripción con id_det (PÚBLICO GENERAL)
+    if (data.id_det) {
+      return await this.inscribirConDetalle(data);
+    }
+
+    throw new Error('Debe proporcionar id_reg_evt o id_det');
+  }
+
+  /**
+   * Inscripción para eventos de ESTUDIANTES (con validación de nivel)
+   */
+  private async inscribirConRegistroEvento(data: CrearInscripcionDTO): Promise<InscripcionResponse> {
     // Validar que el registro de evento existe
     const registroEvento = await prisma.registro_evento.findUnique({
       where: { id_reg_evt: data.id_reg_evt },
@@ -84,6 +116,88 @@ export class InscripcionesService {
       data: {
         id_usu: data.id_usu,
         id_reg_evt: data.id_reg_evt
+      },
+      include: INSCRIPCION_INCLUDES
+    });
+
+    return this.formatResponse(inscripcion);
+  }
+
+  /**
+   * Inscripción para eventos de PÚBLICO GENERAL (sin validación de nivel)
+   */
+  private async inscribirConDetalle(data: CrearInscripcionDTO): Promise<InscripcionResponse> {
+    // Obtener detalle del evento
+    const detalle = await prisma.detalle_eventos.findUnique({
+      where: { id_det: data.id_det },
+      include: {
+        eventos: true,
+        registro_evento: {
+          include: {
+            registro_personas: true
+          }
+        }
+      }
+    });
+
+    if (!detalle) {
+      throw new Error('El detalle del evento no existe');
+    }
+
+    // Validar que el evento es para PÚBLICO GENERAL
+    if (detalle.eventos.tip_pub_evt !== 'GENERAL') {
+      throw new Error('Este evento requiere un registro de nivel académico');
+    }
+
+    // Validar cupo disponible
+    const totalInscritos = detalle.registro_evento.reduce(
+      (total, reg) => total + (reg.registro_personas?.length || 0),
+      0
+    );
+
+    if (totalInscritos >= detalle.cup_det) {
+      throw new Error('No hay cupos disponibles para este evento');
+    }
+
+    // Verificar si ya está inscrito
+    const yaInscrito = detalle.registro_evento.some(reg =>
+      reg.registro_personas?.some(rp => rp.id_usu === data.id_usu)
+    );
+
+    if (yaInscrito) {
+      throw new Error('Ya estás inscrito en este evento');
+    }
+
+    // Para público general, buscar o crear un registro_evento con un nivel genérico
+    // Primero intentar usar el primer registro_evento disponible
+    let registroEvento = detalle.registro_evento[0];
+    
+    if (!registroEvento) {
+      // Si no existe, crear uno con el primer nivel disponible (público general no valida nivel)
+      // Obtener cualquier nivel para cumplir con la restricción de BD
+      const primerNivel = await prisma.nivel.findFirst();
+      
+      if (!primerNivel) {
+        throw new Error('No hay niveles configurados en el sistema');
+      }
+
+      const { generateRegistroEventoId } = require('../utils/id-generator.util');
+      const id_reg_evt = await generateRegistroEventoId();
+
+      registroEvento = await prisma.registro_evento.create({
+        data: {
+          id_reg_evt,
+          id_det: data.id_det,
+          id_niv: primerNivel.id_niv
+        }
+      });
+    }
+
+    // Crear la inscripción
+    const inscripcion = await prisma.registro_personas.create({
+      data: {
+        id_usu: data.id_usu,
+        id_reg_evt: registroEvento.id_reg_evt
       },
       include: INSCRIPCION_INCLUDES
     });

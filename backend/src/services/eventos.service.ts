@@ -318,10 +318,16 @@ export class EventosService {
         }
       }
 
-      // Crear registros de evento si se proporcionaron carreras y semestres
-      if (tieneCarrerasSemestres) {
-        console.log('  🎯 Llamando a crearRegistrosEvento...');
+      // Crear registros de evento solo si es para ESTUDIANTES y se proporcionaron carreras/semestres
+      const esParaEstudiantes = evento.tip_pub_evt === 'ESTUDIANTES';
+      
+      if (esParaEstudiantes && tieneCarrerasSemestres) {
+        console.log('  🎯 Evento para ESTUDIANTES - Llamando a crearRegistrosEvento...');
         await this.crearRegistrosEvento(id_det_final, data.carreras, data.semestres);
+      } else if (esParaEstudiantes && !tieneCarrerasSemestres) {
+        console.log('  ⚠️ ADVERTENCIA: Evento para ESTUDIANTES sin carreras/semestres configurados');
+      } else {
+        console.log('  ℹ️ Evento para PÚBLICO GENERAL - no requiere registros de nivel');
       }
 
       // Procesar docentes/instructores si se proporcionaron

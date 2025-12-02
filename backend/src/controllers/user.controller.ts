@@ -4,6 +4,7 @@
 
 import { Request, Response } from 'express';
 import { UserService } from '../services/user.service';
+import prisma from '../config/database';
 import fs from 'fs';
 
 const userService = new UserService();
@@ -16,12 +17,23 @@ export class UserController {
       const user = await userService.getById(id);
 
       if (!user) {
-        return res.status(404).json({ msg: "Usuario no encontrado" });
+        return res.status(404).json({ 
+          success: false,
+          msg: "Usuario no encontrado" 
+        });
       }
 
-      res.json(user);
+      res.json({
+        success: true,
+        data: user
+      });
     } catch (error) {
-      res.status(500).json({ msg: "Error interno", error });
+      console.error('Error al obtener usuario:', error);
+      res.status(500).json({ 
+        success: false,
+        msg: "Error interno", 
+        error 
+      });
     }
   }
 
@@ -49,12 +61,45 @@ export class UserController {
   async updateById(req: Request, res: Response) {
     try {
       const id = Number(req.params.id);
-      const data = req.body;
+      const { niv_usu, ...userData } = req.body;
       
       console.log('Actualizando usuario ID:', id);
-      console.log('Datos recibidos:', data);
+      console.log('Datos recibidos:', req.body);
       
-      const updated = await userService.updateById(id, data);
+      // Actualizar datos básicos del usuario
+      const updated = await userService.updateById(id, userData);
+      
+      // Si se proporciona niv_usu, actualizar en la tabla estudiantes
+      if (niv_usu) {
+        console.log('Actualizando nivel del estudiante a:', niv_usu);
+        
+        // Buscar estudiante activo del usuario
+        const estudiante = await prisma.estudiantes.findFirst({
+          where: {
+            id_usu: id,
+            est_activo: 1
+          }
+        });
+        
+        if (estudiante) {
+          // Actualizar nivel del estudiante existente
+          await prisma.estudiantes.update({
+            where: { id_est: estudiante.id_est },
+            data: { id_niv: niv_usu }
+          });
+        } else {
+          // Crear nuevo registro de estudiante
+          await prisma.estudiantes.create({
+            data: {
+              id_usu: id,
+              id_niv: niv_usu,
+              fec_ingreso: new Date(),
+              est_activo: 1,
+              observaciones: 'Creado desde actualización de perfil'
+            }
+          });
+        }
+      }
       
       res.json({
         success: true,

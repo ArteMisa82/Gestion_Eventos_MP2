@@ -240,21 +240,23 @@ export class RegistroController {
   /**
    * POST /api/inscripciones
    * Inscribe un usuario a un evento
+   * Puede recibir id_reg_evt (para ESTUDIANTES) o id_det (para PÚBLICO GENERAL)
    */
   async inscribirUsuario(req: Request, res: Response) {
     try {
-      const { id_usu, id_reg_evt } = req.body;
+      const { id_usu, id_reg_evt, id_det } = req.body;
 
-      if (!id_usu || !id_reg_evt) {
+      if (!id_usu || (!id_reg_evt && !id_det)) {
         return res.status(400).json({
           success: false,
-          message: 'id_usu e id_reg_evt son requeridos'
+          message: 'id_usu y (id_reg_evt o id_det) son requeridos'
         });
       }
 
       const inscripcion = await inscripcionesService.inscribirUsuario({
         id_usu: parseInt(id_usu),
-        id_reg_evt
+        id_reg_evt,
+        id_det
       });
 
       return res.status(201).json(

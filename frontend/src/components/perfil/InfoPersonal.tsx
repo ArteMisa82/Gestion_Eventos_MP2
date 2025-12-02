@@ -50,6 +50,11 @@ export default function InfoPersonal({ setMostrarModal }: InfoPersonalProps) {
   useEffect(() => {
     if (user) {
       const userData = user as any;
+      // Obtener el nivel del estudiante activo
+      const nivelActual = userData.estudiantes && userData.estudiantes.length > 0 
+        ? userData.estudiantes[0].id_niv 
+        : '';
+      
       setFormData({
         nom_usu: user.nom_usu || '',
         nom_seg_usu: userData.nom_seg_usu || '',
@@ -57,7 +62,7 @@ export default function InfoPersonal({ setMostrarModal }: InfoPersonalProps) {
         ape_seg_usu: userData.ape_seg_usu || '',
         ced_usu: userData.ced_usu || '',
         tel_usu: userData.tel_usu || '',
-        niv_usu: userData.niv_usu || '',
+        niv_usu: nivelActual,
         cor_usu: user.cor_usu || ''
       });
     }

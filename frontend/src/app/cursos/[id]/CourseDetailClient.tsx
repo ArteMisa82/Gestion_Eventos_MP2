@@ -234,7 +234,7 @@ export default function CourseDetailClient({ evento }: { evento: EventoDetalle }
         // Si es otro tipo de error, continuar con el proceso normal
       }
       
-      // PASO 1: Obtener registros de evento para este detalle
+      // PASO 1: Obtener registros de evento para este detalle (solo si es para ESTUDIANTES)
       Swal.fire({
         title: 'Obteniendo información del curso...',
         text: 'Verificando disponibilidad',
@@ -244,67 +244,104 @@ export default function CourseDetailClient({ evento }: { evento: EventoDetalle }
         }
       });
 
-      const registrosResponse = await registroEventoAPI.getPorDetalle(authToken, detalle.id_det);
-      console.log("Registros encontrados:", registrosResponse);
+      // Verificar si el evento requiere niveles/carreras (solo para ESTUDIANTES)
+      const esParaEstudiantes = evento.tip_pub_evt === "ESTUDIANTES";
       
-      if (!registrosResponse.success || !registrosResponse.data || registrosResponse.data.length === 0) {
-        Swal.fire({
-          icon: "error",
-          title: "Curso no disponible",
-          text: "Este curso no está disponible para inscripciones actualmente.",
-          confirmButtonColor: "#7f1d1d",
-        });
-        return;
-      }
-
-      // Por simplicidad, tomamos el primer registro encontrado
-      // En una implementación más compleja, podrías permitir al usuario elegir el nivel
-      const registroEvento = registrosResponse.data[0];
-      const id_reg_evt = registroEvento.id_reg_evt;
+      let registroEvento;
+      let id_reg_evt;
       
-      console.log("Usando registro de evento:", id_reg_evt);
-      console.log("Nivel del curso:", registroEvento.nivel?.nom_niv);
-
-      // PASO 2: Validar si el usuario puede inscribirse
-      Swal.fire({
-        title: 'Validando requisitos...',
-        text: 'Verificando nivel académico y disponibilidad',
-        allowOutsideClick: false,
-        didOpen: () => {
-          Swal.showLoading();
-        }
-      });
-
-      const validacion = await inscripcionesAPI.validar(authToken, {
-        id_usu,
-        id_reg_evt
-      });
-      
-      console.log("Resultado de validación:", validacion);
-
-      if (!validacion.success || !validacion.data?.valido) {
-        const mensaje = validacion.data?.mensaje || validacion.message || "No cumples con los requisitos para este curso.";
+      if (esParaEstudiantes) {
+        // Solo para eventos de ESTUDIANTES: verificar que haya registros de nivel
+        const registrosResponse = await registroEventoAPI.getPorDetalle(authToken, detalle.id_det);
+        console.log("Registros encontrados (estudiantes):", registrosResponse);
         
-        Swal.fire({
-          icon: "error",
-          title: "No puedes inscribirte",
-          text: mensaje,
-          confirmButtonColor: "#7f1d1d",
-        });
-        return;
+        if (!registrosResponse.success || !registrosResponse.data || registrosResponse.data.length === 0) {
+          Swal.fire({
+            icon: "info",
+            title: "Curso en configuración",
+            html: `
+              <p>Este curso aún no está disponible para inscripciones.</p>
+              <br>
+              <p style="color: #6b7280; font-size: 14px;">
+                El responsable del curso debe configurar las carreras y niveles académicos a los que está dirigido.
+              </p>
+              <p style="color: #6b7280; font-size: 14px;">
+                Por favor, intenta más tarde o contacta al administrador.
+              </p>
+            `,
+            confirmButtonColor: "#7f1d1d",
+          });
+          return;
+        }
+        
+        // Para ESTUDIANTES: usar el primer registro encontrado
+        registroEvento = registrosResponse.data[0];
+        id_reg_evt = registroEvento.id_reg_evt;
+        console.log("Usando registro de evento:", id_reg_evt);
+        console.log("Nivel del curso:", registroEvento.nivel?.nom_niv);
+      } else {
+        // Para PÚBLICO GENERAL: no se requiere registro de nivel
+        console.log("Evento para público general - sin validación de niveles");
+        id_reg_evt = null;
       }
 
+      console.log("🔹 ANTES de cerrar Swal inicial");
+      // Cerrar el modal de "Obteniendo información del curso..."
+      Swal.close();
+      console.log("🔹 DESPUÉS de cerrar Swal inicial");
+      
+      // Pequeño delay para que SweetAlert2 termine de cerrar el modal anterior
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // PASO 2: Validar si el usuario puede inscribirse (solo para ESTUDIANTES)
+      if (esParaEstudiantes) {
+        Swal.fire({
+          title: 'Validando requisitos...',
+          text: 'Verificando nivel académico y disponibilidad',
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          }
+        });
+
+        const validacion = await inscripcionesAPI.validar(authToken, {
+          id_usu,
+          id_reg_evt
+        });
+        
+        console.log("Resultado de validación:", validacion);
+
+        if (!validacion.success || !validacion.data?.valido) {
+          const mensaje = validacion.data?.mensaje || validacion.message || "No cumples con los requisitos para este curso.";
+          
+          Swal.fire({
+            icon: "error",
+            title: "No puedes inscribirte",
+            text: mensaje,
+            confirmButtonColor: "#7f1d1d",
+          });
+          return;
+        }
+        
+        // Cerrar el modal de validación antes de mostrar la confirmación
+        Swal.close();
+        // Pequeño delay para que SweetAlert2 termine de cerrar el modal anterior
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+
+      console.log("🔹 LLEGANDO al PASO 3 - Confirmar inscripción");
       // PASO 3: Confirmar inscripción con el usuario
+      const nivelInfo = esParaEstudiantes && registroEvento ? `Nivel: ${registroEvento.nivel?.nom_niv}<br>` : '';
+      
       const confirmResult = await Swal.fire({
         icon: "question",
         title: "Confirmar inscripción",
         html: `
-          <p><strong>✅ Validación exitosa</strong></p>
-          <br>
+          ${esParaEstudiantes ? '<p><strong>✅ Validación exitosa</strong></p><br>' : ''}
           <p>¿Confirmas tu inscripción a:</p>
           <p><strong>${evento.nom_evt}</strong></p>
           <p style="color: #6b7280; font-size: 14px;">
-            Nivel: ${registroEvento.nivel?.nom_niv}<br>
+            ${nivelInfo}
             Duración: ${detalle.hor_det} horas<br>
             Modalidad: ${evento.mod_evt}
           </p>
@@ -329,19 +366,37 @@ export default function CourseDetailClient({ evento }: { evento: EventoDetalle }
         }
       });
 
-      const inscripcion = await inscripcionesAPI.inscribir(authToken, {
-        id_usu,
-        id_reg_evt
-      });
+      // Para público general, usar id_det directamente; para estudiantes, usar id_reg_evt
+      const inscripcionData: any = {
+        id_usu
+      };
+      
+      if (esParaEstudiantes && id_reg_evt) {
+        inscripcionData.id_reg_evt = id_reg_evt;
+      } else {
+        // Para público general, usar el id_det directamente
+        inscripcionData.id_det = detalle.id_det;
+      }
+      
+      console.log("=== DATOS DE INSCRIPCIÓN ===");
+      console.log("inscripcionData:", inscripcionData);
+      console.log("esParaEstudiantes:", esParaEstudiantes);
+      
+      const inscripcion = await inscripcionesAPI.inscribir(authToken, inscripcionData);
       
       console.log("Resultado de inscripción:", inscripcion);
+
+      // Cerrar loading
+      Swal.close();
 
       if (inscripcion.success) {
         // Verificar si el evento es de pago
         const esDePago = evento.cos_evt === "DE PAGO";
         
         if (esDePago) {
-          // Si es de pago, redirigir a la página de pagos
+          // Si es de pago, mostrar opciones de pago
+          const numRegPer = inscripcion.data?.num_reg_per;
+          
           Swal.fire({
             icon: "success",
             title: "¡Pre-inscripción exitosa!",
@@ -351,19 +406,66 @@ export default function CourseDetailClient({ evento }: { evento: EventoDetalle }
               <br>
               <p style="color: #d97706; font-size: 14px;">
                 ⚠️ Este es un evento de pago.<br>
-                Serás redirigido a la página de pagos para completar tu inscripción.
+                Selecciona tu método de pago para completar tu inscripción.
               </p>
             `,
-            confirmButtonText: "Ir a Pagos",
+            showCancelButton: true,
+            confirmButtonText: "💳 Pagar con Tarjeta",
+            cancelButtonText: "🏦 Depósito/Transferencia",
             confirmButtonColor: "#7f1d1d",
-          }).then(() => {
-            // Redirigir a la página de pagos con el ID del registro de persona
-            const numRegPer = inscripcion.data?.num_reg_per;
-            if (numRegPer) {
-              router.push(`/usuarios/pagos?num_reg_per=${numRegPer}`);
-            } else {
-              // Si no hay num_reg_per, redirigir a la página general de pagos
-              router.push("/usuarios/pagos");
+            cancelButtonColor: "#4b5563",
+            allowOutsideClick: false
+          }).then(async (result) => {
+            if (result.isConfirmed) {
+              // Pago con tarjeta (simulado)
+              await Swal.fire({
+                icon: "info",
+                title: "Procesando pago...",
+                html: `
+                  <p>Simulando pago con tarjeta</p>
+                  <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[#7f1d1d] mx-auto mt-4"></div>
+                `,
+                showConfirmButton: false,
+                timer: 2000
+              });
+              
+              Swal.fire({
+                icon: "success",
+                title: "¡Pago exitoso!",
+                html: `
+                  <p>Tu pago ha sido procesado correctamente.</p>
+                  <p>Inscripción confirmada para:</p>
+                  <p><strong>${evento.nom_evt}</strong></p>
+                `,
+                confirmButtonColor: "#7f1d1d",
+              }).then(() => {
+                router.push("/usuarios/cursos");
+              });
+            } else if (result.dismiss === Swal.DismissReason.cancel) {
+              // Depósito/Transferencia
+              Swal.fire({
+                icon: "info",
+                title: "Depósito o Transferencia Bancaria",
+                html: `
+                  <div style="text-align: left; padding: 10px;">
+                    <p style="margin-bottom: 10px;"><strong>Datos bancarios:</strong></p>
+                    <div style="background: #f3f4f6; padding: 12px; border-radius: 8px; margin-bottom: 15px;">
+                      <p style="margin: 5px 0; font-size: 14px;"><strong>Banco:</strong> Banco Pichincha</p>
+                      <p style="margin: 5px 0; font-size: 14px;"><strong>Tipo de cuenta:</strong> Ahorros</p>
+                      <p style="margin: 5px 0; font-size: 14px;"><strong>Número de cuenta:</strong> 2100123456</p>
+                      <p style="margin: 5px 0; font-size: 14px;"><strong>Beneficiario:</strong> Universidad Técnica de Ambato</p>
+                      <p style="margin: 5px 0; font-size: 14px;"><strong>RUC:</strong> 1860001550001</p>
+                    </div>
+                    <p style="margin: 10px 0; font-size: 14px; color: #d97706;">
+                      ⚠️ Una vez realizado el pago, debes subir el comprobante en la sección "Mis Cursos" para que tu inscripción sea validada.
+                    </p>
+                  </div>
+                `,
+                confirmButtonText: "Entendido",
+                confirmButtonColor: "#7f1d1d",
+              }).then(() => {
+                router.push("/usuarios/cursos");
+              });
             }
           });
         } else {
@@ -391,6 +493,9 @@ export default function CourseDetailClient({ evento }: { evento: EventoDetalle }
     } catch (error: any) {
       console.error('Error al inscribir:', error);
       
+      // Cerrar cualquier modal de loading
+      Swal.close();
+      
       let errorMessage = "No se pudo completar la inscripción.";
       
       // Personalizar mensajes de error según el tipo
@@ -405,6 +510,8 @@ export default function CourseDetailClient({ evento }: { evento: EventoDetalle }
           errorMessage = "No puedes inscribirte en un curso donde eres instructor.";
         } else if (error.message.includes('responsable')) {
           errorMessage = "No puedes inscribirte en un evento donde eres responsable.";
+        } else if (error.message.includes('timeout') || error.message.includes('network')) {
+          errorMessage = "Error de conexión. Por favor, verifica que el servidor esté funcionando e intenta nuevamente.";
         } else {
           errorMessage = error.message;
         }

@@ -25,7 +25,8 @@ export interface RegistroEventoResponse {
 // ============= INSCRIPCIONES (registro_personas) =============
 export interface CrearInscripcionDTO {
   id_usu: number;
-  id_reg_evt: string;
+  id_reg_evt?: string;  // Para eventos de ESTUDIANTES
+  id_det?: string;      // Para eventos de PÚBLICO GENERAL
 }
 
 export interface InscripcionResponse {

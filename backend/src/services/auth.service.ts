@@ -29,7 +29,22 @@ export class AuthService {
   async identifyUser(email: string, password: string): Promise<AuthResult> {
     try {
       const user = await this.prisma.usuarios.findUnique({
-        where: { cor_usu: email }
+        where: { cor_usu: email },
+        include: {
+          estudiantes: {
+            include: {
+              nivel: {
+                include: {
+                  carreras: true
+                }
+              }
+            },
+            where: {
+              est_activo: 1
+            },
+            take: 1
+          }
+        }
       });
 
       if (!user) {
@@ -41,17 +56,27 @@ export class AuthService {
         return { success: false, error: 'Credenciales inválidas' };
       }
 
+      // Extraer nivel del estudiante activo
+      const nivel = user.estudiantes && user.estudiantes.length > 0 ? user.estudiantes[0].nivel : null;
+      const niv_usu = nivel ? nivel.id_niv : null;
+
       return {
         success: true,
         user: {
           id_usu: user.id_usu,
           cor_usu: user.cor_usu,
           nom_usu: user.nom_usu,
+          nom_seg_usu: user.nom_seg_usu,
           ape_usu: user.ape_usu,
+          ape_seg_usu: user.ape_seg_usu,
+          ced_usu: user.ced_usu,
+          tel_usu: user.tel_usu,
+          niv_usu: niv_usu,
           adm_usu: user.adm_usu,
           stu_usu: user.stu_usu,
           "Administrador": user.Administrador,
-        }
+          nivel: nivel,
+        } as any
       };
     } catch (error) {
       console.error('Error en identificación:', error);
@@ -92,10 +117,28 @@ export class AuthService {
           stu_usu: esEstudiante ? 1 : 0,           // 1 si es estudiante
           adm_usu: esAdministrativo ? 1 : 0,       // 1 si es administrativo
           Administrador: esAdmin                   // true solo si es admin@admin.com
+        },
+        include: {
+          estudiantes: {
+            include: {
+              nivel: {
+                include: {
+                  carreras: true
+                }
+              }
+            },
+            where: {
+              est_activo: 1
+            },
+            take: 1
+          }
         }
       });
 
       console.log(`Nuevo usuario registrado: ${newUser.cor_usu} (Rol: ${this.determineUserRole(newUser)})`);
+
+      const nivel = newUser.estudiantes && newUser.estudiantes.length > 0 ? newUser.estudiantes[0].nivel : null;
+      const niv_usu = nivel ? nivel.id_niv : null;
 
       return {
         success: true,
@@ -103,11 +146,17 @@ export class AuthService {
           id_usu: newUser.id_usu,
           cor_usu: newUser.cor_usu,
           nom_usu: newUser.nom_usu,
+          nom_seg_usu: newUser.nom_seg_usu,
           ape_usu: newUser.ape_usu,
+          ape_seg_usu: newUser.ape_seg_usu,
+          ced_usu: newUser.ced_usu,
+          tel_usu: newUser.tel_usu,
+          niv_usu: niv_usu,
           adm_usu: newUser.adm_usu,
           stu_usu: newUser.stu_usu,
           "Administrador": newUser.Administrador,
-        }
+          nivel: nivel,
+        } as any
       };
     } catch (error) {
       console.error('Error en registro:', error);
@@ -119,14 +168,20 @@ export class AuthService {
     try {
       const user = await this.prisma.usuarios.findUnique({
         where: { id_usu: userId },
-        select: {
-          id_usu: true,
-          cor_usu: true,
-          nom_usu: true,
-          ape_usu: true,
-          adm_usu: true,
-          stu_usu: true,
-          Administrador: true,
+        include: {
+          estudiantes: {
+            include: {
+              nivel: {
+                include: {
+                  carreras: true
+                }
+              }
+            },
+            where: {
+              est_activo: 1
+            },
+            take: 1
+          }
         }
       });
 
@@ -134,17 +189,26 @@ export class AuthService {
         return { success: false, error: 'Usuario no encontrado' };
       }
 
+      const nivel = user.estudiantes && user.estudiantes.length > 0 ? user.estudiantes[0].nivel : null;
+      const niv_usu = nivel ? nivel.id_niv : null;
+
       return {
         success: true,
         user: {
           id_usu: user.id_usu,
           cor_usu: user.cor_usu,
           nom_usu: user.nom_usu,
+          nom_seg_usu: user.nom_seg_usu,
           ape_usu: user.ape_usu,
+          ape_seg_usu: user.ape_seg_usu,
+          ced_usu: user.ced_usu,
+          tel_usu: user.tel_usu,
+          niv_usu: niv_usu,
           adm_usu: user.adm_usu,
           stu_usu: user.stu_usu,
           "Administrador": user.Administrador,
-        }
+          nivel: nivel,
+        } as any
       };
     } catch (error) {
       console.error('Error obteniendo perfil:', error);
