@@ -96,7 +96,7 @@ export class ComiteService {
     }));
   }
 
-  // 🔹 LISTAR TODAS LAS SOLICITUDES
+  // 🔹 LISTAR TODAS LAS SOLICITUDES (MIX)
   async getTodasSolicitudes(): Promise<SolicitudResumen[]> {
     const [usuarios, programadores] = await Promise.all([
       this.getSolicitudesUsuarios(),
@@ -105,6 +105,7 @@ export class ComiteService {
 
     const todas = [...usuarios, ...programadores];
 
+    // Ordenar por fecha DESC
     todas.sort((a, b) => {
       const fa = new Date(a.fec_sol).getTime();
       const fb = new Date(b.fec_sol).getTime();
@@ -128,88 +129,207 @@ export class ComiteService {
     });
   }
 
-  // 🔥 Helper: body Markdown para USUARIO
+  // 🔥 Helper: body Markdown para USUARIO FINAL (RFC)
   private buildUsuarioIssueBody(row: any): string {
-    const fecha = row.fec_sol instanceof Date ? row.fec_sol.toISOString().split('T')[0] : String(row.fec_sol);
+    const fecha =
+      row.fec_sol instanceof Date
+        ? row.fec_sol.toISOString().split('T')[0]
+        : String(row.fec_sol);
+
+    const scrNumero = row.num_sol || `SCR-${row.id_sc_usu}`;
 
     return [
-      `### Tipo de solicitud`,
-      `Usuario`,
-      ``,
-      `### Datos del solicitante`,
-      `- Nombre: ${row.nom_sol}`,
-      `- Correo: ${row.cor_sol}`,
-      `- Teléfono: ${row.tel_sol || 'N/A'}`,
-      ``,
-      `### Proyecto`,
-      `- Nombre: ${row.nom_proy}`,
+      '# 📝 Formulario de Solicitud de Cambio — Usuario Final',
+      '',
+      '## 🔢 Información de la Solicitud',
+      `Número de Solicitud:  ${scrNumero}`,
+      '',
+      `Nombre del Proyecto:  ${row.nom_proy}`,
+      '',
+      `Fecha de Solicitud:  ${fecha}`,
+      '',
+      '---',
+      '',
+      '## 👤 Datos del Solicitante',
+      `Nombre del Solicitante:  ${row.nom_sol}`,
+      `Correo Electrónico:  ${row.cor_sol}`,
+      `Número de Contacto:  ${row.tel_sol || 'N/A'}`,
+      '',
+      '---',
+      '',
+      '## 🧩 Módulo / Tipo de usuario afectado',
+      'Selecciona todas las opciones que apliquen:',
+      '',
+      '- [ ] Docente',
+      '- [ ] Administrador',
+      '- [ ] Estudiante',
+      '- [ ] Responsable',
+      '- [ ] Usuario logueado',
+      '- [ ] Usuario no logueado',
+      '- [ ] Otro: (especificar)',
+      '',
+      '---',
+      '',
+      '## 🧾 Detalle del Cambio Solicitado',
+      '### Título del Cambio:',
+      row.tit_cam,
+      '',
+      '### Descripción Detallada:',
+      row.des_cam || '(Explique qué desea cambiar o agregar en el sistema.)',
+      '',
+      '### Justificación:',
+      row.jus_cam || '(Explique por qué este cambio es necesario y qué problema soluciona.)',
+      '',
+      '---',
+      '',
+      '## 📎 Adjuntos',
+      '(Opcional — capturas, documentos, videos, etc.)',
+      '',
+      '---',
+      '',
+      '## 🔄 Estado del RFC',
+      '- [x] Recibido',
+      '- [ ] En revisión del Comité',
+      '- [ ] Aprobado',
+      '- [ ] Rechazado',
+      '',
+      '---',
+      '',
+      '## 📌 Metadatos del Sistema',
       `- Módulo: ${row.modulo || 'N/A'}`,
       `- Submódulo: ${row.sub_modulo || 'N/A'}`,
-      ``,
-      `### Detalle del cambio`,
-      `- Título: ${row.tit_cam}`,
-      ``,
-      `**Descripción:**`,
-      `${row.des_cam || 'Sin descripción'}`,
-      ``,
-      `**Justificación:**`,
-      `${row.jus_cam || 'Sin justificación'}`,
-      ``,
-      `### Priorización`,
-      `- Estado en comité: ${row.apv_cam}`,
       `- Prioridad: ${row.prioridad}`,
-      ``,
-      `### Metadatos`,
-      `- Número de solicitud: ${row.num_sol}`,
-      `- Fecha de solicitud: ${fecha}`
+      `- Estado Comité: ${row.apv_cam}`,
+      `- Fecha creación: ${fecha}`
     ].join('\n');
   }
 
-  // 🔥 Helper: body Markdown para PROGRAMADOR
+  // 🔥 Helper: body Markdown para PROGRAMADOR / DESARROLLADOR
   private buildProgramadorIssueBody(row: any): string {
-    const fecha = row.fec_sol instanceof Date ? row.fec_sol.toISOString().split('T')[0] : String(row.fec_sol);
+    const fecha =
+      row.fec_sol instanceof Date
+        ? row.fec_sol.toISOString().split('T')[0]
+        : String(row.fec_sol);
+
+    const scrNumero = row.num_sol || `SCR-${row.id_sc_prog}`;
 
     return [
-      `### Tipo de solicitud`,
-      `Programador`,
-      ``,
-      `### Datos del solicitante`,
-      `- Nombre: ${row.nom_sol}`,
-      `- Correo: ${row.cor_sol}`,
-      `- Teléfono: ${row.tel_sol || 'N/A'}`,
-      ``,
-      `### Proyecto`,
-      `- Nombre: ${row.nom_proy}`,
+      '---',
+      'Nombre: "🧑‍💻 Solicitud de Cambio Desarrollador"',
+      'Descripción: Registrar el análisis técnico y la implementación requerida para un cambio aprobado.',
+      `Titulo: "DEV - ${row.tit_cam}"`,
+      'Tags: ["desarrollo", "implementación"]',
+      `Solicitante: "${row.nom_sol}"`,
+      `Desarrollador Asignado: ${row.nom_sol || '[nombre-del-desarrollador]'}`,
+      '---',
+      '',
+      '# 🧑‍💻 Formulario de Solicitud de Cambio — Desarrollador',
+      '',
+      '⚠ Este formulario se llena únicamente cuando el RFC (Usuario Final) ha sido aprobado por el Comité de Cambios.',
+      '',
+      '---',
+      '',
+      '## 🔗 RFC Relacionado',
+      `Número de Solicitud (SCR):  ${scrNumero}`,
+      '',
+      'Enlace al RFC:',
+      '(Ej.: #12)',
+      '',
+      '---',
+      '',
+      '## 🧩 Módulos afectados',
+      'Selecciona todos los módulos que impacta este cambio:',
+      '',
+      '- [ ] Docente',
+      '- [ ] Administrador',
+      '- [ ] Estudiante',
+      '- [ ] Responsable',
+      '- [ ] Usuario logueado',
+      '- [ ] Usuario no logueado',
+      '- [ ] Otro: (especificar)',
+      '',
+      '---',
+      '',
+      '## 📝 Datos Técnicos del Cambio',
+      '',
+      '### 🔧 Título del Cambio',
+      row.tit_cam,
+      '',
+      '### 🔧 Descripción Detallada',
+      row.des_cam || '(Describir técnicamente qué se modificará, añadirá o eliminará)',
+      '',
+      '### 🧠 Justificación Técnica',
+      row.jus_cam || '(Por qué es necesario este cambio desde el punto de vista del desarrollador)',
+      '',
+      '### ⚠ Impacto de No Implementar el Cambio',
+      row.imp_alc || '(Consecuencias, fallos posibles, procesos afectados)',
+      '',
+      '---',
+      '',
+      '## 🏷 Tipo de Cambio y Clasificación',
+      '',
+      '### Tipo de Cambio',
+      'Selecciona solo una opción:',
+      '',
+      '- [ ] Normal',
+      '- [ ] Estándar',
+      '- [ ] Emergencia',
+      '',
+      '### Clasificación (según el tipo elegido)',
+      '',
+      'Si el Tipo de Cambio es Normal:',
+      '',
+      '- [ ] Funcional',
+      '- [ ] Técnico',
+      '- [ ] Documental',
+      '',
+      'Si el Tipo de Cambio es Estándar:',
+      '',
+      '- [ ] Mantenimiento',
+      '- [ ] Actualización',
+      '',
+      'Si el Tipo de Cambio es Emergencia:',
+      '',
+      '- [ ] Crítico',
+      '- [ ] Seguridad',
+      '',
+      '---',
+      '',
+      '## 📊 Impactos y Estimación',
+      '',
+      '### 🎯 Impacto en el Alcance',
+      row.imp_alc || '(Módulos afectados, pantallas, endpoints, procesos)',
+      '',
+      '### 🕒 Impacto en Días / Tiempo Estimado',
+      String(row.imp_dias ?? '(Especificar tiempo aproximado de desarrollo)'),
+      '',
+      '---',
+      '',
+      '## 🧰 Recursos Necesarios',
+      row.rec_nec || '(Personas, accesos, herramientas, datos o APIs necesarias)',
+      '',
+      '---',
+      '',
+      '## ⚠ Riesgos Identificados',
+      row.riesgos || '(Riesgos técnicos, regresiones, dependencias)',
+      '',
+      '---',
+      '',
+      '## 🌿 Rama de Desarrollo',
+      'feature/SCR-xxxx-nombre-del-cambio',
+      '',
+      '---',
+      '',
+      '## 📌 Metadatos del Sistema',
+      `- Proyecto: ${row.nom_proy}`,
       `- Módulo: ${row.modulo || 'N/A'}`,
       `- Submódulo: ${row.sub_modulo || 'N/A'}`,
-      ``,
-      `### Detalle del cambio`,
-      `- Título: ${row.tit_cam}`,
-      ``,
-      `**Descripción técnica:**`,
-      `${row.des_cam || 'Sin descripción'}`,
-      ``,
-      `**Justificación técnica:**`,
-      `${row.jus_cam || 'Sin justificación'}`,
-      ``,
-      `### Impacto y clasificación`,
       `- Importante / No importante: ${row.imp_no_imp}`,
-      `- Tipo de cambio: ${row.tip_cam}`,
-      `- Clasificación: ${row.cla_cam}`,
-      `- Alcance: ${row.imp_alc || 'N/A'}`,
-      `- Días estimados de implementación: ${row.imp_dias ?? 'N/A'}`,
-      ``,
-      `### Recursos y riesgos`,
-      `- Recursos necesarios: ${row.rec_nec || 'N/A'}`,
-      `- Riesgos: ${row.riesgos || 'N/A'}`,
-      ``,
-      `### Priorización`,
-      `- Estado en comité: ${row.apv_cam}`,
+      `- Tipo de cambio (BD): ${row.tip_cam}`,
+      `- Clasificación (BD): ${row.cla_cam}`,
       `- Prioridad: ${row.prioridad}`,
-      ``,
-      `### Metadatos`,
-      `- ID solicitud programador: ${row.id_sc_prog}`,
-      `- Fecha de solicitud: ${fecha}`
+      `- Estado Comité: ${row.apv_cam}`,
+      `- Fecha solicitud: ${fecha}`
     ].join('\n');
   }
 
@@ -287,7 +407,7 @@ export class ComiteService {
 
       if (!row) return { success: false, message: 'Solicitud usuario no encontrada' };
 
-      const title = `[USUARIO] ${row.nom_proy} - ${row.tit_cam}`;
+      const title = `RFC - ${row.num_sol || row.id_sc_usu} - ${row.tit_cam}`;
       const body = this.buildUsuarioIssueBody(row);
       const labels = ['comite', 'usuario'];
 
@@ -303,7 +423,7 @@ export class ComiteService {
 
       if (!row) return { success: false, message: 'Solicitud programador no encontrada' };
 
-      const title = `[PROGRAMADOR] ${row.nom_proy} - ${row.tit_cam}`;
+      const title = `DEV - ${row.nom_proy} - ${row.tit_cam}`;
       const body = this.buildProgramadorIssueBody(row);
       const labels = ['comite', 'programador'];
 
