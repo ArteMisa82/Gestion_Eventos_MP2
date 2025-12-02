@@ -200,7 +200,7 @@ export default function MisCursosYEventos() {
                   
                   return (
                     <div
-                      key={curso.id_reg_per}
+                      key={curso.num_reg_per}
                       className="bg-white rounded-xl shadow hover:shadow-xl transition-all duration-200 border border-gray-200 overflow-hidden cursor-pointer"
                       onClick={() => irAlCurso(evento.id_evt)}
                     >
@@ -286,7 +286,7 @@ export default function MisCursosYEventos() {
                   
                   return (
                     <div
-                      key={evento.id_reg_per}
+                      key={evento.num_reg_per}
                       className="bg-white rounded-xl shadow hover:shadow-xl transition-all duration-200 border border-gray-200 overflow-hidden cursor-pointer"
                       onClick={() => irAlEvento(evt.id_evt)}
                     >

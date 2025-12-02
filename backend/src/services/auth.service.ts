@@ -15,7 +15,6 @@ export interface AuthResult {
     adm_usu: number | null;
     stu_usu: number | null;
     "Administrador": boolean;
-    niv_usu?: string | null;
   };
   error?: string;
 }
@@ -52,7 +51,6 @@ export class AuthService {
           adm_usu: user.adm_usu,
           stu_usu: user.stu_usu,
           "Administrador": user.Administrador,
-          niv_usu: user.niv_usu
         }
       };
     } catch (error) {
@@ -109,7 +107,6 @@ export class AuthService {
           adm_usu: newUser.adm_usu,
           stu_usu: newUser.stu_usu,
           "Administrador": newUser.Administrador,
-          niv_usu: newUser.niv_usu
         }
       };
     } catch (error) {
@@ -130,7 +127,6 @@ export class AuthService {
           adm_usu: true,
           stu_usu: true,
           Administrador: true,
-          niv_usu: true
         }
       });
 
@@ -148,7 +144,6 @@ export class AuthService {
           adm_usu: user.adm_usu,
           stu_usu: user.stu_usu,
           "Administrador": user.Administrador,
-          niv_usu: user.niv_usu
         }
       };
     } catch (error) {

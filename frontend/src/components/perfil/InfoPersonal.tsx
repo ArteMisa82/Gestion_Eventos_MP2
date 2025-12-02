@@ -123,13 +123,16 @@ export default function InfoPersonal({ setMostrarModal }: InfoPersonalProps) {
     setLoading(true);
 
     try {
+      // Remove niv_usu and cor_usu from formData as they shouldn't be updated this way
+      const { niv_usu, cor_usu, ...dataToUpdate } = formData;
+      
       const response = await fetch(`http://localhost:3001/api/user/${user?.id_usu}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(dataToUpdate)
       });
 
       const result = await response.json();

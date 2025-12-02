@@ -1,9 +1,9 @@
 "use client";
 import React, { useRef, useState, useEffect } from "react";
-import { X, Upload, Image as ImageIcon, ChevronDown, ChevronUp, Plus } from "lucide-react";
+import { X, Upload, Image as ImageIcon, ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
 import Swal from "sweetalert2";
+import { eventosAPI, usuariosAPI } from "@/services/api";
 import { useCategorias } from "@/contexts/CategoriasContext";
-import { eventosAPI, usuariosAPI, tarifasAPI } from "@/services/api";
 
 interface Evento {
   id: string;
@@ -58,6 +58,13 @@ interface Usuario {
   ape_usu: string;
 }
 
+interface RequisitoPersonalizado {
+  id: string;
+  tipo: "asistencia" | "nota" | "carta" | "documento" | "otro";
+  valor?: string | number;
+  activo: boolean;
+}
+
 export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalEditarEventoProps) {
   if (!evento) return null;
 
@@ -65,8 +72,14 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
   const imageDefault = "/Default_Image.png";
 
   const { categorias } = useCategorias();
-  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string>("");
   const [requisitosCargados, setRequisitosCargados] = useState<string[]>([]);
+  const [mostrarAgregarRequisito, setMostrarAgregarRequisito] = useState(false);
+  const [nuevoRequisito, setNuevoRequisito] = useState<RequisitoPersonalizado>({
+    id: '',
+    tipo: 'otro',
+    activo: true
+  });
+  const [requisitosPersonalizados, setRequisitosPersonalizados] = useState<RequisitoPersonalizado[]>([]);
 
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [docFilter, setDocFilter] = useState("");
@@ -74,10 +87,45 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
   const [isComboOpen, setIsComboOpen] = useState(false);
   const comboRef = useRef<HTMLDivElement>(null);
 
+  // Función para convertir fecha a formato yyyy-MM-dd
+  const formatDateForInput = (dateString: string | undefined): string => {
+    if (!dateString) return "";
+    
+    try {
+      // Si ya viene en formato ISO (yyyy-MM-ddT...), extraer solo la fecha
+      if (dateString.includes('T')) {
+        return dateString.split('T')[0];
+      }
+      
+      // Si viene en formato dd/MM/yyyy, convertir a yyyy-MM-dd
+      if (dateString.includes('/')) {
+        const [day, month, year] = dateString.split('/');
+        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+      }
+      
+      // Si ya está en formato yyyy-MM-dd, retornar tal cual
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+        return dateString;
+      }
+      
+      // Último recurso: intentar parsear como fecha
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return "";
+      
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      
+      return `${year}-${month}-${day}`;
+    } catch {
+      return "";
+    }
+  };
+
   const [formData, setFormData] = useState<Evento>({
     ...evento,
-    fechaInicio: evento.fechaInicio || evento.fec_evt || "",
-    fechaFin: evento.fechaFin || evento.fec_fin_evt || "",
+    fechaInicio: formatDateForInput(evento.fec_evt || evento.fechaInicio),
+    fechaFin: formatDateForInput(evento.fec_fin_evt || evento.fechaFin),
     modalidad: evento.modalidad || evento.mod_evt || "",
     cupos: evento.cupos ?? evento.capacidad ?? 0,
     capacidad: evento.capacidad ?? evento.cupos ?? 0,
@@ -86,10 +134,10 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
     pago: evento.pago || evento.cos_evt || "",
     precioEstudiantes: evento.precioEstudiantes ?? 0,
     precioGeneral: evento.precioGeneral ?? 0,
-    requiereAsistencia: evento.requiereAsistencia ?? false,
-    asistenciaMinima: evento.asistenciaMinima ?? 0,
-    nota: evento.nota ?? 0,
-    cartaMotivacion: evento.cartaMotivacion ?? false,
+    requiereAsistencia: false,
+    asistenciaMinima: 0,
+    nota: 0,
+    cartaMotivacion: false,
     horario: evento.horario || "",
     lugar: evento.lugar || evento.lug_evt || "",
     carreras: evento.carreras || [],
@@ -123,6 +171,42 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
     fetchUsuarios();
   }, []);
 
+  // Inicializar requisitos personalizados basados en los datos existentes del evento
+  useEffect(() => {
+    const requisitosIniciales: RequisitoPersonalizado[] = [];
+
+    // Si el evento original tenía asistencia requerida, agregarla
+    if (evento.requiereAsistencia && evento.asistenciaMinima) {
+      requisitosIniciales.push({
+        id: 'asistencia-' + Date.now(),
+        tipo: 'asistencia',
+        valor: evento.asistenciaMinima,
+        activo: true
+      });
+    }
+
+    // Si el evento original tenía nota mínima, agregarla
+    if (evento.nota && evento.nota > 0) {
+      requisitosIniciales.push({
+        id: 'nota-' + Date.now(),
+        tipo: 'nota',
+        valor: evento.nota,
+        activo: true
+      });
+    }
+
+    // Si el evento original requería carta de motivación, agregarla
+    if (evento.cartaMotivacion) {
+      requisitosIniciales.push({
+        id: 'carta-' + Date.now(),
+        tipo: 'carta',
+        activo: true
+      });
+    }
+
+    setRequisitosPersonalizados(requisitosIniciales);
+  }, [evento]);
+
   // Filtrar docentes basado en el texto ingresado
   useEffect(() => {
     const filterText = docFilter.trim().toLowerCase();
@@ -150,16 +234,28 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
     };
   }, []);
 
-  // Cargar categoría y requisitos cuando cambie la selección
+  // Cargar requisitos cuando cambie el tipo de evento (categoría)
   useEffect(() => {
-    if (categoriaSeleccionada) {
-      const categoriaEncontrada = categorias.find(cat => cat.id === categoriaSeleccionada);
+    if (formData.tipoEvento) {
+      // Buscar si el tipo de evento seleccionado coincide con alguna categoría
+      const categoriaEncontrada = categorias.find(cat => 
+        cat.nombre.toLowerCase() === formData.tipoEvento.toLowerCase()
+      );
+      
       if (categoriaEncontrada) {
         setRequisitosCargados(categoriaEncontrada.requisitos);
         setFormData(prev => ({
           ...prev,
           categoria: categoriaEncontrada.nombre,
           requisitosCategoria: categoriaEncontrada.requisitos
+        }));
+      } else {
+        // Si no es una categoría personalizada, limpiar los requisitos
+        setRequisitosCargados([]);
+        setFormData(prev => ({
+          ...prev,
+          categoria: "",
+          requisitosCategoria: []
         }));
       }
     } else {
@@ -170,17 +266,93 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
         requisitosCategoria: []
       }));
     }
-  }, [categoriaSeleccionada, categorias]);
-
-  const handleCategoriaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const categoriaId = e.target.value;
-    setCategoriaSeleccionada(categoriaId);
-  };
+  }, [formData.tipoEvento, categorias]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  
-  const tiposEventos = ["CONFERENCIA", "CURSO", "WEBINAR", "CONGRESO", "CASAS ABIERTAS"];
+  // Tipos de evento base + categorías personalizadas
+  const tiposEventosBase = ["CONFERENCIA", "CURSO", "WEBINAR", "CONGRESO", "CASAS ABIERTAS"];
+
+  // Obtener tipos de requisitos disponibles (excluyendo los ya agregados)
+  const tiposRequisitosDisponibles = (["asistencia", "nota", "carta", "documento", "otro"] as const).filter(
+    tipo => !requisitosPersonalizados.some(req => req.tipo === tipo)
+  );
+
+  // Funciones para manejar requisitos personalizados
+  const agregarRequisitoPersonalizado = () => {
+    // Verificar si ya existe un requisito del mismo tipo
+    if (requisitosPersonalizados.some(req => req.tipo === nuevoRequisito.tipo)) {
+      Swal.fire({
+        icon: "warning",
+        title: "Requisito duplicado",
+        text: "Ya existe un requisito de este tipo. No se pueden agregar requisitos duplicados.",
+        confirmButtonColor: "#581517"
+      });
+      return;
+    }
+
+    const requisitoConId = {
+      ...nuevoRequisito,
+      id: Date.now().toString()
+    };
+
+    setRequisitosPersonalizados(prev => [...prev, requisitoConId]);
+    
+    // Resetear el formulario
+    setNuevoRequisito({
+      id: '',
+      tipo: tiposRequisitosDisponibles[0] || 'otro',
+      activo: true
+    });
+    setMostrarAgregarRequisito(false);
+  };
+
+  const eliminarRequisitoPersonalizado = (id: string) => {
+    setRequisitosPersonalizados(prev => prev.filter(req => req.id !== id));
+  };
+
+  const toggleRequisitoPersonalizado = (id: string) => {
+    setRequisitosPersonalizados(prev =>
+      prev.map(req =>
+        req.id === id ? { ...req, activo: !req.activo } : req
+      )
+    );
+  };
+
+  const actualizarValorRequisito = (id: string, valor: string | number) => {
+    setRequisitosPersonalizados(prev =>
+      prev.map(req =>
+        req.id === id ? { ...req, valor } : req
+      )
+    );
+  };
+
+  const getTextoRequisito = (requisito: RequisitoPersonalizado): string => {
+    switch (requisito.tipo) {
+      case 'asistencia':
+        return `Asistencia mínima: ${requisito.valor || '0'}%`;
+      case 'nota':
+        return `Nota mínima: ${requisito.valor || '0'}/10`;
+      case 'carta':
+        return 'Carta de motivación requerida';
+      case 'documento':
+        return 'Documento específico requerido';
+      case 'otro':
+      default:
+        return 'Otro requisito específico';
+    }
+  };
+
+  const getNombreTipoRequisito = (tipo: string): string => {
+    switch (tipo) {
+      case 'asistencia': return 'Asistencia Mínima';
+      case 'nota': return 'Nota Mínima';
+      case 'carta': return 'Carta de Motivación';
+      case 'documento': return 'Documento Específico';
+      case 'otro': return 'Otro Requisito';
+      default: return tipo;
+    }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target as HTMLInputElement;
@@ -262,7 +434,7 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
   };
 
   const handleRemoveDocente = (nombreDocente: string) => {
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
       docentes: (prev.docentes || []).filter(d => d !== nombreDocente)
     }));
@@ -270,8 +442,10 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
 
   const handleGuardar = async () => {
     console.log("=== INICIANDO handleGuardar ===");
-    console.log("Categoría seleccionada:", formData.categoria);
+    console.log("Tipo de evento seleccionado:", formData.tipoEvento);
+    console.log("Categoría asociada:", formData.categoria);
     console.log("Requisitos cargados:", formData.requisitosCategoria);
+    console.log("Requisitos personalizados:", requisitosPersonalizados);
     console.log("formData al inicio:", JSON.stringify(formData, null, 2));
     
     try {
@@ -360,16 +534,28 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
         return;
       }
 
-      if (formData.tipoEvento === "CURSO") {
-        if (formData.nota! < 0 || formData.nota! > 10) {
-          Swal.fire({ 
-            icon: "warning", 
-            title: "Nota inválida", 
-            text: "La nota mínima debe estar entre 0 y 10.", 
-            confirmButtonColor: "#581517" 
-          });
-          return;
-        }
+      // Validar requisitos de nota
+      const requisitoNota = requisitosPersonalizados.find(req => req.tipo === 'nota' && req.activo);
+      if (requisitoNota && requisitoNota.valor && (Number(requisitoNota.valor) < 0 || Number(requisitoNota.valor) > 10)) {
+        Swal.fire({ 
+          icon: "warning", 
+          title: "Nota inválida", 
+          text: "La nota mínima debe estar entre 0 y 10.", 
+          confirmButtonColor: "#581517" 
+        });
+        return;
+      }
+
+      // Validar requisitos de asistencia
+      const requisitoAsistencia = requisitosPersonalizados.find(req => req.tipo === 'asistencia' && req.activo);
+      if (requisitoAsistencia && requisitoAsistencia.valor && (Number(requisitoAsistencia.valor) < 0 || Number(requisitoAsistencia.valor) > 100)) {
+        Swal.fire({ 
+          icon: "warning", 
+          title: "Asistencia inválida", 
+          text: "La asistencia mínima debe estar entre 0% y 100%.", 
+          confirmButtonColor: "#581517" 
+        });
+        return;
       }
 
       if (formData.pago === "Pago") {
@@ -404,7 +590,18 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
       const publicoEvento = formData.publico === "General" ? "GENERAL" : 
                            formData.publico === "Estudiantes" ? "ESTUDIANTES" : "ADMINISTRATIVOS";
 
+      // Verificar si el tipo de evento es una categoría personalizada
+      const esCategoriaPersonalizada = categorias.some(cat => 
+        cat.nombre.toLowerCase() === formData.tipoEvento.toLowerCase()
+      );
+
       const mapearTipoEvento = (tipo: string): string => {
+        // Si es una categoría personalizada, usar el nombre directamente
+        if (esCategoriaPersonalizada) {
+          return tipo.toUpperCase();
+        }
+        
+        // Mapeo para tipos base
         const mapeo: { [key: string]: string } = {
           "CONFERENCIA": "CONFERENCIAS",
           "CURSO": "CURSO",
@@ -419,18 +616,41 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
       
       console.log("=== MAPEO DE TIPO DE EVENTO ===");
       console.log("Tipo original:", formData.tipoEvento);
+      console.log("Es categoría personalizada:", esCategoriaPersonalizada);
       console.log("Tipo mapeado:", tipoEventoMapeado);
       
       const tiposValidos = ['CURSO', 'CONGRESO', 'WEBINAR', 'CONFERENCIAS', 'SOCIALIZACIONES', 'CASAS ABIERTAS', 'SEMINARIOS', 'OTROS'];
-      if (!tiposValidos.includes(tipoEventoMapeado)) {
+      // Para categorías personalizadas, permitir cualquier valor
+      if (!esCategoriaPersonalizada && !tiposValidos.includes(tipoEventoMapeado)) {
         console.error("❌ Error: Tipo de evento no válido después del mapeo:", tipoEventoMapeado);
         throw new Error(`Tipo de evento no válido: ${formData.tipoEvento} → ${tipoEventoMapeado}`);
       }
 
+      // Combinar requisitos de categoría con requisitos personalizados
+      const todosLosRequisitos = [
+        ...(formData.requisitosCategoria || []),
+        ...requisitosPersonalizados
+          .filter(req => req.activo)
+          .map(req => getTextoRequisito(req))
+      ];
+
+      console.log("=== VALIDANDO FECHAS ===");
+      console.log("formData.fechaInicio:", formData.fechaInicio, "tipo:", typeof formData.fechaInicio);
+      console.log("formData.fechaFin:", formData.fechaFin, "tipo:", typeof formData.fechaFin);
+
+      // Convertir fechas a formato ISO con hora local (evita problemas de zona horaria)
+      const convertirFechaLocal = (fechaString: string): string => {
+        if (!fechaString) return "";
+        // Si ya está en formato yyyy-MM-dd, agregar hora local
+        const [year, month, day] = fechaString.split('-');
+        const fecha = new Date(Number(year), Number(month) - 1, Number(day), 12, 0, 0); // Mediodía local
+        return fecha.toISOString();
+      };
+
       const eventoData = {
         nom_evt: formData.nombre.trim(),
-        fec_evt: formData.fechaInicio,
-        fec_fin_evt: formData.fechaFin,
+        fec_evt: convertirFechaLocal(formData.fechaInicio),
+        fec_fin_evt: convertirFechaLocal(formData.fechaFin),
         lug_evt: formData.lugar ? formData.lugar.trim() : "",
         mod_evt: modalidadEvento,
         tip_pub_evt: publicoEvento,
@@ -438,17 +658,23 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
         ima_evt: formData.imagen || imageDefault,
         carreras: formData.carreras || [],
         semestres: formData.semestres || [],
-        categoria: formData.categoria || "", // Incluir categoría
-        requisitosCategoria: formData.requisitosCategoria || [], // Incluir requisitos
+        docentes: formData.docentes || [],
+        categoria: formData.categoria || "",
+        requisitosCategoria: todosLosRequisitos,
         detalles: {
           cup_det: Number(formData.cupos ?? formData.capacidad ?? 30),
           hor_det: Number(formData.horas || 40),
           cat_det: tipoEventoMapeado,
-          asi_evt_det: Number(formData.asistenciaMinima || 0),
-          not_min_evt: Number(formData.nota || 0),
+          // Estos campos ahora se manejan en requisitos personalizados
+          asi_evt_det: 0,
+          not_min_evt: 0,
           are_det: "TECNOLOGIA E INGENIERIA"
         }
       };
+
+      console.log("=== DATOS A ENVIAR ===");
+      console.log("eventoData.fec_evt:", eventoData.fec_evt);
+      console.log("eventoData.fec_fin_evt:", eventoData.fec_fin_evt);
 
       console.log("=== VALIDANDO CONVERSIONES NUMÉRICAS ===");
       console.log("formData.cupos original:", formData.cupos, "tipo:", typeof formData.cupos);
@@ -474,42 +700,47 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
       console.log("Respuesta del servidor:", response);
 
       if (response && response.success) {
-          // === PATCH: Actualizar tarifas después de editar evento ===
+        // Actualizar tarifas si el evento es de pago
+        if (formData.pago === "Pago") {
           try {
-            // Actualizar tarifa para ESTUDIANTE
-            await tarifasAPI.createOrUpdate({
-              id_evt: evento.id,
-              tip_par: 'ESTUDIANTE',
-              val_evt: Number(formData.precioEstudiantes ?? 0)
+            // Actualizar tarifa para estudiantes
+            await fetch('http://localhost:3001/api/tarifas-evento', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+              },
+              body: JSON.stringify({
+                id_evt: evento.id,
+                tip_par: 'ESTUDIANTE',
+                val_evt: Number(formData.precioEstudiantes || 0)
+              })
             });
-            // Actualizar tarifa para PERSONA
-            await tarifasAPI.createOrUpdate({
-              id_evt: evento.id,
-              tip_par: 'PERSONA',
-              val_evt: Number(formData.precioGeneral ?? 0)
+
+            // Actualizar tarifa para público general
+            await fetch('http://localhost:3001/api/tarifas-evento', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+              },
+              body: JSON.stringify({
+                id_evt: evento.id,
+                tip_par: 'PERSONA',
+                val_evt: Number(formData.precioGeneral || 0)
+              })
             });
-          } catch (tarifaError: any) {
-            console.error('Error al actualizar tarifas:', tarifaError);
-            let tarifaErrorMsg = 'No se pudo actualizar la tarifa del evento.';
-            if (tarifaError && typeof tarifaError === 'object' && 'message' in tarifaError && typeof tarifaError.message === 'string') {
-              tarifaErrorMsg = tarifaError.message;
-            } else if (typeof tarifaError === 'string') {
-              tarifaErrorMsg = tarifaError;
-            }
-            Swal.fire({
-              icon: 'error',
-              title: 'Error al actualizar tarifas',
-              text: tarifaErrorMsg,
-              confirmButtonColor: '#581517'
-            });
-            // No retornamos, permitimos continuar con el flujo
+            console.log("✅ Tarifas actualizadas correctamente");
+          } catch (tarifaError) {
+            console.error("Error al actualizar tarifas:", tarifaError);
+            // No lanzamos error porque el evento ya se actualizó
           }
+        }
+
         await Swal.fire({
           icon: "success",
           title: "¡Éxito!",
-          text: (response && typeof response === 'object' && 'message' in response && typeof response.message === 'string')
-            ? response.message
-            : "El evento ha sido actualizado correctamente",
+          text: response.message || "El evento ha sido actualizado correctamente",
           confirmButtonColor: "#581517"
         });
         onGuardar({ ...formData, imagen: formData.imagen || imageDefault });
@@ -620,7 +851,9 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de evento</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Tipo de evento
+                </label>
                 <select 
                   name="tipoEvento" 
                   value={formData.tipoEvento} 
@@ -628,10 +861,28 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#581517]"
                 >
                   <option value="">Seleccionar tipo</option>
-                  {tiposEventos.map((t) => (
-                    <option key={t} value={t}>{t}</option>
-                  ))}
+                  
+                  {/* Tipos de evento base */}
+                  <optgroup label="Tipos base">
+                    {tiposEventosBase.map((t) => (
+                      <option key={t} value={t}>{t}</option>
+                    ))}
+                  </optgroup>
+                  
+                  {/* Categorías personalizadas */}
+                  {categorias.length > 0 && (
+                    <optgroup label="Categorías personalizadas">
+                      {categorias.map((categoria) => (
+                        <option key={categoria.id} value={categoria.nombre.toUpperCase()}>
+                          {categoria.nombre}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
                 </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  Las categorías personalizadas se cargan automáticamente con sus requisitos
+                </p>
               </div>
 
               <div>
@@ -648,43 +899,11 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
                 </select>
               </div>
 
-              {/* Selector de Categoría - CORREGIDO */}
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Categoría del Evento
-                </label>
-                <div className="flex gap-3">
-                  <select 
-                    value={categoriaSeleccionada}
-                    onChange={handleCategoriaChange}
-                    className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#581517]"
-                  >
-                    <option value="">Seleccionar categoría</option>
-                    {categorias.map((categoria) => (
-                      <option key={categoria.id} value={categoria.id}>
-                        {categoria.nombre}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    type="button"
-                    onClick={() => window.open('/admin/categorias', '_blank')}
-                    className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors"
-                  >
-                    <Plus size={16} />
-                    Nueva Categoría
-                  </button>
-                </div>
-                <p className="text-xs text-gray-500 mt-2">
-                  Selecciona una categoría para cargar automáticamente sus requisitos
-                </p>
-              </div>
-
               {/* Mostrar requisitos de la categoría seleccionada */}
               {requisitosCargados.length > 0 && (
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Requisitos de la categoría "{formData.categoria}"
+                    Requisitos de "{formData.tipoEvento}"
                   </label>
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                     <ul className="space-y-2">
@@ -927,71 +1146,185 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
                   Seleccionados: <strong>{formData.docentes?.length || 0} de 2</strong>
                 </p>
               </div>
-
-              {/* Asistencia opcional */}
-              <div className="md:col-span-2">
-                <label className="inline-flex items-center gap-2">
-                  <input 
-                    type="checkbox" 
-                    checked={formData.requiereAsistencia} 
-                    onChange={() => handleToggle("requiereAsistencia" as keyof Evento)} 
-                  />
-                  <span className="text-sm text-gray-700">Requiere asistencia mínima</span>
-                </label>
-
-                {formData.requiereAsistencia && (
-                  <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Asistencia mínima (%)</label>
-                      <input 
-                        type="number" 
-                        name="asistenciaMinima" 
-                        value={formData.asistenciaMinima} 
-                        onChange={(e) => handleNumberChange("asistenciaMinima" as keyof Evento, Number(e.target.value))} 
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2" 
-                        min={0} 
-                        max={100} 
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Campos específicos para CURSO */}
-              {formData.tipoEvento === "CURSO" && (
-                <>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Nota mínima (0-10)</label>
-                    <input 
-                      type="number" 
-                      name="nota" 
-                      value={formData.nota} 
-                      onChange={(e) => handleNumberChange("nota" as keyof Evento, Number(e.target.value))} 
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2" 
-                      min={0} 
-                      max={10} 
-                      step={0.1} 
-                    />
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <label className="inline-flex items-center gap-2">
-                      <input 
-                        type="checkbox" 
-                        checked={!!formData.cartaMotivacion} 
-                        onChange={() => handleToggle("cartaMotivacion" as keyof Evento)} 
-                      />
-                      <span className="text-sm text-gray-700">Requiere carta de motivación</span>
-                    </label>
-                  </div>
-                </>
-              )}
             </div>
           </section>
 
-          {/* Público objetivo específico (solo si Estudiantes) */}
-          
-          
+          {/* Requisitos personalizados - MODIFICADO */}
+          <section>
+            <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-100">
+              <h3 className="text-lg font-semibold text-gray-800">Requisitos del Evento</h3>
+              <button
+                type="button"
+                onClick={() => setMostrarAgregarRequisito(true)}
+                disabled={tiposRequisitosDisponibles.length === 0}
+                className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+              >
+                <Plus size={16} />
+                Agregar Requisito
+              </button>
+            </div>
+
+            {/* Mensaje cuando no hay más tipos disponibles */}
+            {tiposRequisitosDisponibles.length === 0 && (
+              <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p className="text-sm text-yellow-700 text-center">
+                  Todos los tipos de requisitos han sido agregados. No hay más opciones disponibles.
+                </p>
+              </div>
+            )}
+
+            {/* Formulario para agregar requisito - MODIFICADO */}
+            {mostrarAgregarRequisito && tiposRequisitosDisponibles.length > 0 && (
+              <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <h4 className="text-md font-medium text-gray-700 mb-3">Agregar Nuevo Requisito</h4>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de requisito</label>
+                    <select
+                      value={nuevoRequisito.tipo}
+                      onChange={(e) => setNuevoRequisito(prev => ({
+                        ...prev,
+                        tipo: e.target.value as RequisitoPersonalizado['tipo']
+                      }))}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#581517]"
+                    >
+                      {tiposRequisitosDisponibles.map(tipo => (
+                        <option key={tipo} value={tipo}>
+                          {getNombreTipoRequisito(tipo)}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Solo se muestran tipos que no han sido agregados
+                    </p>
+                  </div>
+
+                  {/* Campos de valor para tipos específicos */}
+                  {(nuevoRequisito.tipo === 'asistencia' || nuevoRequisito.tipo === 'nota') && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        {nuevoRequisito.tipo === 'nota' ? 'Nota mínima (0-10)' : 'Asistencia mínima (0-100%)'}
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          min={nuevoRequisito.tipo === 'nota' ? 0 : 0}
+                          max={nuevoRequisito.tipo === 'nota' ? 10 : 100}
+                          step={nuevoRequisito.tipo === 'nota' ? 0.1 : 1}
+                          value={nuevoRequisito.valor as number || 0}
+                          onChange={(e) => setNuevoRequisito(prev => ({
+                            ...prev,
+                            valor: Number(e.target.value)
+                          }))}
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                          placeholder={nuevoRequisito.tipo === 'nota' ? '0-10' : '0-100'}
+                        />
+                        <span className="text-sm text-gray-500 whitespace-nowrap">
+                          {nuevoRequisito.tipo === 'nota' ? '/10' : '%'}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setMostrarAgregarRequisito(false)}
+                    className="px-3 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={agregarRequisitoPersonalizado}
+                    className="px-3 py-2 bg-[#581517] text-white rounded-lg hover:bg-[#6e1c1e] transition-colors text-sm"
+                  >
+                    Agregar
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Lista de requisitos personalizados - MODIFICADO */}
+            {requisitosPersonalizados.length > 0 && (
+              <div className="space-y-3">
+                <h4 className="text-md font-medium text-gray-700">Requisitos personalizados:</h4>
+                {requisitosPersonalizados.map((requisito) => (
+                  <div key={requisito.id} className="bg-white border border-gray-200 rounded-lg p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-start gap-3 flex-1">
+                        <div className="flex items-center h-5 mt-0.5">
+                          <input
+                            type="checkbox"
+                            checked={requisito.activo}
+                            onChange={() => toggleRequisitoPersonalizado(requisito.id)}
+                            className="w-4 h-4 text-[#581517] focus:ring-[#581517] border-gray-300 rounded"
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className={`text-sm font-medium ${requisito.activo ? 'text-gray-800' : 'text-gray-400'}`}>
+                              {getTextoRequisito(requisito)}
+                            </span>
+                            <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-full">
+                              {getNombreTipoRequisito(requisito.tipo)}
+                            </span>
+                          </div>
+                          
+                          {/* Mostrar campo de valor solo para nota y asistencia cuando están activos */}
+                          {(requisito.tipo === 'nota' || requisito.tipo === 'asistencia') && requisito.activo && (
+                            <div className="mt-2">
+                              <label className="block text-xs text-gray-600 mb-1">
+                                {requisito.tipo === 'nota' ? 'Nota mínima (0-10)' : 'Asistencia mínima (0-100%)'}
+                              </label>
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="number"
+                                  min={requisito.tipo === 'nota' ? 0 : 0}
+                                  max={requisito.tipo === 'nota' ? 10 : 100}
+                                  step={requisito.tipo === 'nota' ? 0.1 : 1}
+                                  value={requisito.valor as number || 0}
+                                  onChange={(e) => actualizarValorRequisito(requisito.id, Number(e.target.value))}
+                                  className="w-24 border border-gray-300 rounded px-2 py-1 text-sm"
+                                />
+                                <span className="text-xs text-gray-500">
+                                  {requisito.tipo === 'nota' ? '/10' : '%'}
+                                </span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => eliminarRequisitoPersonalizado(requisito.id)}
+                        className="p-1 text-gray-400 hover:text-red-500 transition-colors mt-0.5"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                    
+                    {/* Estado del requisito */}
+                    <div className="flex items-center gap-2 mt-2">
+                      <div className={`w-2 h-2 rounded-full ${requisito.activo ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                      <span className={`text-xs ${requisito.activo ? 'text-green-600' : 'text-gray-500'}`}>
+                        {requisito.activo ? 'Activo' : 'Inactivo'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {requisitosPersonalizados.length === 0 && !mostrarAgregarRequisito && (
+              <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg border border-gray-200">
+                <p>No hay requisitos personalizados agregados</p>
+                <p className="text-sm mt-1">Haz clic en "Agregar Requisito" para crear uno</p>
+              </div>
+            )}
+          </section>
         </div>
 
         {/* Footer */}

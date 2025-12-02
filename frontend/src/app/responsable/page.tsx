@@ -40,6 +40,62 @@ export default function DashboardResponsable() {
   const [eventoEditando, setEventoEditando] = useState<Evento | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Función helper para transformar eventos del backend
+  const transformarEvento = (evento: any): Evento => {
+    // Extraer tarifas desde tarifas_evento
+    const tarifaEstudiante = evento.tarifas_evento?.find((t: any) => t.tip_par === "ESTUDIANTE");
+    const tarifaPersona = evento.tarifas_evento?.find((t: any) => t.tip_par === "PERSONA");
+    
+    // Función para extraer solo la fecha (yyyy-MM-dd) sin conversión de zona horaria
+    const extraerFecha = (fechaISO: string | undefined): string => {
+      if (!fechaISO) return "";
+      // Extraer solo la parte de fecha (yyyy-MM-dd) sin conversión
+      return fechaISO.split('T')[0];
+    };
+
+    // Función para formato de visualización (dd/MM/yyyy)
+    const formatearParaVisualizacion = (fechaISO: string | undefined): string => {
+      if (!fechaISO) return "";
+      const fecha = extraerFecha(fechaISO);
+      const [year, month, day] = fecha.split('-');
+      return `${day}/${month}/${year}`;
+    };
+    
+    return {
+      id: evento.id_evt,
+      id_evt: evento.id_evt,
+      nombre: evento.nom_evt,
+      nom_evt: evento.nom_evt,
+      fechaInicio: formatearParaVisualizacion(evento.fec_evt),
+      fechaFin: formatearParaVisualizacion(evento.fec_fin_evt),
+      fec_evt: evento.fec_evt,
+      fec_fin_evt: evento.fec_fin_evt,
+      modalidad: evento.mod_evt || "",
+      mod_evt: evento.mod_evt,
+      capacidad: evento.capacidad || evento.cupos || 0,
+      cupos: evento.cupos || evento.capacidad || 0,
+      publico: evento.tip_pub_evt === "GENERAL" ? "General" : "Estudiantes",
+      tip_pub_evt: evento.tip_pub_evt,
+      horas: evento.horas || 0,
+      pago: evento.cos_evt === "GRATUITO" ? "Gratis" : "Pago",
+      cos_evt: evento.cos_evt,
+      precioEstudiantes: tarifaEstudiante?.val_evt || 0,
+      precioGeneral: tarifaPersona?.val_evt || 0,
+      carreras: evento.carreras || [],
+      semestres: evento.semestres || [],
+      docentes: evento.docentes || [],
+      tipoEvento: evento.tipoEvento || evento.categoria || "",
+      categoria: evento.categoria || evento.tipoEvento || "",
+      camposExtra: evento.camposExtra || {},
+      lugar: evento.lug_evt || "",
+      lug_evt: evento.lug_evt,
+      horario: evento.horario || "",
+      des_evt: evento.des_evt,
+      est_evt: evento.est_evt,
+      estado: evento.est_evt === "PUBLICADO" ? "Publicado" : evento.est_evt === "CERRADO" ? "Cerrado" : "Editando",
+    };
+  };
+
   useEffect(() => {
     const fetchMisEventos = async () => {
       try {
@@ -51,31 +107,7 @@ export default function DashboardResponsable() {
           throw new Error("Formato de datos inválido recibido del servidor");
         }
         
-        const eventosTransformados: Evento[] = data.map((evento: any) => ({
-          id: evento.id_evt,
-          id_evt: evento.id_evt,
-          nombre: evento.nom_evt,
-          nom_evt: evento.nom_evt,
-          fechaInicio: evento.fec_evt ? new Date(evento.fec_evt).toLocaleDateString() : "",
-          fechaFin: "",
-          fec_evt: evento.fec_evt,
-          modalidad: evento.mod_evt || "",
-          mod_evt: evento.mod_evt,
-          capacidad: 0,
-          publico: evento.tip_pub_evt === "PUBLICO" ? "General" : "Estudiantes",
-          tip_pub_evt: evento.tip_pub_evt,
-          horas: 0,
-          pago: evento.cos_evt === "GRATIS" ? "Gratis" : "Pago",
-          cos_evt: evento.cos_evt,
-          carreras: evento.carreras || [],
-          semestres: evento.semestres || [],
-          tipoEvento: evento.tipoEvento || "",
-          camposExtra: evento.camposExtra || {},
-          lug_evt: evento.lug_evt,
-          des_evt: evento.des_evt,
-          est_evt: evento.est_evt,
-          estado: evento.est_evt === "PUBLICADO" ? "Publicado" : evento.est_evt === "CERRADO" ? "Cerrado" : "Editando",
-        }));
+        const eventosTransformados = data.map(transformarEvento);
 
         setEventos(eventosTransformados);
       } catch (error: any) {
@@ -94,37 +126,20 @@ export default function DashboardResponsable() {
     fetchMisEventos();
   }, []);
 
-  const handleGuardar = (eventoActualizado: any) => {
-    const eventoCompleto: Evento = {
-      id: eventoActualizado.id,
-      nombre: eventoActualizado.nombre,
-      fechaInicio: eventoActualizado.fechaInicio || "",
-      fechaFin: eventoActualizado.fechaFin || "",
-      modalidad: eventoActualizado.modalidad || "",
-      capacidad: eventoActualizado.capacidad || 0,
-      publico: eventoActualizado.publico || "General",
-      horas: eventoActualizado.horas || 0,
-      pago: eventoActualizado.pago || "Gratis",
-      carreras: eventoActualizado.carreras || [],
-      semestres: eventoActualizado.semestres || [],
-      tipoEvento: eventoActualizado.tipoEvento || "",
-      camposExtra: eventoActualizado.camposExtra || {},
-      docente: eventoActualizado.docente,
-      estado: eventoActualizado.estado || "Editando",
-      id_evt: eventoActualizado.id_evt,
-      nom_evt: eventoActualizado.nom_evt,
-      fec_evt: eventoActualizado.fechaInicio,
-      lug_evt: eventoActualizado.lug_evt,
-      mod_evt: eventoActualizado.modalidad,
-      tip_pub_evt: eventoActualizado.publico === "General" ? "GENERAL" : "ESTUDIANTES",
-      cos_evt: eventoActualizado.pago === "Gratis" ? "GRATUITO" : "DE PAGO",
-      des_evt: eventoActualizado.des_evt,
-      est_evt: eventoActualizado.est_evt,
-    };
-
-    setEventos((prev) =>
-      prev.map((ev) => (ev.id === eventoCompleto.id ? eventoCompleto : ev))
-    );
+  const handleGuardar = async (eventoActualizado: any) => {
+    // Recargar el evento completo desde el backend para tener datos actualizados
+    try {
+      const response = await eventosAPI.getMisEventos();
+      const data = response.data || response;
+      
+      if (Array.isArray(data)) {
+        const eventosTransformados = data.map(transformarEvento);
+        setEventos(eventosTransformados);
+      }
+    } catch (error) {
+      console.error("Error al recargar eventos:", error);
+    }
+    
     setEventoEditando(null);
   };
 
@@ -134,8 +149,14 @@ export default function DashboardResponsable() {
       if (nuevoEstado === "Publicado") estadoBackend = "PUBLICADO";
       else if (nuevoEstado === "Cerrado") estadoBackend = "CERRADO";
 
+      // Obtener el evento actual para enviar sus carreras y semestres
+      const evento = eventos.find(ev => ev.id === id);
+      
       await eventosAPI.update(id, {
-        est_evt: estadoBackend
+        est_evt: estadoBackend,
+        // Enviar carreras y semestres para crear los registros de evento
+        ...(evento?.carreras && evento.carreras.length > 0 && { carreras: evento.carreras }),
+        ...(evento?.semestres && evento.semestres.length > 0 && { semestres: evento.semestres })
       });
 
       setEventos((prev) =>

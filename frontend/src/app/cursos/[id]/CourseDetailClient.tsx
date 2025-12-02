@@ -337,21 +337,53 @@ export default function CourseDetailClient({ evento }: { evento: EventoDetalle }
       console.log("Resultado de inscripción:", inscripcion);
 
       if (inscripcion.success) {
-        Swal.fire({
-          icon: "success",
-          title: "¡Inscripción exitosa!",
-          html: `
-            <p>Te has inscrito correctamente al evento.</p>
-            <p><strong>${evento.nom_evt}</strong></p>
-            <br>
-            <p style="color: #6b7280; font-size: 14px;">
-              Puedes ver tus cursos en la sección "Mis Cursos"
-            </p>
-          `,
-          confirmButtonColor: "#7f1d1d",
-        }).then(() => {
-          router.push("/usuarios/cursos");
-        });
+        // Verificar si el evento es de pago
+        const esDePago = evento.cos_evt === "DE PAGO";
+        
+        if (esDePago) {
+          // Si es de pago, redirigir a la página de pagos
+          Swal.fire({
+            icon: "success",
+            title: "¡Pre-inscripción exitosa!",
+            html: `
+              <p>Te has pre-inscrito correctamente al evento.</p>
+              <p><strong>${evento.nom_evt}</strong></p>
+              <br>
+              <p style="color: #d97706; font-size: 14px;">
+                ⚠️ Este es un evento de pago.<br>
+                Serás redirigido a la página de pagos para completar tu inscripción.
+              </p>
+            `,
+            confirmButtonText: "Ir a Pagos",
+            confirmButtonColor: "#7f1d1d",
+          }).then(() => {
+            // Redirigir a la página de pagos con el ID del registro de persona
+            const numRegPer = inscripcion.data?.num_reg_per;
+            if (numRegPer) {
+              router.push(`/usuarios/pagos?num_reg_per=${numRegPer}`);
+            } else {
+              // Si no hay num_reg_per, redirigir a la página general de pagos
+              router.push("/usuarios/pagos");
+            }
+          });
+        } else {
+          // Si es gratuito, confirmar inscripción y redirigir a mis cursos
+          Swal.fire({
+            icon: "success",
+            title: "¡Inscripción exitosa!",
+            html: `
+              <p>Te has inscrito correctamente al evento.</p>
+              <p><strong>${evento.nom_evt}</strong></p>
+              <br>
+              <p style="color: #6b7280; font-size: 14px;">
+                Puedes ver tus cursos en la sección "Mis Cursos"
+              </p>
+            `,
+            confirmButtonColor: "#7f1d1d",
+          }).then(() => {
+            router.push("/usuarios/cursos");
+          });
+        }
       } else {
         throw new Error(inscripcion.message || "Error al procesar inscripción");
       }

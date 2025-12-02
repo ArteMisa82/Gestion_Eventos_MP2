@@ -42,7 +42,8 @@ export async function validateIsResponsableOrAdmin(
 }
 
 /**
- * Valida que todos los instructores sean usuarios administrativos (adm_usu = 1)
+ * Valida que todos los instructores existan en la base de datos
+ * Los instructores pueden ser cualquier usuario (administrativo o no)
  */
 export async function validateInstructores(instructores: InstructorDto[]): Promise<void> {
   for (const instructor of instructores) {
@@ -50,9 +51,9 @@ export async function validateInstructores(instructores: InstructorDto[]): Promi
       where: { id_usu: instructor.id_usu }
     });
 
-    if (!usuario || usuario.adm_usu !== 1) {
+    if (!usuario) {
       throw new Error(
-        `El instructor con ID ${instructor.id_usu} debe ser un usuario administrativo`
+        `El instructor con ID ${instructor.id_usu} no existe en el sistema`
       );
     }
   }

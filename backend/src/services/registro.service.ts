@@ -105,7 +105,15 @@ export class RegistroService {
       const detalle = registroEvento.detalle_eventos;
       const evento = detalle.eventos;
       const nivelRequerido = registroEvento.id_niv;
-      const tipoPublico = evento.tip_pub_evt; // GENERAL, ESTUDIANTES, ADMINISTRATIVOS
+      const tipoPublico = evento?.tip_pub_evt || 'GENERAL'; // GENERAL, ESTUDIANTES, ADMINISTRATIVOS (con fallback)
+
+      // Validar que el evento existe y tiene la información necesaria
+      if (!evento) {
+        return {
+          valido: false,
+          mensaje: 'La información del evento no está completa',
+        };
+      }
 
       // 3. Verificar que no esté ya registrado
       const yaRegistrado = await prisma.registro_personas.findFirst({
@@ -206,22 +214,32 @@ export class RegistroService {
       }
 
       // Si el evento es GENERAL, cualquiera puede registrarse
-      // Pero si es estudiante, intentar vincular su id_est
-      if (esEstudiante) {
-        const estudianteActivo = await prisma.estudiantes.findFirst({
-          where: {
-            id_usu,
-            id_niv: nivelRequerido,
-            est_activo: 1,
-          },
-        });
+      // Pero si es estudiante Y el evento tiene un nivel requerido, validar el nivel
+      if (tipoPublico === 'GENERAL') {
+        // Si es estudiante y hay un nivel requerido, verificar que esté matriculado
+        if (esEstudiante && nivelRequerido) {
+          const estudianteActivo = await prisma.estudiantes.findFirst({
+            where: {
+              id_usu,
+              id_niv: nivelRequerido,
+              est_activo: 1,
+            },
+          });
 
+          return {
+            valido: true,
+            id_est: estudianteActivo?.id_est,
+          };
+        }
+
+        // Para eventos GENERAL sin nivel específico o para no estudiantes
         return {
           valido: true,
-          id_est: estudianteActivo?.id_est,
+          id_est: undefined,
         };
       }
 
+      // Fallback: permitir registro sin validaciones especiales
       return {
         valido: true,
         id_est: undefined,
@@ -327,7 +345,7 @@ export class RegistroService {
   /**
    * Obtener registros de un usuario
    */
-  async obtenerRegistrosUsuario(id_usu: number): Promise<RegistroPersonaResponse[]> {
+  async obtenerRegistrosUsuario(id_usu: number): Promise<any[]> {
     try {
       const registros = await prisma.registro_personas.findMany({
         where: { id_usu },
@@ -356,24 +374,8 @@ export class RegistroService {
         },
       });
 
-      return registros.map((registro) => ({
-        num_reg_per: registro.num_reg_per,
-        id_usu: registro.id_usu,
-        id_reg_evt: registro.id_reg_evt,
-        id_est: registro.id_est,
-        fec_reg_per: registro.fec_reg_per,
-        estudiante: registro.estudiantes
-          ? {
-              id_est: registro.estudiantes.id_est,
-              nivel: registro.estudiantes.nivel.nom_niv,
-              carrera: registro.estudiantes.nivel.carreras.nom_car,
-            }
-          : undefined,
-        evento: {
-          nombre: registro.registro_evento.detalle_eventos.eventos.nom_evt,
-          fecha: registro.registro_evento.detalle_eventos.eventos.fec_evt,
-        },
-      }));
+      // Return raw structure to match frontend expectations
+      return registros;
     } catch (error) {
       console.error('Error al obtener registros de usuario:', error);
       throw new AppError('Error al obtener los registros', 500);

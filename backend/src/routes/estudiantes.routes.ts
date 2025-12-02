@@ -166,4 +166,31 @@ router.get(
   estudiantesController.obtenerHistorialEstudiante.bind(estudiantesController)
 );
 
+/**
+ * @swagger
+ * /api/estudiantes/instructor/{id_usu}:
+ *   get:
+ *     summary: Verificar si el usuario es instructor en algún detalle de evento
+ *     tags: [Estudiantes]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id_usu
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID del usuario
+ *     responses:
+ *       200:
+ *         description: Detalles donde es instructor
+ *       401:
+ *         description: No autenticado
+ */
+router.get(
+  '/instructor/:id_usu',
+  authMiddleware,
+  estudiantesController.verificarInstructor.bind(estudiantesController)
+);
+
 export default router;
