@@ -1,13 +1,13 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Calendar, Edit, Loader2, ArrowLeft, Users, ClipboardList, Lock } from "lucide-react";
-import { Calendar, Edit, Loader2, ArrowLeft, Users, GraduationCap } from "lucide-react";
+import { Calendar, Edit, Loader2, ArrowLeft, Users, ClipboardList, Lock, GraduationCap } from "lucide-react";
 import ModalEditarEvento from "./ModalEditar";
 import ModalAsistenciaNotas from "./ModalAsistenciaNota";
 import Swal from "sweetalert2";
 import { eventosAPI } from "@/services/api";
 import ValidacionesResponsable from "./validaciones";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Evento {
   id: string;
@@ -243,7 +243,6 @@ export default function DashboardResponsable() {
 
   const handleEstadoChange = async (id: string, nuevoEstado: Evento["estado"]) => {
     try {
-      const estadoBackend = mapEstadoFrontendToBackend(nuevoEstado);
       let estadoBackend = "EDITANDO";
       if (nuevoEstado === "Publicado") estadoBackend = "PUBLICADO";
       else if (nuevoEstado === "Cerrado") estadoBackend = "CERRADO";
@@ -470,17 +469,6 @@ export default function DashboardResponsable() {
         text: error.message || "No se pudieron actualizar los semestres",
         confirmButtonColor: "#581517",
       });
-    }
-  };
-
-  const getEstadoColor = (estado: string) => {
-    switch (estado) {
-      case "Publicado":
-        return "bg-green-100 text-green-700 border-green-300";
-      case "Cerrado":
-        return "bg-red-100 text-red-700 border-red-300";
-      default:
-        return "bg-yellow-100 text-yellow-700 border-yellow-300";
     }
   };
 
