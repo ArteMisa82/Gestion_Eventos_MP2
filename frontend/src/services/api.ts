@@ -263,10 +263,21 @@ export const eventosAPI = {
   },
 
   /**
-   * Obtener evento por ID
-   * GET /api/eventos/:id
+   * Obtener evento por ID (endpoint público)
+   * GET /api/eventos/publico/:id
    */
   getById: async (id: string) => {
+    // Intentar primero el endpoint público (sin autenticación)
+    try {
+      const response = await fetch(`${API_URL}/eventos/publico/${id}`);
+      if (response.ok) {
+        return handleResponse(response);
+      }
+    } catch (error) {
+      console.log('Error en endpoint público, intentando con autenticación:', error);
+    }
+    
+    // Fallback: endpoint con autenticación
     const response = await fetch(`${API_URL}/eventos/${id}`, getFetchOptions());
     return handleResponse(response);
   },

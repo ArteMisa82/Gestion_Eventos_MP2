@@ -188,14 +188,16 @@ export default function DashboardResponsable() {
     fetchMisEventos();
   }, []);
 
-  const determinarRequiereAsistencia = (tipoEvento: string): boolean => {
+  const determinarRequiereAsistencia = (tipoEvento: string | undefined | null): boolean => {
+    if (!tipoEvento) return false;
     const tiposConAsistencia = [
       "TALLER", "CURSO", "SEMINARIO", "WORKSHOP", "CAPACITACION", "CONFERENCIA"
     ];
     return tiposConAsistencia.includes(tipoEvento.toUpperCase());
   };
 
-  const determinarRequiereNota = (tipoEvento: string): boolean => {
+  const determinarRequiereNota = (tipoEvento: string | undefined | null): boolean => {
+    if (!tipoEvento) return false;
     const tiposConNota = [
       "CURSO", "EVALUACION", "EXAMEN", "TALLER_EVALUADO", "SEMINARIO_CERTIFICADO"
     ];
@@ -441,6 +443,38 @@ export default function DashboardResponsable() {
       </div>
     );
   }
+
+  const handleCarrerasChange = async (id: string, nuevasCarreras: string[]) => {
+    try {
+      await eventosAPI.update(id, {
+        carreras: nuevasCarreras
+      });
+
+      setEventos((prev) =>
+        prev.map((ev) =>
+          ev.id === id ? { ...ev, carreras: nuevasCarreras } : ev
+        )
+      );
+
+      await Swal.fire({
+        icon: "success",
+        title: "Carreras actualizadas",
+        text: "Las carreras han sido actualizadas correctamente",
+        confirmButtonColor: "#581517",
+        timer: 1500,
+        showConfirmButton: false
+      });
+    } catch (error: any) {
+      console.error("Error al actualizar carreras:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: error.message || "No se pudieron actualizar las carreras",
+        confirmButtonColor: "#581517",
+      });
+    }
+  };
+
   const handleSemestresChange = async (id: string, nuevosSemestres: string[]) => {
     try {
       await eventosAPI.update(id, {
