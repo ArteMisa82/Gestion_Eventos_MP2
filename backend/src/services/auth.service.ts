@@ -106,7 +106,14 @@ export class AuthService {
       const hashedPassword = await hashPassword(userData.password);
 
       // DETERMINAR ROL AUTOMATICAMENTE POR EMAIL
-      const { esEstudiante, esAdministrativo, esAdmin } = this.determinarRolPorEmail(userData.email);
+      const rolValidacion = this.determinarRolPorEmail(userData.email);
+      
+      // Verificar si hay error en la validación del email
+      if (rolValidacion.error) {
+        return { success: false, error: rolValidacion.error };
+      }
+
+      const { esEstudiante, esAdministrativo, esAdmin } = rolValidacion;
 
       const newUser = await this.prisma.usuarios.create({
         data: {
@@ -134,6 +141,29 @@ export class AuthService {
           }
         }
       });
+
+      // Si es estudiante, crear registro en tabla estudiantes (sin nivel por ahora)
+      // El nivel se agregará cuando complete su perfil
+      if (esEstudiante) {
+        // Obtener el primer nivel disponible como temporal
+        const primerNivel = await this.prisma.niveles.findFirst({
+          orderBy: { id_niv: 'asc' }
+        });
+
+        if (primerNivel) {
+          await this.prisma.estudiantes.create({
+            data: {
+              id_usu: newUser.id_usu,
+              id_niv: primerNivel.id_niv,
+              fec_ingreso: new Date(),
+              est_activo: 1,
+              observaciones: 'Registro creado automáticamente. Usuario debe actualizar su nivel en el perfil.'
+            }
+          });
+          
+          console.log(`✅ Registro de estudiante creado para usuario ${newUser.cor_usu} con nivel temporal ${primerNivel.id_niv}`);
+        }
+      }
 
       console.log(`Nuevo usuario registrado: ${newUser.cor_usu} (Rol: ${this.determineUserRole(newUser)})`);
 
@@ -224,7 +254,7 @@ export class AuthService {
   }
 
   // NUEVO METODO: Determinar rol automaticamente por email
-  private determinarRolPorEmail(email: string): { esEstudiante: boolean; esAdministrativo: boolean; esAdmin: boolean } {
+  private determinarRolPorEmail(email: string): { esEstudiante: boolean; esAdministrativo: boolean; esAdmin: boolean; error?: string } {
     const emailLower = email.toLowerCase();
     
     // 1. Verificar si es ADMIN (admin@admin.com)
@@ -236,30 +266,41 @@ export class AuthService {
       };
     }
 
-    // 2. Verificar si es ESTUDIANTE UTA (tiene 4 numeros antes del @)
+    // 2. Verificar si es dominio UTA (@uta.edu.ec)
     if (emailLower.endsWith('@uta.edu.ec')) {
       const usuarioPart = emailLower.split('@')[0]; // parte antes del @
       
-      // Buscar 4 numeros consecutivos en el username
-      const tiene4Numeros = /\d{4}/.test(usuarioPart);
+      // Contar cuántos dígitos tiene
+      const digitosMatch = usuarioPart.match(/\d/g);
+      const cantidadDigitos = digitosMatch ? digitosMatch.length : 0;
       
-      if (tiene4Numeros) {
+      if (cantidadDigitos === 0) {
+        // Sin números => ADMINISTRATIVO
+        return {
+          esEstudiante: false,
+          esAdministrativo: true,
+          esAdmin: false
+        };
+      } else if (cantidadDigitos === 4) {
+        // Exactamente 4 números => ESTUDIANTE
         return {
           esEstudiante: true,
           esAdministrativo: false,
           esAdmin: false
         };
       } else {
-        // Si es @uta.edu.ec pero sin 4 numeros => ADMINISTRATIVO
+        // Cantidad diferente de 4 => ERROR
         return {
           esEstudiante: false,
-          esAdministrativo: true,
-          esAdmin: false
+          esAdministrativo: false,
+          esAdmin: false,
+          error: `Correo institucional inválido. Los correos de estudiantes deben tener exactamente 4 dígitos antes de @uta.edu.ec (ejemplo: juan1234@uta.edu.ec). Los correos administrativos no deben contener números.`
         };
       }
     }
 
-    // 3. Usuario EXTERNO (por defecto)
+    // 3. Usuario EXTERNO (correos públicos: gmail, hotmail, etc.)
+    // Se guardan con stu_usu: null y adm_usu: null (valores 0 en la base)
     return {
       esEstudiante: false,
       esAdministrativo: false,

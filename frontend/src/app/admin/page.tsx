@@ -1,7 +1,9 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Pencil, Search } from "lucide-react";
 import EditEventModal from "./EditarEventoModal";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Evento {
   id_evt: string;
@@ -15,8 +17,17 @@ interface Evento {
 }
 
 const AdminDashboard: React.FC = () => {
+  const router = useRouter();
+  const { user, isAuthenticated, isLoading } = useAuth();
   const [filtro, setFiltro] = useState("EN CURSO");
   const [busqueda, setBusqueda] = useState("");
+
+  // Proteger la ruta - solo administradores
+  useEffect(() => {
+    if (!isLoading && (!isAuthenticated || !user || (user.adm_usu !== 1 && !user.Administrador))) {
+      router.push("/");
+    }
+  }, [isLoading, isAuthenticated, user, router]);
 
   const [eventos, setEventos] = useState<Evento[]>([
     {

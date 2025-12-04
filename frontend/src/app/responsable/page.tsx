@@ -5,6 +5,7 @@ import { Calendar, Edit, Loader2, ArrowLeft, Users, GraduationCap } from "lucide
 import ModalEditarEvento from "./ModalEditar";
 import Swal from "sweetalert2";
 import { eventosAPI } from "@/services/api";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Evento {
   id: string;
@@ -36,9 +37,18 @@ interface Evento {
 
 export default function DashboardResponsable() {
   const router = useRouter();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const [eventos, setEventos] = useState<Evento[]>([]);
   const [eventoEditando, setEventoEditando] = useState<Evento | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Proteger la ruta - solo usuarios autenticados que NO sean estudiantes
+  useEffect(() => {
+    if (!authLoading && (!isAuthenticated || !user || user.stu_usu === 1)) {
+      // Redirigir si no está autenticado o si es estudiante
+      router.push("/");
+    }
+  }, [authLoading, isAuthenticated, user, router]);
 
   // Función helper para transformar eventos del backend
   const transformarEvento = (evento: any): Evento => {

@@ -134,6 +134,7 @@ export default function RegisterForm({ onClose }: RegisterFormProps) {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="w-full p-3 pl-10 border border-[#bfa66b]/70 rounded-lg bg-white text-[#581517] placeholder-[#bfa66b]/80 focus:ring-2 focus:ring-[#581517]/60 transition"
+            maxLength={100}
             required
           />
         </div>

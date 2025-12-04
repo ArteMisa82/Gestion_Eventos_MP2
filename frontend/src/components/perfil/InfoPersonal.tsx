@@ -251,22 +251,24 @@ export default function InfoPersonal({ setMostrarModal }: InfoPersonalProps) {
           maxLength={10}
         />
 
-        {/* Nivel (Carrera + Semestre) */}
-        <select
-          name="niv_usu"
-          value={formData.niv_usu}
-          onChange={handleChange}
-          className="p-3 border border-gray-300 rounded-xl
-                     focus:ring-2 focus:ring-[#7A1C1C] focus:border-transparent
-                     transition-all duration-200 text-gray-700 bg-white"
-        >
-          <option value="">Seleccionar nivel académico</option>
-          {niveles.map((nivel) => (
-            <option key={nivel.id_niv} value={nivel.id_niv}>
-              {nivel.carrera.nom_car} - {nivel.nom_niv}
-            </option>
-          ))}
-        </select>
+        {/* Nivel (Carrera + Semestre) - Solo para estudiantes */}
+        {userData.stu_usu === 1 && (
+          <select
+            name="niv_usu"
+            value={formData.niv_usu}
+            onChange={handleChange}
+            className="p-3 border border-gray-300 rounded-xl
+                       focus:ring-2 focus:ring-[#7A1C1C] focus:border-transparent
+                       transition-all duration-200 text-gray-700 bg-white"
+          >
+            <option value="">Seleccionar nivel académico</option>
+            {niveles.map((nivel) => (
+              <option key={nivel.id_niv} value={nivel.id_niv}>
+                {nivel.carrera.nom_car} - {nivel.nom_niv}
+              </option>
+            ))}
+          </select>
+        )}
 
         {/* Correo */}
         <input

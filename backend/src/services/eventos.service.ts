@@ -146,6 +146,74 @@ export class EventosService {
   }
 
   /**
+   * Validar que el evento esté completo antes de publicarlo
+   */
+  private async validarEventoCompleto(idEvento: string): Promise<{ valido: boolean; errores: string[] }> {
+    const errores: string[] = [];
+
+    // Obtener evento con todas sus relaciones
+    const evento = await prisma.eventos.findUnique({
+      where: { id_evt: idEvento },
+      include: {
+        detalle_eventos: {
+          include: {
+            detalle_instructores: true
+          }
+        },
+        tarifas_evento: true
+      }
+    });
+
+    if (!evento) {
+      errores.push('Evento no encontrado');
+      return { valido: false, errores };
+    }
+
+    // Validar que tenga al menos un detalle
+    if (!evento.detalle_eventos || evento.detalle_eventos.length === 0) {
+      errores.push('El evento debe tener al menos un detalle configurado');
+    } else {
+      // Validar que el detalle tenga al menos un instructor
+      const detalleConInstructores = evento.detalle_eventos.some(
+        det => det.detalle_instructores && det.detalle_instructores.length > 0
+      );
+      
+      if (!detalleConInstructores) {
+        errores.push('El evento debe tener al menos un instructor asignado');
+      }
+    }
+
+    // Si es evento de pago, validar que tenga tarifas
+    if (evento.cos_evt === 'DE PAGO') {
+      if (!evento.tarifas_evento || evento.tarifas_evento.length === 0) {
+        errores.push('Los eventos de pago deben tener al menos una tarifa configurada');
+      }
+    }
+
+    // Validar campos básicos requeridos
+    if (!evento.nom_evt || evento.nom_evt.trim() === '') {
+      errores.push('El evento debe tener un nombre');
+    }
+
+    if (!evento.des_evt || evento.des_evt.trim() === '') {
+      errores.push('El evento debe tener una descripción');
+    }
+
+    if (!evento.fec_evt) {
+      errores.push('El evento debe tener una fecha de inicio');
+    }
+
+    if (!evento.lug_evt || evento.lug_evt.trim() === '') {
+      errores.push('El evento debe tener una ubicación');
+    }
+
+    return {
+      valido: errores.length === 0,
+      errores
+    };
+  }
+
+  /**
    * RESPONSABLE o ADMIN: Actualizar evento
    * - ADMIN puede editar TODO
    * - RESPONSABLE puede editar TODO excepto el campo id_res_evt (responsable)
@@ -175,6 +243,17 @@ export class EventosService {
     // Si NO es admin e intenta cambiar el responsable, lanzar error
     if (!esAdmin && data.id_responsable !== undefined) {
       throw new Error('Solo el administrador puede cambiar el responsable del evento');
+    }
+
+    // Validar si se intenta publicar el evento
+    if (data.est_evt && data.est_evt.toUpperCase() === 'PUBLICADO') {
+      const validacion = await this.validarEventoCompleto(idEvento);
+      
+      if (!validacion.valido) {
+        throw new Error(
+          `No se puede publicar el evento. Faltan los siguientes requisitos:\n${validacion.errores.join('\n')}`
+        );
+      }
     }
 
     // Actualizar evento

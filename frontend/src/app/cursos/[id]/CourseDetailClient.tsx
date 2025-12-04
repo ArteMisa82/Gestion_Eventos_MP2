@@ -457,14 +457,113 @@ export default function CourseDetailClient({ evento }: { evento: EventoDetalle }
                       <p style="margin: 5px 0; font-size: 14px;"><strong>RUC:</strong> 1860001550001</p>
                     </div>
                     <p style="margin: 10px 0; font-size: 14px; color: #d97706;">
-                      ⚠️ Una vez realizado el pago, debes subir el comprobante en la sección "Mis Cursos" para que tu inscripción sea validada.
+                      ⚠️ Sube tu comprobante de pago ahora o desde "Mis Cursos" para que tu inscripción sea validada.
                     </p>
+                    <div style="margin-top: 15px;">
+                      <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #374151;">
+                        Subir Comprobante (Opcional)
+                      </label>
+                      <input 
+                        type="file" 
+                        id="comprobanteFile" 
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;"
+                      />
+                    </div>
                   </div>
                 `,
-                confirmButtonText: "Entendido",
+                showCancelButton: true,
+                confirmButtonText: "📤 Subir Comprobante",
+                cancelButtonText: "Subir más tarde",
                 confirmButtonColor: "#7f1d1d",
-              }).then(() => {
-                router.push("/usuarios/cursos");
+                cancelButtonColor: "#6b7280",
+                preConfirm: () => {
+                  const fileInput = document.getElementById('comprobanteFile') as HTMLInputElement;
+                  return fileInput.files?.[0] || null;
+                }
+              }).then(async (uploadResult) => {
+                if (uploadResult.isConfirmed && uploadResult.value) {
+                  // Usuario eligió subir comprobante
+                  const file = uploadResult.value;
+                  
+                  // Validar tipo de archivo
+                  const validTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+                  if (!validTypes.includes(file.type)) {
+                    Swal.fire({
+                      icon: "error",
+                      title: "Formato inválido",
+                      text: "Solo se permiten archivos PDF, JPG, JPEG o PNG",
+                      confirmButtonColor: "#7f1d1d",
+                    });
+                    return;
+                  }
+                  
+                  // Validar tamaño (max 5MB)
+                  if (file.size > 5 * 1024 * 1024) {
+                    Swal.fire({
+                      icon: "error",
+                      title: "Archivo muy grande",
+                      text: "El comprobante no puede superar los 5MB",
+                      confirmButtonColor: "#7f1d1d",
+                    });
+                    return;
+                  }
+                  
+                  // Subir comprobante
+                  Swal.fire({
+                    title: 'Subiendo comprobante...',
+                    text: 'Por favor espera',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                      Swal.showLoading();
+                    }
+                  });
+                  
+                  try {
+                    const formData = new FormData();
+                    formData.append('comprobante', file);
+                    
+                    const response = await fetch(
+                      `http://localhost:3001/api/pagos/subir-comprobante/${numRegPer}`,
+                      {
+                        method: 'POST',
+                        headers: {
+                          'Authorization': `Bearer ${authToken}`
+                        },
+                        body: formData
+                      }
+                    );
+                    
+                    if (!response.ok) {
+                      throw new Error('Error al subir comprobante');
+                    }
+                    
+                    Swal.fire({
+                      icon: "success",
+                      title: "¡Comprobante subido!",
+                      html: `
+                        <p>Tu comprobante ha sido recibido correctamente.</p>
+                        <p>El administrador validará tu pago en las próximas 24 horas.</p>
+                      `,
+                      confirmButtonColor: "#7f1d1d",
+                    }).then(() => {
+                      router.push("/usuarios/cursos");
+                    });
+                  } catch (error) {
+                    console.error('Error subiendo comprobante:', error);
+                    Swal.fire({
+                      icon: "error",
+                      title: "Error al subir",
+                      text: "No se pudo subir el comprobante. Puedes intentarlo más tarde desde Mis Cursos.",
+                      confirmButtonColor: "#7f1d1d",
+                    }).then(() => {
+                      router.push("/usuarios/cursos");
+                    });
+                  }
+                } else {
+                  // Usuario eligió subir más tarde
+                  router.push("/usuarios/cursos");
+                }
               });
             }
           });
