@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
@@ -45,7 +46,6 @@ model detalle_eventos {
   detalle_instructores detalle_instructores[]
   material_curso       material_curso[]
   registro_evento      registro_evento[]
-  requisitos_completos Boolean? @default(false)
 
   @@index([id_evt_per], map: "idx_detalle_eventos_evento")
   @@index([tip_evt], map: "idx_detalle_eventos_tipo")
@@ -78,7 +78,7 @@ model eventos {
   fav_evt         Int               @default(0) @db.SmallInt
   detalle_eventos detalle_eventos[]
   usuarios        usuarios?         @relation(fields: [id_res_evt], references: [id_usu], map: "fk_eventos_responsable")
-  requerimientos  requerimientos[]https://10fastfingers.com/typing-test/spanish
+  requerimientos  requerimientos[]
   tarifas_evento  tarifas_evento[]
 
   @@index([fec_evt], map: "idx_eventos_fecha")
@@ -102,7 +102,6 @@ model nivel {
   estudiantes     estudiantes[]
   carreras        carreras          @relation(fields: [id_car], references: [id_car], onDelete: Cascade)
   registro_evento registro_evento[]
-  usuarios        usuarios[]
 }
 
 model pagos {
@@ -145,8 +144,6 @@ model registro_personas {
   asi_evt_det     Int?            @db.SmallInt
   id_est          Int?
   informes        informes[]
-  estado_registro String?
-  responsable_valida Boolean? @default(false)
   pagos           pagos[]
   estudiantes     estudiantes?    @relation(fields: [id_est], references: [id_est], onUpdate: NoAction, map: "fk_registro_personas_estudiante")
   registro_evento registro_evento @relation(fields: [id_reg_evt], references: [id_reg_evt], onDelete: Cascade)
@@ -193,7 +190,6 @@ model usuarios {
   stu_usu              Int?                   @db.SmallInt
   adm_usu              Int?                   @default(0) @db.SmallInt
   Administrador        Boolean                @default(false)
-  existe               Boolean?               @default(true)   // 👈 NUEVO CAMPO
   detalle_instructores detalle_instructores[]
   estudiantes          estudiantes[]
   eventos              eventos[]

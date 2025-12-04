@@ -91,11 +91,15 @@ export default function LoginModal({
       let mensaje = "";
       let ruta = "/home";
 
-      if (usuario.adm_usu === 1 || usuario.Administrador === true) {
+      if ( usuario.Administrador === true) {
         // Administradores van a /admin
         mensaje = `Bienvenido ${usuario.nom_usu} 👑`;
         ruta = "/admin";
-      } else if (usuario.stu_usu === 1) {
+      } else if(usuario.adm_usu === 1) {
+        mensaje = `Bienvenido ${usuario.nom_usu} 👑`;
+        ruta = "/usuarios/cursos";
+
+      }else if (usuario.stu_usu === 1) {
         // Estudiantes van a /cursos
         mensaje = `Bienvenido ${usuario.nom_usu} 🎓`;
         ruta = "/cursos";

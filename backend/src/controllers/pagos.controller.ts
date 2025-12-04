@@ -33,6 +33,29 @@ export class PagosController {
              return res.status(500).json({ message: 'Error al registrar el pago.', error: (error as Error).message });
         }
     }
+
+    // --------------------------------------------------------
+    // MÉTODO: SUBIR COMPROBANTE (recepción de archivo desde frontend)
+    // --------------------------------------------------------
+    async subirComprobante(req: Request, res: Response) {
+        try {
+            const { numRegPer } = req.params;
+
+            // multer coloca el archivo en req.file
+            const file = (req as any).file;
+            if (!file) {
+                return res.status(400).json({ message: 'Archivo comprobante faltante.' });
+            }
+
+            const rutaComprobante = file.path; // ruta relativa donde multer guardó el archivo
+
+            const actualizado = await pagosService.registrarComprobante(parseInt(numRegPer), rutaComprobante);
+
+            return res.status(200).json({ message: 'Comprobante subido con éxito.', pago: actualizado });
+        } catch (error) {
+            return res.status(500).json({ message: 'Error subiendo comprobante.', error: (error as Error).message });
+        }
+    }
     
     // --------------------------------------------------------
     // MÉTODO: GENERAR ORDEN DE PAGO (PDF)
