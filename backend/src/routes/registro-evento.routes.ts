@@ -5,6 +5,8 @@
 import { Router } from 'express';
 import { registroController } from '../controllers/registro.controller';
 import { authMiddleware } from '../middlewares/auth.middleware';
+import { verificarRequisitosEvento } from '../middlewares/verificarRequisitos.middleware';
+
 
 const router = Router();
 
@@ -106,6 +108,7 @@ router.get(
 router.post(
   '/',
   authMiddleware,
+  verificarRequisitosEvento, // 👈 AQUÍ LA MAGIA
   registroController.crearRegistroEvento.bind(registroController)
 );
 

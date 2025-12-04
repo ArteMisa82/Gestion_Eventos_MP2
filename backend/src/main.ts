@@ -10,6 +10,8 @@ import { swaggerUi, swaggerSpec } from './config/swagger';
 
 // 🔥 Importa las rutas de eventos favoritos
 import favoriteEventsRoutes from './routes/favoriteEvents.routes'; // Ruta de eventos favoritos
+// 👉 IMPORTA LA RUTA DEL DASHBOARD
+import dashboardRoutes from './routes/dashboard.routes';
 
 dotenv.config();
 
@@ -40,6 +42,11 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
   customCss: '.swagger-ui .topbar { display: none }',
   customSiteTitle: "API Gestión de Eventos - UTA"
 }));
+
+// =========================================
+//        🆕 RUTA DEL DASHBOARD ADMIN
+// =========================================
+app.use('/api/admin/dashboard', dashboardRoutes);
 
 // ✔ Aquí se conectan TODAS tus rutas del proyecto (API REST)
 // Rutas de eventos favoritos
