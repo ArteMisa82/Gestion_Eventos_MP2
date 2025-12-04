@@ -862,3 +862,17 @@ export default {
   usuarios: usuariosAPI,
   tarifas: tarifasAPI,
 };
+/* ==========================================
+   📊 DASHBOARD (ADMIN)
+   ========================================== */
+export const dashboardAPI = {
+  /**
+   * Obtener resumen del dashboard (ADMIN)
+   * GET /api/admin/dashboard/summary
+   * Devuelve { success, data: DashboardSummary, message }
+   */
+  getSummary: async () => {
+    const response = await fetch(`${API_URL}/admin/dashboard/summary`, getFetchOptions());
+    return handleResponse(response);
+  },
+};

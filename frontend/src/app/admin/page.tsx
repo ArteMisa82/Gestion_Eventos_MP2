@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import React, { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { 
@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import EditEventModal from "./EditarEventoModal";
 import { useAuth } from "@/hooks/useAuth";
+import { dashboardAPI } from "@/services/api";
 
 interface Evento {
   id_evt: string;
@@ -38,7 +39,7 @@ interface EventoDashboard {
   esFavorito: boolean;
 }
 
-// 🔹 Datos mock (luego se reemplazan por datos del backend)
+// 🔹 Datos mock (luego se reemplazan por datos del backend como fallback)
 const eventosMock: EventoDashboard[] = [
   {
     id: "EVT001",
@@ -88,6 +89,33 @@ const eventosMock: EventoDashboard[] = [
 ];
 
 const AdminDashboard: React.FC = () => {
+  const { token } = useAuth();
+  const [loading, setLoading] = useState<boolean>(true);
+  const [dashboardData, setDashboardData] = useState<any | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      setLoading(true);
+      try {
+        const res: any = await dashboardAPI.getSummary();
+        const data = res?.data ?? null;
+        if (mounted) setDashboardData(data);
+      } catch (err) {
+        console.error("Error cargando dashboard:", err);
+        if (mounted) setDashboardData(null);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+
+    load();
+
+    return () => {
+      mounted = false;
+    };
+  }, [token]);
+
   const {
     totalEventos,
     totalInscritos,
@@ -99,53 +127,106 @@ const AdminDashboard: React.FC = () => {
     recientes,
     totalInscritosGlobal,
   } = useMemo(() => {
-    const totalEventos = eventosMock.length;
-    const totalInscritos = eventosMock.reduce(
-      (acc, evt) => acc + evt.inscritos,
-      0
-    );
+    if (!dashboardData) {
+      // fallback con mocks
+      const totalEventos = eventosMock.length;
+      const totalInscritos = eventosMock.reduce(
+        (acc, evt) => acc + evt.inscritos,
+        0
+      );
 
-    const eventosNuevos = eventosMock.filter(
-      (e) => e.estado === "NUEVO"
-    ).length;
-    const eventosEnProceso = eventosMock.filter(
-      (e) => e.estado === "EN_PROCESO"
-    ).length;
-    const eventosFinalizados = eventosMock.filter(
-      (e) => e.estado === "FINALIZADO"
-    ).length;
-    const favoritos = eventosMock.filter((e) => e.esFavorito).length;
+      const eventosNuevos = eventosMock.filter(
+        (e) => e.estado === "NUEVO"
+      ).length;
+      const eventosEnProceso = eventosMock.filter(
+        (e) => e.estado === "EN_PROCESO"
+      ).length;
+      const eventosFinalizados = eventosMock.filter(
+        (e) => e.estado === "FINALIZADO"
+      ).length;
+      const favoritos = eventosMock.filter((e) => e.esFavorito).length;
 
-    // Distribución por tipo (porcentaje según inscritos)
-    const totalInscritosPorTipo: Record<TipoEvento, number> = {
-      CURSO: 0,
-      TALLER: 0,
-      SEMINARIO: 0,
-      WEBINAR: 0,
-    };
+      // Distribución por tipo (porcentaje según inscritos)
+      const totalInscritosPorTipo: Record<TipoEvento, number> = {
+        CURSO: 0,
+        TALLER: 0,
+        SEMINARIO: 0,
+        WEBINAR: 0,
+      };
 
-    eventosMock.forEach((evt) => {
-      totalInscritosPorTipo[evt.tipo] += evt.inscritos;
-    });
+      eventosMock.forEach((evt) => {
+        totalInscritosPorTipo[evt.tipo] += evt.inscritos;
+      });
 
-    const totalInscritosGlobal = Object.values(
-      totalInscritosPorTipo
-    ).reduce((a, b) => a + b, 0);
+      const totalInscritosGlobal = Object.values(
+        totalInscritosPorTipo
+      ).reduce((a, b) => a + b, 0);
 
-    const porcentajePorTipo = (Object.keys(
-      totalInscritosPorTipo
-    ) as TipoEvento[]).map((tipo) => {
-      const valor = totalInscritosPorTipo[tipo];
-      const porcentaje =
-        totalInscritosGlobal === 0
-          ? 0
-          : Math.round((valor / totalInscritosGlobal) * 100);
-      return { tipo, valor, porcentaje };
-    });
+      const porcentajePorTipo = (Object.keys(
+        totalInscritosPorTipo
+      ) as TipoEvento[]).map((tipo) => {
+        const valor = totalInscritosPorTipo[tipo];
+        const porcentaje =
+          totalInscritosGlobal === 0
+            ? 0
+            : Math.round((valor / totalInscritosGlobal) * 100);
+        return { tipo, valor, porcentaje };
+      });
 
-    const recientes = [...eventosMock].sort(
-      (a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime()
-    );
+      const recientes = [...eventosMock].sort(
+        (a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime()
+      );
+
+      return {
+        totalEventos,
+        totalInscritos,
+        eventosNuevos,
+        eventosEnProceso,
+        eventosFinalizados,
+        favoritos,
+        porcentajePorTipo,
+        recientes,
+        totalInscritosGlobal,
+      };
+    }
+
+    // Mapear dashboardData (estructura del backend)
+    const cards = dashboardData.cards ?? {};
+    const status = dashboardData.statusSummary ?? {};
+    const distribution = dashboardData.distributionByType ?? [];
+    const recentRaw = dashboardData.recentEvents ?? [];
+
+    const totalEventos = cards.totalEvents ?? 0;
+    const totalInscritos = cards.totalStudents ?? 0;
+    const favoritos = cards.favoriteEvents ?? 0;
+    const eventosEnProceso = cards.activeEvents ?? status.enProceso ?? 0;
+    const eventosNuevos = status.nuevos ?? 0;
+    const eventosFinalizados = status.finalizados ?? 0;
+
+    const porcentajePorTipo = distribution.map((d: any) => ({
+      tipo: d.tipo ?? "SIN_TIPO",
+      valor: d.estudiantes ?? 0,
+      porcentaje: Math.round(Number(d.porcentaje ?? 0)),
+    }));
+
+    const totalInscritosGlobal =
+      porcentajePorTipo.reduce((acc, it) => acc + (it.valor || 0), 0) ||
+      totalInscritos;
+
+    const recientes = (recentRaw as any[]).map((r) => ({
+      id: r.id_evt,
+      nombre: r.nom_evt,
+      fecha: new Date(r.fec_evt).toISOString().split("T")[0],
+      tipo: (r.tipo ?? "SIN_TIPO") as TipoEvento,
+      estado:
+        r.est_evt === "EDITANDO"
+          ? "NUEVO"
+          : r.est_evt === "PUBLICADO"
+          ? "EN_PROCESO"
+          : "FINALIZADO",
+      inscritos: Number(r.inscritos ?? 0),
+      esFavorito: false,
+    }));
 
     return {
       totalEventos,
@@ -158,7 +239,15 @@ const AdminDashboard: React.FC = () => {
       recientes,
       totalInscritosGlobal,
     };
-  }, []);
+  }, [dashboardData]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (loading) {
+    return (
+      <div className="p-8">
+        <p className="text-sm text-gray-500">Cargando datos del dashboard...</p>
+      </div>
+    );
+  }
 
   // 🎨 Colores para categorías (si se añaden más, se reutilizan cíclicamente)
   const palette = [
