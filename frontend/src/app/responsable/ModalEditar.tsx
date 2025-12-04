@@ -124,6 +124,8 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
 
   const [formData, setFormData] = useState<Evento>({
     ...evento,
+    id: evento.id || evento.id_evt || "",
+    nombre: evento.nombre || evento.nom_evt || "",
     fechaInicio: formatDateForInput(evento.fec_evt || evento.fechaInicio),
     fechaFin: formatDateForInput(evento.fec_fin_evt || evento.fechaFin),
     modalidad: evento.modalidad || evento.mod_evt || "",
@@ -140,9 +142,9 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
     cartaMotivacion: false,
     horario: evento.horario || "",
     lugar: evento.lugar || evento.lug_evt || "",
-    carreras: evento.carreras || [],
-    semestres: evento.semestres || [],
-    tipoEvento: evento.tipoEvento || "",
+    carreras: Array.isArray(evento.carreras) ? evento.carreras : [],
+    semestres: Array.isArray(evento.semestres) ? evento.semestres : [],
+    tipoEvento: evento.tipoEvento || evento.categoria || "CURSO",
     docentes: evento.docentes || (evento.docente ? [evento.docente] : []),
     imagen: evento.imagen || imageDefault,
     categoria: evento.categoria || "",

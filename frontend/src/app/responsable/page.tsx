@@ -1,12 +1,17 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+<<<<<<< HEAD
 import { Calendar, Edit, Loader2, ArrowLeft, Users, ClipboardList, Lock,GraduationCap  } from "lucide-react";
+=======
+import { Calendar, Edit, Loader2, ArrowLeft, Users, ClipboardList, Lock, GraduationCap } from "lucide-react";
+>>>>>>> 87f527cc13750e562b1891484cdd34aaa10aa41d
 import ModalEditarEvento from "./ModalEditar";
 import ModalAsistenciaNotas from "./ModalAsistenciaNota";
 import Swal from "sweetalert2";
 import { eventosAPI } from "@/services/api";
 import ValidacionesResponsable from "./validaciones";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Evento {
   id: string;
@@ -187,14 +192,16 @@ export default function DashboardResponsable() {
     fetchMisEventos();
   }, []);
 
-  const determinarRequiereAsistencia = (tipoEvento: string): boolean => {
+  const determinarRequiereAsistencia = (tipoEvento: string | undefined | null): boolean => {
+    if (!tipoEvento) return false;
     const tiposConAsistencia = [
       "TALLER", "CURSO", "SEMINARIO", "WORKSHOP", "CAPACITACION", "CONFERENCIA"
     ];
     return tiposConAsistencia.includes(tipoEvento.toUpperCase());
   };
 
-  const determinarRequiereNota = (tipoEvento: string): boolean => {
+  const determinarRequiereNota = (tipoEvento: string | undefined | null): boolean => {
+    if (!tipoEvento) return false;
     const tiposConNota = [
       "CURSO", "EVALUACION", "EXAMEN", "TALLER_EVALUADO", "SEMINARIO_CERTIFICADO"
     ];
@@ -242,7 +249,6 @@ export default function DashboardResponsable() {
 
   const handleEstadoChange = async (id: string, nuevoEstado: Evento["estado"]) => {
     try {
-      const estadoBackend = mapEstadoFrontendToBackend(nuevoEstado);
       let estadoBackend = "EDITANDO";
       if (nuevoEstado === "Publicado") estadoBackend = "PUBLICADO";
       else if (nuevoEstado === "Cerrado") estadoBackend = "CERRADO";
@@ -440,9 +446,49 @@ export default function DashboardResponsable() {
       </div>
     );
   }
+
+  const handleCarrerasChange = async (id: string, nuevasCarreras: string[]) => {
+    try {
+      const evento = eventos.find(ev => ev.id === id);
+      if (!evento) return;
+
+      await eventosAPI.update(id, {
+        carreras: nuevasCarreras,
+        semestres: evento.semestres // Enviar también los semestres actuales
+      });
+
+      setEventos((prev) =>
+        prev.map((ev) =>
+          ev.id === id ? { ...ev, carreras: nuevasCarreras } : ev
+        )
+      );
+
+      await Swal.fire({
+        icon: "success",
+        title: "Carreras actualizadas",
+        text: "Las carreras han sido actualizadas correctamente",
+        confirmButtonColor: "#581517",
+        timer: 1500,
+        showConfirmButton: false
+      });
+    } catch (error: any) {
+      console.error("Error al actualizar carreras:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: error.message || "No se pudieron actualizar las carreras",
+        confirmButtonColor: "#581517",
+      });
+    }
+  };
+
   const handleSemestresChange = async (id: string, nuevosSemestres: string[]) => {
     try {
+      const evento = eventos.find(ev => ev.id === id);
+      if (!evento) return;
+
       await eventosAPI.update(id, {
+        carreras: evento.carreras, // Enviar también las carreras actuales
         semestres: nuevosSemestres
       });
 
@@ -468,17 +514,6 @@ export default function DashboardResponsable() {
         text: error.message || "No se pudieron actualizar los semestres",
         confirmButtonColor: "#581517",
       });
-    }
-  };
-
-  const getEstadoColor = (estado: string) => {
-    switch (estado) {
-      case "Publicado":
-        return "bg-green-100 text-green-700 border-green-300";
-      case "Cerrado":
-        return "bg-red-100 text-red-700 border-red-300";
-      default:
-        return "bg-yellow-100 text-yellow-700 border-yellow-300";
     }
   };
 

@@ -42,6 +42,27 @@ router.get('/publicos', controller.obtenerEventosPublicados.bind(controller));
 
 /**
  * @swagger
+ * /api/eventos/publico/{id}:
+ *   get:
+ *     summary: Obtener un evento público por ID (sin autenticación)
+ *     tags: [Eventos]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID del evento
+ *     responses:
+ *       200:
+ *         description: Detalles del evento
+ *       404:
+ *         description: Evento no encontrado
+ */
+router.get('/publico/:id', controller.obtenerPorId.bind(controller));
+
+/**
+ * @swagger
  * /api/eventos:
  *   get:
  *     summary: Obtener todos los eventos (requiere autenticación)

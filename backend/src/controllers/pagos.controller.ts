@@ -116,6 +116,38 @@ async getPaymentOrder(req: Request, res: Response) {
     }
 }
 
+async subirComprobante(req: Request, res: Response) {
+    // 🛑 Usamos (req as any).file para evitar errores de tipado sin MulterRequest
+    const file = (req as any).file; 
+    const { numRegPer } = req.params;
+
+    if (!file) {
+        return res.status(400).json({ message: 'Debe adjuntar un archivo de comprobante (PDF o imagen).' });
+    }
+
+    try {
+        // La ruta donde Multer guardó el archivo
+        const rutaArchivo = file.path; 
+        
+        await pagosService.registrarComprobante(
+            parseInt(numRegPer), 
+            rutaArchivo
+        );
+
+        // Se establece el estado en 0 (Pendiente de Revisión)
+        return res.status(200).json({ 
+            message: 'Comprobante subido correctamente, pendiente de validación administrativa.' 
+        });
+    } catch (error) {
+        const errorMessage = (error as Error).message;
+        const statusCode = errorMessage.includes('404') || errorMessage.includes('no encontrado') ? 404 : 500;
+        return res.status(statusCode).json({ 
+            message: 'Error al procesar el comprobante.', 
+            error: errorMessage 
+        });
+    }
+}
+
 async validarComprobante(req: Request, res: Response) {
     const { numRegPer } = req.params;
     const { estado, userId } = req.body; // Se espera userId del auth o frontend
