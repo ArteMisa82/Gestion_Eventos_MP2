@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Calendar, Edit, Loader2, ArrowLeft, Users, ClipboardList, Lock } from "lucide-react";
+import { Calendar, Edit, Loader2, ArrowLeft, Users, GraduationCap } from "lucide-react";
 import ModalEditarEvento from "./ModalEditar";
 import ModalAsistenciaNotas from "./ModalAsistenciaNota";
 import Swal from "sweetalert2";
@@ -157,6 +158,15 @@ export default function DashboardResponsable() {
     const eventoCompleto: Evento = {
       ...eventoActualizado,
       estado: eventoActualizado.estado || "Editando",
+      id_evt: eventoActualizado.id_evt,
+      nom_evt: eventoActualizado.nom_evt,
+      fec_evt: eventoActualizado.fechaInicio,
+      lug_evt: eventoActualizado.lug_evt,
+      mod_evt: eventoActualizado.modalidad,
+      tip_pub_evt: eventoActualizado.publico === "General" ? "GENERAL" : "ESTUDIANTES",
+      cos_evt: eventoActualizado.pago === "Gratis" ? "GRATUITO" : "DE PAGO",
+      des_evt: eventoActualizado.des_evt,
+      est_evt: eventoActualizado.est_evt,
     };
 
     setEventos((prev) =>
@@ -168,6 +178,9 @@ export default function DashboardResponsable() {
   const handleEstadoChange = async (id: string, nuevoEstado: Evento["estado"]) => {
     try {
       const estadoBackend = mapEstadoFrontendToBackend(nuevoEstado);
+      let estadoBackend = "EDITANDO";
+      if (nuevoEstado === "Publicado") estadoBackend = "PUBLICADO";
+      else if (nuevoEstado === "Cerrado") estadoBackend = "CERRADO";
 
       await eventosAPI.update(id, {
         est_evt: estadoBackend
@@ -357,6 +370,76 @@ export default function DashboardResponsable() {
       </div>
     );
   }
+  const handleSemestresChange = async (id: string, nuevosSemestres: string[]) => {
+    try {
+      await eventosAPI.update(id, {
+        semestres: nuevosSemestres
+      });
+
+      setEventos((prev) =>
+        prev.map((ev) =>
+          ev.id === id ? { ...ev, semestres: nuevosSemestres } : ev
+        )
+      );
+
+      await Swal.fire({
+        icon: "success",
+        title: "Semestres actualizados",
+        text: "Los semestres han sido actualizados correctamente",
+        confirmButtonColor: "#581517",
+        timer: 1500,
+        showConfirmButton: false
+      });
+    } catch (error: any) {
+      console.error("Error al actualizar semestres:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: error.message || "No se pudieron actualizar los semestres",
+        confirmButtonColor: "#581517",
+      });
+    }
+  };
+
+  const getEstadoColor = (estado: string) => {
+    switch (estado) {
+      case "Publicado":
+        return "bg-green-100 text-green-700 border-green-300";
+      case "Cerrado":
+        return "bg-red-100 text-red-700 border-red-300";
+      default:
+        return "bg-yellow-100 text-yellow-700 border-yellow-300";
+    }
+  };
+
+  const carrerasDisponibles = ["Software", "TI", "Telecomunicaciones", "Robótica"];
+  const semestresDisponibles = [
+    "1er semestre", "2do semestre", "3er semestre", "4to semestre", 
+    "5to semestre", "6to semestre", "7mo semestre", "8vo semestre", 
+    "9no semestre", "10mo semestre"
+  ];
+
+  const toggleCarrera = (eventoId: string, carrera: string) => {
+    const evento = eventos.find(ev => ev.id === eventoId);
+    if (!evento) return;
+
+    const nuevasCarreras = evento.carreras.includes(carrera)
+      ? evento.carreras.filter(c => c !== carrera)
+      : [...evento.carreras, carrera];
+
+    handleCarrerasChange(eventoId, nuevasCarreras);
+  };
+
+  const toggleSemestre = (eventoId: string, semestre: string) => {
+    const evento = eventos.find(ev => ev.id === eventoId);
+    if (!evento) return;
+
+    const nuevosSemestres = evento.semestres.includes(semestre)
+      ? evento.semestres.filter(s => s !== semestre)
+      : [...evento.semestres, semestre];
+
+    handleSemestresChange(eventoId, nuevosSemestres);
+  };
 
   return (
     <div className="p-8 font-sans text-gray-800 min-h-screen bg-white">
@@ -452,6 +535,71 @@ export default function DashboardResponsable() {
             <p className="text-sm text-gray-600 mb-3">
               <span className="font-medium">Capacidad:</span> {ev.capacidad} personas
             </p>
+
+            {/* Sección de Carreras y Semestres - SOLO para eventos de Estudiantes */}
+            {ev.publico === "Estudiantes" && (
+              <div className="mb-4 space-y-3">
+                {/* Carreras */}
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <GraduationCap size={16} className="text-[#581517]" />
+                    <label className="text-sm font-medium text-gray-700">
+                      Carreras Dirigidas:
+                    </label>
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {carrerasDisponibles.map((carrera) => (
+                      <button
+                        key={carrera}
+                        onClick={() => toggleCarrera(ev.id, carrera)}
+                        className={`px-2 py-1 rounded text-xs font-medium border transition-all ${
+                          ev.carreras.includes(carrera)
+                            ? "bg-[#581517] text-white border-[#581517]"
+                            : "border-gray-300 text-gray-700 hover:border-[#581517] hover:text-[#581517] bg-white"
+                        }`}
+                      >
+                        {carrera}
+                      </button>
+                    ))}
+                  </div>
+                  {ev.carreras.length > 0 && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Seleccionadas: {ev.carreras.length}
+                    </p>
+                  )}
+                </div>
+
+                {/* Semestres */}
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Users size={16} className="text-[#581517]" />
+                    <label className="text-sm font-medium text-gray-700">
+                      Semestres Dirigidos:
+                    </label>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1">
+                    {semestresDisponibles.map((semestre) => (
+                      <button
+                        key={semestre}
+                        onClick={() => toggleSemestre(ev.id, semestre)}
+                        className={`px-2 py-1 rounded text-xs font-medium border transition-all text-center ${
+                          ev.semestres.includes(semestre)
+                            ? "bg-[#581517] text-white border-[#581517]"
+                            : "border-gray-300 text-gray-700 hover:border-[#581517] hover:text-[#581517] bg-white"
+                        }`}
+                      >
+                        {semestre}
+                      </button>
+                    ))}
+                  </div>
+                  {ev.semestres.length > 0 && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Seleccionados: {ev.semestres.length}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Selector de estado */}
             <div className="mb-4">
