@@ -205,6 +205,41 @@ router.get('/mis-registros', authMiddleware, async (req, res, next) => {
 
 /**
  * @swagger
+ * /api/registro-personas/usuario/{id_usu}:
+ *   get:
+ *     summary: Obtener registros de un usuario específico
+ *     tags: [Registro Personas]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id_usu
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Registros del usuario
+ *       401:
+ *         description: No autenticado
+ */
+router.get('/usuario/:id_usu', authMiddleware, async (req, res, next) => {
+  try {
+    const id_usu = Number(req.params.id_usu);
+
+    const registros = await registroService.obtenerRegistrosUsuario(id_usu);
+
+    res.json({
+      success: true,
+      data: registros,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * @swagger
  * /api/registro-personas/{num_reg_per}:
  *   delete:
  *     summary: Cancelar un registro de curso

@@ -27,14 +27,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Cargar token y usuario desde localStorage al iniciar
   useEffect(() => {
-    const storedToken = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
+    const loadUserData = async () => {
+      const storedToken = localStorage.getItem('token');
+      const storedUser = localStorage.getItem('user');
 
-    if (storedToken && storedUser) {
-      setToken(storedToken);
-      setUser(JSON.parse(storedUser));
-    }
-    setIsLoading(false);
+      if (storedToken && storedUser) {
+        setToken(storedToken);
+        const parsedUser = JSON.parse(storedUser);
+        
+        // Obtener datos actualizados del usuario desde el backend
+        try {
+          const response = await fetch(`http://localhost:3001/api/user/id/${parsedUser.id_usu}`, {
+            headers: {
+              'Authorization': `Bearer ${storedToken}`
+            }
+          });
+          
+          if (response.ok) {
+            const result = await response.json();
+            if (result.success && result.data) {
+              setUser(result.data);
+              // Actualizar localStorage con los datos completos
+              localStorage.setItem('user', JSON.stringify(result.data));
+            } else {
+              setUser(parsedUser);
+            }
+          } else {
+            setUser(parsedUser);
+          }
+        } catch (error) {
+          console.error('Error al cargar datos del usuario:', error);
+          setUser(parsedUser);
+        }
+      }
+      setIsLoading(false);
+    };
+
+    loadUserData();
   }, []);
 
   const login = async (email: string, password: string) => {

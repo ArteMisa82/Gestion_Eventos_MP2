@@ -14,7 +14,26 @@ export class UserService {
   }
 
   async getById(id: number): Promise<IUser | null> {
-    return prisma.usuarios.findUnique({ where: { id_usu: id } });
+    const user = await prisma.usuarios.findUnique({ 
+      where: { id_usu: id },
+      include: {
+        estudiantes: {
+          include: {
+            nivel: {
+              include: {
+                carreras: true
+              }
+            }
+          },
+          where: {
+            est_activo: 1
+          },
+          take: 1
+        }
+      }
+    });
+    
+    return user as any;
   }
 
   async create(data: IUser): Promise<IUser> {

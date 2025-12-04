@@ -132,6 +132,29 @@ export class EstudiantesController {
       });
     }
   }
+
+  /**
+   * GET /api/estudiantes/instructor/:id_usu
+   * Verifica si el usuario es instructor en algún detalle de evento
+   */
+  async verificarInstructor(req: Request, res: Response) {
+    try {
+      const { id_usu } = req.params;
+
+      const detalles = await estudiantesService.obtenerDetallesPorInstructor(
+        parseInt(id_usu)
+      );
+
+      return res.status(200).json(
+        successResponse(detalles, 'Detalles donde es instructor obtenidos exitosamente')
+      );
+    } catch (error: any) {
+      return res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
 }
 
 export const estudiantesController = new EstudiantesController();

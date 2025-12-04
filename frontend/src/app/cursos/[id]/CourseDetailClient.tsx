@@ -193,7 +193,8 @@ export default function CourseDetailClient({ evento }: { evento: EventoDetalle }
           return;
         }
       }
-
+      
+      // PASO 1: Obtener registros de evento para este detalle (solo si es para ESTUDIANTES)
       Swal.fire({
         title: "Obteniendo información del curso...",
         text: "Verificando disponibilidad",
@@ -203,63 +204,100 @@ export default function CourseDetailClient({ evento }: { evento: EventoDetalle }
         },
       });
 
-      const registrosResponse = await registroEventoAPI.getPorDetalle(
-        authToken,
-        detalle.id_det
-      );
-
-      if (
-        !registrosResponse.success ||
-        !registrosResponse.data ||
-        registrosResponse.data.length === 0
-      ) {
-        Swal.fire({
-          icon: "error",
-          title: "Curso no disponible",
-          text: "Este curso no está disponible para inscripciones actualmente.",
-          confirmButtonColor: "#7f1d1d",
-        });
-        return;
+      // Verificar si el evento requiere niveles/carreras (solo para ESTUDIANTES)
+      const esParaEstudiantes = evento.tip_pub_evt === "ESTUDIANTES";
+      
+      let registroEvento;
+      let id_reg_evt;
+      
+      if (esParaEstudiantes) {
+        // Solo para eventos de ESTUDIANTES: verificar que haya registros de nivel
+        const registrosResponse = await registroEventoAPI.getPorDetalle(authToken, detalle.id_det);
+        console.log("Registros encontrados (estudiantes):", registrosResponse);
+        
+        if (!registrosResponse.success || !registrosResponse.data || registrosResponse.data.length === 0) {
+          Swal.fire({
+            icon: "info",
+            title: "Curso en configuración",
+            html: `
+              <p>Este curso aún no está disponible para inscripciones.</p>
+              <br>
+              <p style="color: #6b7280; font-size: 14px;">
+                El responsable del curso debe configurar las carreras y niveles académicos a los que está dirigido.
+              </p>
+              <p style="color: #6b7280; font-size: 14px;">
+                Por favor, intenta más tarde o contacta al administrador.
+              </p>
+            `,
+            confirmButtonColor: "#7f1d1d",
+          });
+          return;
+        }
+        
+        // Para ESTUDIANTES: usar el primer registro encontrado
+        registroEvento = registrosResponse.data[0];
+        id_reg_evt = registroEvento.id_reg_evt;
+        console.log("Usando registro de evento:", id_reg_evt);
+        console.log("Nivel del curso:", registroEvento.nivel?.nom_niv);
+      } else {
+        // Para PÚBLICO GENERAL: no se requiere registro de nivel
+        console.log("Evento para público general - sin validación de niveles");
+        id_reg_evt = null;
       }
 
-      const registroEvento = registrosResponse.data[0];
-      const id_reg_evt = registroEvento.id_reg_evt;
+      console.log("🔹 ANTES de cerrar Swal inicial");
+      // Cerrar el modal de "Obteniendo información del curso..."
+      Swal.close();
+      console.log("🔹 DESPUÉS de cerrar Swal inicial");
+      
+      // Pequeño delay para que SweetAlert2 termine de cerrar el modal anterior
+      await new Promise(resolve => setTimeout(resolve, 100));
 
-      Swal.fire({
-        title: "Validando requisitos...",
-        text: "Verificando nivel académico y disponibilidad",
-        allowOutsideClick: false,
-        didOpen: () => {
-          Swal.showLoading();
-        },
-      });
-
-      const validacion = await inscripcionesAPI.validar(authToken, {
-        id_usu,
-        id_reg_evt,
-      });
-
-      if (!validacion.success || !validacion.data?.valido) {
-        const mensaje =
-          validacion.data?.mensaje ||
-          validacion.message ||
-          "No cumples con los requisitos para este curso.";
-
+      // PASO 2: Validar si el usuario puede inscribirse (solo para ESTUDIANTES)
+      if (esParaEstudiantes) {
         Swal.fire({
-          icon: "error",
-          title: "No puedes inscribirte",
-          text: mensaje,
-          confirmButtonColor: "#7f1d1d",
+          title: 'Validando requisitos...',
+          text: 'Verificando nivel académico y disponibilidad',
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          }
         });
-        return;
+
+        const validacion = await inscripcionesAPI.validar(authToken, {
+          id_usu,
+          id_reg_evt
+        });
+        
+        console.log("Resultado de validación:", validacion);
+
+        if (!validacion.success || !validacion.data?.valido) {
+          const mensaje = validacion.data?.mensaje || validacion.message || "No cumples con los requisitos para este curso.";
+          
+          Swal.fire({
+            icon: "error",
+            title: "No puedes inscribirte",
+            text: mensaje,
+            confirmButtonColor: "#7f1d1d",
+          });
+          return;
+        }
+        
+        // Cerrar el modal de validación antes de mostrar la confirmación
+        Swal.close();
+        // Pequeño delay para que SweetAlert2 termine de cerrar el modal anterior
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
 
+      console.log("🔹 LLEGANDO al PASO 3 - Confirmar inscripción");
+      // PASO 3: Confirmar inscripción con el usuario
+      const nivelInfo = esParaEstudiantes && registroEvento ? `Nivel: ${registroEvento.nivel?.nom_niv}<br>` : '';
+      
       const confirmResult = await Swal.fire({
         icon: "question",
         title: "Confirmar inscripción",
         html: `
-          <p><strong>✅ Validación exitosa</strong></p>
-          <br>
+          ${esParaEstudiantes ? '<p><strong>✅ Validación exitosa</strong></p><br>' : ''}
           <p>¿Confirmas tu inscripción a:</p>
           <p><strong>${evento.nom_evt}</strong></p>
           <p style="color: #6b7280; font-size: 14px;">
@@ -285,33 +323,234 @@ export default function CourseDetailClient({ evento }: { evento: EventoDetalle }
         },
       });
 
-      const inscripcion = await inscripcionesAPI.inscribir(authToken, {
-        id_usu,
-        id_reg_evt,
-      });
+      // Para público general, usar id_det directamente; para estudiantes, usar id_reg_evt
+      const inscripcionData: any = {
+        id_usu
+      };
+      
+      if (esParaEstudiantes && id_reg_evt) {
+        inscripcionData.id_reg_evt = id_reg_evt;
+      } else {
+        // Para público general, usar el id_det directamente
+        inscripcionData.id_det = detalle.id_det;
+      }
+      
+      console.log("=== DATOS DE INSCRIPCIÓN ===");
+      console.log("inscripcionData:", inscripcionData);
+      console.log("esParaEstudiantes:", esParaEstudiantes);
+      
+      const inscripcion = await inscripcionesAPI.inscribir(authToken, inscripcionData);
+      
+      console.log("Resultado de inscripción:", inscripcion);
+
+      // Cerrar loading
+      Swal.close();
 
       if (inscripcion.success) {
-        Swal.fire({
-          icon: "success",
-          title: "¡Inscripción exitosa!",
-          html: `
-            <p>Te has inscrito correctamente al evento.</p>
-            <p><strong>${evento.nom_evt}</strong></p>
-            <br>
-            <p style="color: #6b7280; font-size: 14px;">
-              Puedes ver tus cursos en la sección "Mis Cursos".
-            </p>
-          `,
-          confirmButtonColor: "#7f1d1d",
-        }).then(() => {
-          router.push("/usuarios/cursos");
-        });
+        // Verificar si el evento es de pago
+        const esDePago = evento.cos_evt === "DE PAGO";
+        
+        if (esDePago) {
+          // Si es de pago, mostrar opciones de pago
+          const numRegPer = inscripcion.data?.num_reg_per;
+          
+          Swal.fire({
+            icon: "success",
+            title: "¡Pre-inscripción exitosa!",
+            html: `
+              <p>Te has pre-inscrito correctamente al evento.</p>
+              <p><strong>${evento.nom_evt}</strong></p>
+              <br>
+              <p style="color: #d97706; font-size: 14px;">
+                ⚠️ Este es un evento de pago.<br>
+                Selecciona tu método de pago para completar tu inscripción.
+              </p>
+            `,
+            showCancelButton: true,
+            confirmButtonText: "💳 Pagar con Tarjeta",
+            cancelButtonText: "🏦 Depósito/Transferencia",
+            confirmButtonColor: "#7f1d1d",
+            cancelButtonColor: "#4b5563",
+            allowOutsideClick: false
+          }).then(async (result) => {
+            if (result.isConfirmed) {
+              // Pago con tarjeta (simulado)
+              await Swal.fire({
+                icon: "info",
+                title: "Procesando pago...",
+                html: `
+                  <p>Simulando pago con tarjeta</p>
+                  <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[#7f1d1d] mx-auto mt-4"></div>
+                `,
+                showConfirmButton: false,
+                timer: 2000
+              });
+              
+              Swal.fire({
+                icon: "success",
+                title: "¡Pago exitoso!",
+                html: `
+                  <p>Tu pago ha sido procesado correctamente.</p>
+                  <p>Inscripción confirmada para:</p>
+                  <p><strong>${evento.nom_evt}</strong></p>
+                `,
+                confirmButtonColor: "#7f1d1d",
+              }).then(() => {
+                router.push("/usuarios/cursos");
+              });
+            } else if (result.dismiss === Swal.DismissReason.cancel) {
+              // Depósito/Transferencia
+              Swal.fire({
+                icon: "info",
+                title: "Depósito o Transferencia Bancaria",
+                html: `
+                  <div style="text-align: left; padding: 10px;">
+                    <p style="margin-bottom: 10px;"><strong>Datos bancarios:</strong></p>
+                    <div style="background: #f3f4f6; padding: 12px; border-radius: 8px; margin-bottom: 15px;">
+                      <p style="margin: 5px 0; font-size: 14px;"><strong>Banco:</strong> Banco Pichincha</p>
+                      <p style="margin: 5px 0; font-size: 14px;"><strong>Tipo de cuenta:</strong> Ahorros</p>
+                      <p style="margin: 5px 0; font-size: 14px;"><strong>Número de cuenta:</strong> 2100123456</p>
+                      <p style="margin: 5px 0; font-size: 14px;"><strong>Beneficiario:</strong> Universidad Técnica de Ambato</p>
+                      <p style="margin: 5px 0; font-size: 14px;"><strong>RUC:</strong> 1860001550001</p>
+                    </div>
+                    <p style="margin: 10px 0; font-size: 14px; color: #d97706;">
+                      ⚠️ Sube tu comprobante de pago ahora o desde "Mis Cursos" para que tu inscripción sea validada.
+                    </p>
+                    <div style="margin-top: 15px;">
+                      <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #374151;">
+                        Subir Comprobante (Opcional)
+                      </label>
+                      <input 
+                        type="file" 
+                        id="comprobanteFile" 
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;"
+                      />
+                    </div>
+                  </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: "📤 Subir Comprobante",
+                cancelButtonText: "Subir más tarde",
+                confirmButtonColor: "#7f1d1d",
+                cancelButtonColor: "#6b7280",
+                preConfirm: () => {
+                  const fileInput = document.getElementById('comprobanteFile') as HTMLInputElement;
+                  return fileInput.files?.[0] || null;
+                }
+              }).then(async (uploadResult) => {
+                if (uploadResult.isConfirmed && uploadResult.value) {
+                  // Usuario eligió subir comprobante
+                  const file = uploadResult.value;
+                  
+                  // Validar tipo de archivo
+                  const validTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+                  if (!validTypes.includes(file.type)) {
+                    Swal.fire({
+                      icon: "error",
+                      title: "Formato inválido",
+                      text: "Solo se permiten archivos PDF, JPG, JPEG o PNG",
+                      confirmButtonColor: "#7f1d1d",
+                    });
+                    return;
+                  }
+                  
+                  // Validar tamaño (max 5MB)
+                  if (file.size > 5 * 1024 * 1024) {
+                    Swal.fire({
+                      icon: "error",
+                      title: "Archivo muy grande",
+                      text: "El comprobante no puede superar los 5MB",
+                      confirmButtonColor: "#7f1d1d",
+                    });
+                    return;
+                  }
+                  
+                  // Subir comprobante
+                  Swal.fire({
+                    title: 'Subiendo comprobante...',
+                    text: 'Por favor espera',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                      Swal.showLoading();
+                    }
+                  });
+                  
+                  try {
+                    const formData = new FormData();
+                    formData.append('comprobante', file);
+                    
+                    const response = await fetch(
+                      `http://localhost:3001/api/pagos/subir-comprobante/${numRegPer}`,
+                      {
+                        method: 'POST',
+                        headers: {
+                          'Authorization': `Bearer ${authToken}`
+                        },
+                        body: formData
+                      }
+                    );
+                    
+                    if (!response.ok) {
+                      throw new Error('Error al subir comprobante');
+                    }
+                    
+                    Swal.fire({
+                      icon: "success",
+                      title: "¡Comprobante subido!",
+                      html: `
+                        <p>Tu comprobante ha sido recibido correctamente.</p>
+                        <p>El administrador validará tu pago en las próximas 24 horas.</p>
+                      `,
+                      confirmButtonColor: "#7f1d1d",
+                    }).then(() => {
+                      router.push("/usuarios/cursos");
+                    });
+                  } catch (error) {
+                    console.error('Error subiendo comprobante:', error);
+                    Swal.fire({
+                      icon: "error",
+                      title: "Error al subir",
+                      text: "No se pudo subir el comprobante. Puedes intentarlo más tarde desde Mis Cursos.",
+                      confirmButtonColor: "#7f1d1d",
+                    }).then(() => {
+                      router.push("/usuarios/cursos");
+                    });
+                  }
+                } else {
+                  // Usuario eligió subir más tarde
+                  router.push("/usuarios/cursos");
+                }
+              });
+            }
+          });
+        } else {
+          // Si es gratuito, confirmar inscripción y redirigir a mis cursos
+          Swal.fire({
+            icon: "success",
+            title: "¡Inscripción exitosa!",
+            html: `
+              <p>Te has inscrito correctamente al evento.</p>
+              <p><strong>${evento.nom_evt}</strong></p>
+              <br>
+              <p style="color: #6b7280; font-size: 14px;">
+                Puedes ver tus cursos en la sección "Mis Cursos"
+              </p>
+            `,
+            confirmButtonColor: "#7f1d1d",
+          }).then(() => {
+            router.push("/usuarios/cursos");
+          });
+        }
       } else {
         throw new Error(inscripcion.message || "Error al procesar inscripción");
       }
     } catch (error: any) {
-      console.error("Error al inscribir:", error);
-
+      console.error('Error al inscribir:', error);
+      
+      // Cerrar cualquier modal de loading
+      Swal.close();
+      
       let errorMessage = "No se pudo completar la inscripción.";
 
       if (error.message) {
@@ -323,12 +562,12 @@ export default function CourseDetailClient({ evento }: { evento: EventoDetalle }
             "Lo sentimos, ya no hay cupos disponibles para este curso.";
         } else if (error.message.includes("inscrito")) {
           errorMessage = "Ya estás inscrito en este curso.";
-        } else if (error.message.includes("instructor")) {
-          errorMessage =
-            "No puedes inscribirte en un curso donde eres instructor.";
-        } else if (error.message.includes("responsable")) {
-          errorMessage =
-            "No puedes inscribirte en un evento donde eres responsable.";
+        } else if (error.message.includes('instructor')) {
+          errorMessage = "No puedes inscribirte en un curso donde eres instructor.";
+        } else if (error.message.includes('responsable')) {
+          errorMessage = "No puedes inscribirte en un evento donde eres responsable.";
+        } else if (error.message.includes('timeout') || error.message.includes('network')) {
+          errorMessage = "Error de conexión. Por favor, verifica que el servidor esté funcionando e intenta nuevamente.";
         } else {
           errorMessage = error.message;
         }

@@ -1,4 +1,19 @@
 "use client";
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Pencil, Search } from "lucide-react";
+import EditEventModal from "./EditarEventoModal";
+import { useAuth } from "@/hooks/useAuth";
+
+interface Evento {
+  id_evt: string;
+  nom_evt: string;
+  fec_evt: string;
+  lug_evt: string;
+  mod_evt: string;
+  tip_pub_evt: string;
+  est_evt_det: string; 
+  img_evt: string;
 
 import React, { useMemo } from "react";
 import {

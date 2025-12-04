@@ -226,6 +226,42 @@ export class EstudiantesService {
       fec_ingreso: est.fec_ingreso
     }));
   }
+
+  /**
+   * Obtiene detalles de eventos donde el usuario es instructor
+   */
+  async obtenerDetallesPorInstructor(id_usu: number) {
+    const detalles = await prisma.detalle_eventos.findMany({
+      where: {
+        id_usr_instructor: id_usu
+      },
+      include: {
+        eventos: {
+          select: {
+            id_evt: true,
+            nom_evt: true,
+            fec_evt: true,
+            lug_evt: true,
+            mod_evt: true
+          }
+        }
+      }
+    });
+
+    return detalles.map(det => ({
+      id_det: det.id_det,
+      evento: {
+        id_evt: det.eventos.id_evt,
+        nom_evt: det.eventos.nom_evt,
+        fec_evt: det.eventos.fec_evt,
+        lug_evt: det.eventos.lug_evt,
+        mod_evt: det.eventos.mod_evt
+      },
+      cup_det: det.cup_det,
+      hor_det: det.hor_det,
+      cat_det: det.cat_det
+    }));
+  }
 }
 
 export const estudiantesService = new EstudiantesService();

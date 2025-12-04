@@ -1,3 +1,21 @@
+// ==========================================
+// 💸 TARIFAS DE EVENTO
+// ==========================================
+
+export const tarifasAPI = {
+  /**
+   * Crear o actualizar tarifa de evento
+   * POST /api/tarifas-evento
+   */
+  createOrUpdate: async (tarifaData: {
+    id_evt: string;
+    tip_par: 'ESTUDIANTE' | 'PERSONA';
+    val_evt: number;
+  }) => {
+    const response = await fetch(`${API_URL}/tarifas-evento`, getFetchOptions('POST', tarifaData));
+    return handleResponse(response);
+  },
+};
 /**
  * Servicio centralizado para comunicación con el backend
  * Base URL: http://localhost:3001/api
@@ -831,4 +849,5 @@ export default {
   carreras: carrerasAPI,
   niveles: nivelesAPI,
   usuarios: usuariosAPI,
+  tarifas: tarifasAPI,
 };

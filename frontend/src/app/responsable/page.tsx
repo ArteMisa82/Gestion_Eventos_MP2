@@ -59,12 +59,77 @@ interface Inscrito {
 
 export default function DashboardResponsable() {
   const router = useRouter();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const [eventos, setEventos] = useState<Evento[]>([]);
   const [eventoEditando, setEventoEditando] = useState<Evento | null>(null);
   const [eventoAsistencia, setEventoAsistencia] = useState<Evento | null>(null);
   const [inscritos, setInscritos] = useState<Inscrito[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingInscritos, setIsLoadingInscritos] = useState(false);
+
+  // Proteger la ruta - solo usuarios autenticados que NO sean estudiantes
+  useEffect(() => {
+    if (!authLoading && (!isAuthenticated || !user || user.stu_usu === 1)) {
+      // Redirigir si no está autenticado o si es estudiante
+      router.push("/");
+    }
+  }, [authLoading, isAuthenticated, user, router]);
+
+  // Función helper para transformar eventos del backend
+  const transformarEvento = (evento: any): Evento => {
+    // Extraer tarifas desde tarifas_evento
+    const tarifaEstudiante = evento.tarifas_evento?.find((t: any) => t.tip_par === "ESTUDIANTE");
+    const tarifaPersona = evento.tarifas_evento?.find((t: any) => t.tip_par === "PERSONA");
+    
+    // Función para extraer solo la fecha (yyyy-MM-dd) sin conversión de zona horaria
+    const extraerFecha = (fechaISO: string | undefined): string => {
+      if (!fechaISO) return "";
+      // Extraer solo la parte de fecha (yyyy-MM-dd) sin conversión
+      return fechaISO.split('T')[0];
+    };
+
+    // Función para formato de visualización (dd/MM/yyyy)
+    const formatearParaVisualizacion = (fechaISO: string | undefined): string => {
+      if (!fechaISO) return "";
+      const fecha = extraerFecha(fechaISO);
+      const [year, month, day] = fecha.split('-');
+      return `${day}/${month}/${year}`;
+    };
+    
+    return {
+      id: evento.id_evt,
+      id_evt: evento.id_evt,
+      nombre: evento.nom_evt,
+      nom_evt: evento.nom_evt,
+      fechaInicio: formatearParaVisualizacion(evento.fec_evt),
+      fechaFin: formatearParaVisualizacion(evento.fec_fin_evt),
+      fec_evt: evento.fec_evt,
+      fec_fin_evt: evento.fec_fin_evt,
+      modalidad: evento.mod_evt || "",
+      mod_evt: evento.mod_evt,
+      capacidad: evento.capacidad || evento.cupos || 0,
+      cupos: evento.cupos || evento.capacidad || 0,
+      publico: evento.tip_pub_evt === "GENERAL" ? "General" : "Estudiantes",
+      tip_pub_evt: evento.tip_pub_evt,
+      horas: evento.horas || 0,
+      pago: evento.cos_evt === "GRATUITO" ? "Gratis" : "Pago",
+      cos_evt: evento.cos_evt,
+      precioEstudiantes: tarifaEstudiante?.val_evt || 0,
+      precioGeneral: tarifaPersona?.val_evt || 0,
+      carreras: evento.carreras || [],
+      semestres: evento.semestres || [],
+      docentes: evento.docentes || [],
+      tipoEvento: evento.tipoEvento || evento.categoria || "",
+      categoria: evento.categoria || evento.tipoEvento || "",
+      camposExtra: evento.camposExtra || {},
+      lugar: evento.lug_evt || "",
+      lug_evt: evento.lug_evt,
+      horario: evento.horario || "",
+      des_evt: evento.des_evt,
+      est_evt: evento.est_evt,
+      estado: evento.est_evt === "PUBLICADO" ? "Publicado" : evento.est_evt === "CERRADO" ? "Cerrado" : "Editando",
+    };
+  };
 
   useEffect(() => {
     const fetchMisEventos = async () => {
@@ -183,8 +248,14 @@ export default function DashboardResponsable() {
       if (nuevoEstado === "Publicado") estadoBackend = "PUBLICADO";
       else if (nuevoEstado === "Cerrado") estadoBackend = "CERRADO";
 
+      // Obtener el evento actual para enviar sus carreras y semestres
+      const evento = eventos.find(ev => ev.id === id);
+      
       await eventosAPI.update(id, {
-        est_evt: estadoBackend
+        est_evt: estadoBackend,
+        // Enviar carreras y semestres para crear los registros de evento
+        ...(evento?.carreras && evento.carreras.length > 0 && { carreras: evento.carreras }),
+        ...(evento?.semestres && evento.semestres.length > 0 && { semestres: evento.semestres })
       });
 
       setEventos((prev) =>

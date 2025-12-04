@@ -92,14 +92,17 @@ export default function LoginModal({
       let ruta = "/home";
 
       if (usuario.adm_usu === 1 || usuario.Administrador === true) {
+        // Administradores van a /admin
         mensaje = `Bienvenido ${usuario.nom_usu} 👑`;
         ruta = "/admin";
       } else if (usuario.stu_usu === 1) {
+        // Estudiantes van a /cursos
         mensaje = `Bienvenido ${usuario.nom_usu} 🎓`;
         ruta = "/cursos";
       } else {
+        // Usuarios regulares (potenciales responsables/instructores) van a /responsable
         mensaje = `Bienvenido ${usuario.nom_usu}`;
-        ruta = "/home";
+        ruta = "/responsable";
       }
 
       await Swal.fire({
@@ -182,6 +185,7 @@ export default function LoginModal({
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         className="w-full p-3 pl-10 border border-[#bfa66b]/70 rounded-lg text-[#581517] placeholder-[#bfa66b]/80 focus:ring-2 focus:ring-[#581517]/60 transition"
+                        maxLength={100}
                         required
                       />
                     </div>

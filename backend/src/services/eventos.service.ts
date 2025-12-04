@@ -9,6 +9,7 @@ import { generateEventoId } from '../utils/id-generator.util';
 import { validateIsAdmin, validateIsResponsableOrAdmin, validateIsAdministrativeUser } from '../utils/validators.util';
 import { EVENTO_INCLUDES, USUARIO_SELECT } from '../utils/prisma-includes.util';
 import { DetallesEventosService } from './detalles-eventos.service';
+import { InstructoresService } from './instructores.service';
 
 /**
  * Servicio para gestionar eventos
@@ -16,9 +17,11 @@ import { DetallesEventosService } from './detalles-eventos.service';
  */
 export class EventosService {
   private detallesService: DetallesEventosService;
+  private instructoresService: InstructoresService;
 
   constructor() {
     this.detallesService = new DetallesEventosService();
+    this.instructoresService = new InstructoresService();
   }
 
   /**
@@ -143,6 +146,74 @@ export class EventosService {
   }
 
   /**
+   * Validar que el evento esté completo antes de publicarlo
+   */
+  private async validarEventoCompleto(idEvento: string): Promise<{ valido: boolean; errores: string[] }> {
+    const errores: string[] = [];
+
+    // Obtener evento con todas sus relaciones
+    const evento = await prisma.eventos.findUnique({
+      where: { id_evt: idEvento },
+      include: {
+        detalle_eventos: {
+          include: {
+            detalle_instructores: true
+          }
+        },
+        tarifas_evento: true
+      }
+    });
+
+    if (!evento) {
+      errores.push('Evento no encontrado');
+      return { valido: false, errores };
+    }
+
+    // Validar que tenga al menos un detalle
+    if (!evento.detalle_eventos || evento.detalle_eventos.length === 0) {
+      errores.push('El evento debe tener al menos un detalle configurado');
+    } else {
+      // Validar que el detalle tenga al menos un instructor
+      const detalleConInstructores = evento.detalle_eventos.some(
+        det => det.detalle_instructores && det.detalle_instructores.length > 0
+      );
+      
+      if (!detalleConInstructores) {
+        errores.push('El evento debe tener al menos un instructor asignado');
+      }
+    }
+
+    // Si es evento de pago, validar que tenga tarifas
+    if (evento.cos_evt === 'DE PAGO') {
+      if (!evento.tarifas_evento || evento.tarifas_evento.length === 0) {
+        errores.push('Los eventos de pago deben tener al menos una tarifa configurada');
+      }
+    }
+
+    // Validar campos básicos requeridos
+    if (!evento.nom_evt || evento.nom_evt.trim() === '') {
+      errores.push('El evento debe tener un nombre');
+    }
+
+    if (!evento.des_evt || evento.des_evt.trim() === '') {
+      errores.push('El evento debe tener una descripción');
+    }
+
+    if (!evento.fec_evt) {
+      errores.push('El evento debe tener una fecha de inicio');
+    }
+
+    if (!evento.lug_evt || evento.lug_evt.trim() === '') {
+      errores.push('El evento debe tener una ubicación');
+    }
+
+    return {
+      valido: errores.length === 0,
+      errores
+    };
+  }
+
+  /**
    * RESPONSABLE o ADMIN: Actualizar evento
    * - ADMIN puede editar TODO
    * - RESPONSABLE puede editar TODO excepto el campo id_res_evt (responsable)
@@ -172,6 +243,17 @@ export class EventosService {
     // Si NO es admin e intenta cambiar el responsable, lanzar error
     if (!esAdmin && data.id_responsable !== undefined) {
       throw new Error('Solo el administrador puede cambiar el responsable del evento');
+    }
+
+    // Validar si se intenta publicar el evento
+    if (data.est_evt && data.est_evt.toUpperCase() === 'PUBLICADO') {
+      const validacion = await this.validarEventoCompleto(idEvento);
+      
+      if (!validacion.valido) {
+        throw new Error(
+          `No se puede publicar el evento. Faltan los siguientes requisitos:\n${validacion.errores.join('\n')}`
+        );
+      }
     }
 
     // Actualizar evento
@@ -213,6 +295,7 @@ export class EventosService {
       };
       carreras?: string[];
       semestres?: string[];
+      docentes?: string[];
     }, 
     userId: number
   ) {
@@ -222,12 +305,14 @@ export class EventosService {
     // Verificar si hay detalles o carreras/semestres para procesar
     const tieneDetalles = data.detalles && (data.detalles.cup_det || data.detalles.hor_det || data.detalles.tip_evt || data.detalles.cat_det);
     const tieneCarrerasSemestres = (data.carreras && data.carreras.length > 0 && data.semestres && data.semestres.length > 0);
+    const tieneDocentes = data.docentes && data.docentes.length > 0;
 
     console.log('📋 Procesando actualización completa:');
     console.log('  - Tiene detalles:', tieneDetalles);
     console.log('  - Tiene carreras/semestres:', tieneCarrerasSemestres);
+    console.log('  - Tiene docentes:', tieneDocentes, data.docentes);
 
-    if (tieneDetalles || tieneCarrerasSemestres) {
+    if (tieneDetalles || tieneCarrerasSemestres || tieneDocentes) {
       // Verificar si ya existe un detalle para este evento
       const detalleExistente = await prisma.detalle_eventos.findFirst({
         where: { id_evt_per: idEvento }
@@ -312,10 +397,62 @@ export class EventosService {
         }
       }
 
-      // Crear registros de evento si se proporcionaron carreras y semestres
-      if (tieneCarrerasSemestres) {
-        console.log('  🎯 Llamando a crearRegistrosEvento...');
+      // Crear registros de evento solo si es para ESTUDIANTES y se proporcionaron carreras/semestres
+      const esParaEstudiantes = evento.tip_pub_evt === 'ESTUDIANTES';
+      
+      if (esParaEstudiantes && tieneCarrerasSemestres) {
+        console.log('  🎯 Evento para ESTUDIANTES - Llamando a crearRegistrosEvento...');
         await this.crearRegistrosEvento(id_det_final, data.carreras, data.semestres);
+      } else if (esParaEstudiantes && !tieneCarrerasSemestres) {
+        console.log('  ⚠️ ADVERTENCIA: Evento para ESTUDIANTES sin carreras/semestres configurados');
+      } else {
+        console.log('  ℹ️ Evento para PÚBLICO GENERAL - no requiere registros de nivel');
+      }
+
+      // Procesar docentes/instructores si se proporcionaron
+      if (tieneDocentes) {
+        console.log('  👨‍🏫 Procesando docentes:', data.docentes);
+        
+        // Buscar usuarios por nombre completo
+        const instructorDtos = [];
+        for (const nombreCompleto of data.docentes) {
+          // El nombre viene como "Nombre Apellido", buscar usuario que coincida
+          const palabras = nombreCompleto.trim().split(' ');
+          
+          // Intentar buscar por nombre y apellido
+          const usuario = await prisma.usuarios.findFirst({
+            where: {
+              OR: [
+                // Buscar por coincidencia exacta de nombre completo concatenado
+                {
+                  AND: [
+                    { nom_usu: { contains: palabras[0], mode: 'insensitive' } },
+                    palabras.length > 1 ? { ape_usu: { contains: palabras.slice(1).join(' '), mode: 'insensitive' } } : {}
+                  ]
+                },
+                // Buscar solo por nombre si no hay apellido
+                palabras.length === 1 ? { nom_usu: { equals: palabras[0], mode: 'insensitive' } } : {}
+              ]
+            },
+            select: { id_usu: true, nom_usu: true, ape_usu: true }
+          });
+
+          if (usuario) {
+            console.log(`    ✅ Encontrado: ${usuario.nom_usu} ${usuario.ape_usu} (ID: ${usuario.id_usu})`);
+            instructorDtos.push({
+              id_usu: usuario.id_usu,
+              rol_instructor: 'INSTRUCTOR'
+            });
+          } else {
+            console.log(`    ⚠️ No encontrado: ${nombreCompleto}`);
+          }
+        }
+
+        // Si se encontraron instructores, reemplazar los existentes
+        if (instructorDtos.length > 0) {
+          console.log(`  🔄 Reemplazando ${instructorDtos.length} instructores...`);
+          await this.instructoresService.reemplazarInstructores(id_det_final, instructorDtos);
+        }
       }
     }
 
@@ -388,17 +525,83 @@ export class EventosService {
    * Obtener eventos asignados a un responsable
    */
   async obtenerEventosPorResponsable(userId: number) {
-    return await prisma.eventos.findMany({
+    const eventos = await prisma.eventos.findMany({
       where: {
         id_res_evt: userId
       },
       include: {
-        //detalle_eventos: true,
+        detalle_eventos: {
+          include: {
+            registro_evento: {
+              include: {
+                nivel: {
+                  include: {
+                    carreras: true
+                  }
+                }
+              }
+            },
+            detalle_instructores: {
+              include: {
+                usuarios: {
+                  select: {
+                    id_usu: true,
+                    nom_usu: true,
+                    ape_usu: true
+                  }
+                }
+              }
+            }
+          }
+        },
         tarifas_evento: true
       },
       orderBy: {
         fec_evt: 'desc'
       }
+    });
+
+    // Transformar para incluir carreras, semestres y docentes
+    return eventos.map(evento => {
+      const detalle = evento.detalle_eventos?.[0]; // Tomamos el primer detalle
+      
+      const carrerasUnicas = new Set<string>();
+      const semestresUnicos = new Set<string>();
+      
+      if (detalle?.registro_evento) {
+        detalle.registro_evento.forEach((reg: any) => {
+          if (reg.nivel?.carreras?.nom_car) {
+            carrerasUnicas.add(reg.nivel.carreras.nom_car);
+          }
+          if (reg.nivel?.nom_niv) {
+            // Agregar la palabra "semestre" al final si no la tiene
+            const semestre = reg.nivel.nom_niv.toLowerCase().includes('semestre') 
+              ? reg.nivel.nom_niv 
+              : `${reg.nivel.nom_niv} semestre`;
+            semestresUnicos.add(semestre);
+          }
+        });
+      }
+
+      // Extraer nombres de docentes/instructores
+      const docentes = detalle?.detalle_instructores?.map((instructor: any) => 
+        `${instructor.usuarios.nom_usu} ${instructor.usuarios.ape_usu}`.trim()
+      ) || [];
+
+      return {
+        ...evento,
+        carreras: Array.from(carrerasUnicas),
+        semestres: Array.from(semestresUnicos),
+        docentes: docentes,
+        // Agregar datos del detalle al evento
+        cupos: detalle?.cup_det,
+        capacidad: detalle?.cup_det,
+        horas: detalle?.hor_det,
+        area: detalle?.are_det,
+        categoria: detalle?.cat_det,
+        tipoEvento: detalle?.tip_evt,
+        detalle_eventos: evento.detalle_eventos
+      };
     });
   }
 

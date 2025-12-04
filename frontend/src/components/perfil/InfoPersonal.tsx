@@ -50,6 +50,11 @@ export default function InfoPersonal({ setMostrarModal }: InfoPersonalProps) {
   useEffect(() => {
     if (user) {
       const userData = user as any;
+      // Obtener el nivel del estudiante activo
+      const nivelActual = userData.estudiantes && userData.estudiantes.length > 0 
+        ? userData.estudiantes[0].id_niv 
+        : '';
+      
       setFormData({
         nom_usu: user.nom_usu || '',
         nom_seg_usu: userData.nom_seg_usu || '',
@@ -57,7 +62,7 @@ export default function InfoPersonal({ setMostrarModal }: InfoPersonalProps) {
         ape_seg_usu: userData.ape_seg_usu || '',
         ced_usu: userData.ced_usu || '',
         tel_usu: userData.tel_usu || '',
-        niv_usu: userData.niv_usu || '',
+        niv_usu: nivelActual,
         cor_usu: user.cor_usu || ''
       });
     }
@@ -123,13 +128,16 @@ export default function InfoPersonal({ setMostrarModal }: InfoPersonalProps) {
     setLoading(true);
 
     try {
+      // Remove niv_usu and cor_usu from formData as they shouldn't be updated this way
+      const { niv_usu, cor_usu, ...dataToUpdate } = formData;
+      
       const response = await fetch(`http://localhost:3001/api/user/${user?.id_usu}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(dataToUpdate)
       });
 
       const result = await response.json();
@@ -243,22 +251,24 @@ export default function InfoPersonal({ setMostrarModal }: InfoPersonalProps) {
           maxLength={10}
         />
 
-        {/* Nivel (Carrera + Semestre) */}
-        <select
-          name="niv_usu"
-          value={formData.niv_usu}
-          onChange={handleChange}
-          className="p-3 border border-gray-300 rounded-xl
-                     focus:ring-2 focus:ring-[#7A1C1C] focus:border-transparent
-                     transition-all duration-200 text-gray-700 bg-white"
-        >
-          <option value="">Seleccionar nivel académico</option>
-          {niveles.map((nivel) => (
-            <option key={nivel.id_niv} value={nivel.id_niv}>
-              {nivel.carrera.nom_car} - {nivel.nom_niv}
-            </option>
-          ))}
-        </select>
+        {/* Nivel (Carrera + Semestre) - Solo para estudiantes */}
+        {userData.stu_usu === 1 && (
+          <select
+            name="niv_usu"
+            value={formData.niv_usu}
+            onChange={handleChange}
+            className="p-3 border border-gray-300 rounded-xl
+                       focus:ring-2 focus:ring-[#7A1C1C] focus:border-transparent
+                       transition-all duration-200 text-gray-700 bg-white"
+          >
+            <option value="">Seleccionar nivel académico</option>
+            {niveles.map((nivel) => (
+              <option key={nivel.id_niv} value={nivel.id_niv}>
+                {nivel.carrera.nom_car} - {nivel.nom_niv}
+              </option>
+            ))}
+          </select>
+        )}
 
         {/* Correo */}
         <input

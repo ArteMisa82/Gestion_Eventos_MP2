@@ -39,9 +39,27 @@ export default function CourseDetailPage() {
     async function cargarEvento() {
       try {
         setLoading(true);
+        
+        // Intentar obtener el evento específico por ID primero
+        try {
+          const response = await eventosAPI.getById(id);
+          const eventoData = response.data || response;
+          
+          if (eventoData && eventoData.id_evt) {
+            setEvento(eventoData);
+            setError(false);
+            setLoading(false);
+            return;
+          }
+        } catch (err) {
+          console.log('Error obteniendo evento por ID, intentando con lista completa:', err);
+        }
+        
+        // Fallback: buscar en la lista de eventos publicados
         const response = await eventosAPI.getPublicados();
         const data = response.data || response;
-
+        
+        // Verificar que sea un array antes de buscar
         if (!Array.isArray(data)) {
           console.error("Los datos de eventos no son un array:", data);
           setError(true);
