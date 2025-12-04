@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { AuthProvider } from "../hooks/useAuth";
+import { CategoriasProvider } from "../contexts/CategoriasContext";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -16,9 +17,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="es">
       <body>
         <AuthProvider>
-          {!hideLayout && <Navbar />}
-          {children}
-          {!hideLayout && <Footer />}
+          <CategoriasProvider>
+            {!hideLayout && <Navbar />}
+            {children}
+            {!hideLayout && <Footer />}
+          </CategoriasProvider>
         </AuthProvider>
       </body>
     </html>
