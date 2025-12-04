@@ -16,11 +16,9 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const menuItems = [
     { name: "Dashboard", icon: <LayoutDashboard size={18} />, href: "/admin" },
     { name: "Eventos", icon: <Calendar size={18} />, href: "/admin/events" },
-
-    // ✅ Ruta corregida sin espacios
     { name: "Eventos Completos", icon: <CalendarCheck size={18} />, href: "/admin/eventos-completos" },
 
-    { name: "Validaciones", icon: <FileCheck size={18} />, href: "/admin/validaciones" },
+    //{ name: "Validaciones", icon: <FileCheck size={18} />, href: "/admin/validaciones" },
     { name: "Contenido", icon: <Settings size={18} />, href: "/admin/contenido" },
     { name: "Categorías", icon: <Folder size={18} />, href: "/admin/categoria" },
   ];

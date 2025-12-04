@@ -7,6 +7,7 @@ import ModalEditarEvento from "./ModalEditar";
 import ModalAsistenciaNotas from "./ModalAsistenciaNota";
 import Swal from "sweetalert2";
 import { eventosAPI } from "@/services/api";
+import ValidacionesResponsable from "./validaciones";
 
 interface Evento {
   id: string;
