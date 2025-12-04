@@ -7,7 +7,7 @@ import ModalAsistenciaNotas from "./ModalAsistenciaNota";
 import Swal from "sweetalert2";
 import { eventosAPI } from "@/services/api";
 import ValidacionesResponsable from "./validaciones";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Evento {
   id: string;
