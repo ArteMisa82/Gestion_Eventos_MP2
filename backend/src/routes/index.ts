@@ -16,12 +16,19 @@ import calificacionesRoutes from './calificaciones.routes';
 import comiteRoutes from './comite.routes'; // 👈 NUEVO
 import certificadosRoutes from './certificados.routes';
 
+// 👉 IMPORTAR LAS RUTAS NUEVAS AQUÍ
+import favoriteEventsRoutes from './favoriteEvents.routes';
+
 const router = Router();
 
 // 🔑 Rutas principales
 router.use('/auth', authRoutes);
 router.use('/user', userRoutes);
 router.use('/eventos', eventosRoutes);
+
+// 👉 AGREGAR ESTA RUTA **ANTES O DESPUÉS**, PERO DEBE ESTAR
+router.use('/eventos', favoriteEventsRoutes);
+
 router.use('/detalles', detallesRoutes);
 router.use('/registro-evento', registroEventoRoutes);
 router.use('/registro-personas', registroPersonasRoutes);
