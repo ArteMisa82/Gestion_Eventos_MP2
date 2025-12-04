@@ -79,7 +79,7 @@ model eventos {
   fav_evt         Int               @default(0) @db.SmallInt
   detalle_eventos detalle_eventos[]
   usuarios        usuarios?         @relation(fields: [id_res_evt], references: [id_usu], map: "fk_eventos_responsable")
-  requerimientos  requerimientos[]
+  requerimientos  requerimientos[]https://10fastfingers.com/typing-test/spanish
   tarifas_evento  tarifas_evento[]
 
   @@index([fec_evt], map: "idx_eventos_fecha")
