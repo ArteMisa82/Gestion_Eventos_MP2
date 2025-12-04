@@ -1,9 +1,18 @@
 "use client";
-import React, { useState, useEffect } from "react";
+
 import { useRouter } from "next/navigation";
 import { Pencil, Search } from "lucide-react";
 import EditEventModal from "./EditarEventoModal";
 import { useAuth } from "@/hooks/useAuth";
+import React, { useMemo } from "react";
+import {
+  Users,
+  Calendar,
+  Star,
+  Activity,
+  PieChart,
+  TrendingUp,
+} from "lucide-react";
 
 interface Evento {
   id_evt: string;
@@ -14,16 +23,7 @@ interface Evento {
   tip_pub_evt: string;
   est_evt_det: string; 
   img_evt: string;
-
-import React, { useMemo } from "react";
-import {
-  Users,
-  Calendar,
-  Star,
-  Activity,
-  PieChart,
-  TrendingUp,
-} from "lucide-react";
+}
 
 type EstadoEvento = "NUEVO" | "EN_PROCESO" | "FINALIZADO";
 type TipoEvento = "CURSO" | "TALLER" | "SEMINARIO" | "WEBINAR";

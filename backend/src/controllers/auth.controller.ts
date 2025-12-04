@@ -44,7 +44,8 @@ export class AuthController {
       const token = generateToken({
         id_usu: result.user!.id_usu,
         cor_usu: result.user!.cor_usu,
-        adm_usu: result.user!.adm_usu
+        adm_usu: result.user!.adm_usu,
+        Administrador: result.user!.Administrador
       });
 
       console.log(`Sesión creada para: ${result.user!.cor_usu} (Rol: ${userRole})`);
@@ -93,7 +94,8 @@ export class AuthController {
       const token = generateToken({
         id_usu: result.user!.id_usu,
         cor_usu: result.user!.cor_usu,
-        adm_usu: result.user!.adm_usu
+        adm_usu: result.user!.adm_usu,
+        Administrador: result.user!.Administrador
       });
 
       console.log(`Sesión creada para: ${result.user!.cor_usu} (Rol: ${userRole})`);

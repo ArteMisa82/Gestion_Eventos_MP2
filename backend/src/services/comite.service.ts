@@ -1,5 +1,5 @@
 // src/services/comite.service.ts
-import { PrismaClient } from '../generated/prisma';
+import { PrismaClient } from '@prisma/client';
 import { GitHubService } from './github.service';
 
 const prisma = new PrismaClient();
