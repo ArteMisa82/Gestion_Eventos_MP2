@@ -103,6 +103,7 @@ model nivel {
   estudiantes     estudiantes[]
   carreras        carreras          @relation(fields: [id_car], references: [id_car], onDelete: Cascade)
   registro_evento registro_evento[]
+  usuarios        usuarios[]
 }
 
 model pagos {
@@ -193,6 +194,7 @@ model usuarios {
   stu_usu              Int?                   @db.SmallInt
   adm_usu              Int?                   @default(0) @db.SmallInt
   Administrador        Boolean                @default(false)
+  existe               Boolean?               @default(true)   // 👈 NUEVO CAMPO
   detalle_instructores detalle_instructores[]
   estudiantes          estudiantes[]
   eventos              eventos[]

@@ -13,6 +13,7 @@ import nivelesRoutes from './niveles.routes';
 import pagosRoutes from './pagos.routes';
 import materialesRoutes from './materiales.routes';
 import calificacionesRoutes from './calificaciones.routes';
+import comiteRoutes from './comite.routes'; // 👈 NUEVO
 import certificadosRoutes from './certificados.routes';
 
 // 👉 IMPORTAR LAS RUTAS NUEVAS AQUÍ
@@ -39,5 +40,8 @@ router.use('/pagos', pagosRoutes);
 router.use('/materiales', materialesRoutes);
 router.use('/calificaciones', calificacionesRoutes);
 router.use('/certificados', certificadosRoutes);
+
+// 👇 ESTA LÍNEA FALTABA
+router.use('/comite', comiteRoutes);
 
 export default router;
