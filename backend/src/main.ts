@@ -8,6 +8,8 @@ import prisma from './config/database';
 import { errorHandler } from './middlewares/errorHandler.middleware';
 import { swaggerUi, swaggerSpec } from './config/swagger';
 
+// 👉 IMPORTA LA RUTA DEL DASHBOARD
+import dashboardRoutes from './routes/dashboard.routes';
 
 dotenv.config();
 
@@ -38,6 +40,11 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
   customCss: '.swagger-ui .topbar { display: none }',
   customSiteTitle: "API Gestión de Eventos - UTA"
 }));
+
+// =========================================
+//        🆕 RUTA DEL DASHBOARD ADMIN
+// =========================================
+app.use('/api/admin/dashboard', dashboardRoutes);
 
 // ✔ Aquí se conectan TODAS tus rutas del proyecto (API REST)
 app.use('/api', routes);
