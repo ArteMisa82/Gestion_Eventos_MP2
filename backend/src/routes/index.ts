@@ -13,16 +13,23 @@ import nivelesRoutes from './niveles.routes';
 import pagosRoutes from './pagos.routes';
 import materialesRoutes from './materiales.routes';
 import calificacionesRoutes from './calificaciones.routes';
-
+import comiteRoutes from './comite.routes'; // 👈 NUEVO
 import certificadosRoutes from './certificados.routes';
 import tarifasEventoRoutes from './tarifas-evento.routes';
+
+// 👉 IMPORTAR LAS RUTAS NUEVAS AQUÍ
+import favoriteEventsRoutes from './favoriteEvents.routes';
 
 const router = Router();
 
 // 🔑 Rutas principales
 router.use('/auth', authRoutes);
-router.use('/user', userRoutes); // ← ruta correcta en singular
+router.use('/user', userRoutes);
 router.use('/eventos', eventosRoutes);
+
+// 👉 AGREGAR ESTA RUTA **ANTES O DESPUÉS**, PERO DEBE ESTAR
+router.use('/eventos', favoriteEventsRoutes);
+
 router.use('/detalles', detallesRoutes);
 router.use('/registro-evento', registroEventoRoutes);
 router.use('/registro-personas', registroPersonasRoutes);
@@ -33,9 +40,10 @@ router.use('/niveles', nivelesRoutes);
 router.use('/pagos', pagosRoutes);
 router.use('/materiales', materialesRoutes);
 router.use('/calificaciones', calificacionesRoutes);
-
 router.use('/certificados', certificadosRoutes);
 
 router.use('/tarifas-evento', tarifasEventoRoutes);
+// 👇 ESTA LÍNEA FALTABA
+router.use('/comite', comiteRoutes);
 
 export default router;

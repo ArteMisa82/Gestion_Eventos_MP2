@@ -1,16 +1,26 @@
+// backend/src/routes/pagos.routes.ts
 import { Router } from 'express';
 import { PagosController } from '../controllers/pagos.controller';
 import multer from 'multer';
-import { authMiddleware, adminMiddleware } from '../middlewares/auth.middleware'; 
+import { authMiddleware, adminMiddleware } from '../middlewares/auth.middleware';
 
 const router = Router();
 const pagosController = new PagosController();
 
+// Configuración de subida de archivos
 const upload = multer({ dest: 'uploads/comprobantes/' });
+
 
 /**
  * @swagger
- * /api/pagos/tarifas/{idEvento}:
+ * tags:
+ *   name: Pagos
+ *   description: Operaciones relacionadas con pagos, órdenes y comprobantes
+ */
+
+/**
+ * @swagger
+ * /pagos/tarifas/{idEvento}:
  *   get:
  *     summary: Obtener tarifas disponibles para un evento
  *     tags: [Pagos]
@@ -24,15 +34,15 @@ const upload = multer({ dest: 'uploads/comprobantes/' });
  *       200:
  *         description: Tarifas encontradas
  *       404:
- *         description: Evento sin tarifas asignadas
+ *         description: Evento sin tarifas
  */
 router.get('/tarifas/:idEvento', pagosController.getTarifas);
 
 /**
  * @swagger
- * /api/pagos/registrar:
+ * /pagos/registrar:
  *   post:
- *     summary: Registrar pago manual
+ *     summary: Registrar un pago manual
  *     tags: [Pagos]
  *     requestBody:
  *       required: true
@@ -49,7 +59,6 @@ router.get('/tarifas/:idEvento', pagosController.getTarifas);
  *                 type: integer
  *               valorPago:
  *                 type: number
- *                 format: float
  *               metodoPago:
  *                 type: string
  *     responses:
@@ -60,10 +69,9 @@ router.get('/tarifas/:idEvento', pagosController.getTarifas);
  */
 router.post('/registrar', pagosController.registrarPago);
 
-// PDF Orden de Pago
 /**
  * @swagger
- * /api/pagos/orden_pago/{numRegPer}:
+ * /pagos/orden_pago/{numRegPer}:
  *   get:
  *     summary: Generar orden de pago en PDF
  *     tags: [Pagos]
@@ -76,13 +84,8 @@ router.post('/registrar', pagosController.registrarPago);
  *     responses:
  *       200:
  *         description: PDF generado correctamente
- *         content:
- *           application/pdf:
- *             schema:
- *               type: string
- *               format: binary
  *       400:
- *         description: Identificador inválido
+ *         description: Identificador inválido o requisitos faltantes
  *       404:
  *         description: Registro o evento no encontrado
  */
@@ -90,7 +93,7 @@ router.get('/orden_pago/:numRegPer', pagosController.getPaymentOrder);
 
 /**
  * @swagger
- * /api/pagos/subir-comprobante/{numRegPer}:
+ * /pagos/subir-comprobante/{numRegPer}:
  *   post:
  *     summary: Subir comprobante de pago
  *     tags: [Pagos]
@@ -114,24 +117,20 @@ router.get('/orden_pago/:numRegPer', pagosController.getPaymentOrder);
  *                 format: binary
  *     responses:
  *       200:
- *         description: Comprobante cargado y pendiente de validación
+ *         description: Comprobante subido
  *       400:
- *         description: Archivo faltante o inválido
- *       401:
- *         description: No autenticado
- *       404:
- *         description: Registro de inscripción no encontrado
+ *         description: Archivo faltante
  */
 router.post(
     '/subir-comprobante/:numRegPer',
-    authMiddleware,                // <--- Nombre correcto del middleware
-    upload.single('comprobante'),  // Campo del archivo
+    authMiddleware,                 // Requiere login
+    upload.single('comprobante'),   // Subida del archivo
     pagosController.subirComprobante
 );
 
 /**
  * @swagger
- * /api/pagos/validar/{numRegPer}:
+ * /pagos/validar/{numRegPer}:
  *   put:
  *     summary: Validar comprobante de pago
  *     tags: [Pagos]
@@ -157,17 +156,13 @@ router.post(
  *                 enum: [APROBAR, RECHAZAR]
  *     responses:
  *       200:
- *         description: Resultado de la validación
+ *         description: Validación realizada
  *       400:
  *         description: Estado inválido
- *       401:
- *         description: No autenticado
- *       404:
- *         description: Pago o registro no encontrado
  */
 router.put(
     '/validar/:numRegPer',
-    adminMiddleware,               // <--- Nombre correcto
+    adminMiddleware,                // Solo el responsable/admin puede validar
     pagosController.validarComprobante
 );
 

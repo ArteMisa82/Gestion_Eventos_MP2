@@ -1,13 +1,8 @@
 // backend/src/controllers/pagos.controller.ts
-
 import { Request, Response } from 'express';
-import { PagosService } from '../services/pagos.service'; 
-// 🛑 IMPORTAMOS EL GENERADOR DE PDF para el método getPaymentOrder
-import { generateOrderPdf } from '../utils/pdfGenerator'; 
+import { PagosService } from '../services/pagos.service';
 
 const pagosService = new PagosService();
-
-// 🛑 ELIMINAMOS LA INTERFAZ MulterRequest para evitar el error de tipado (usaremos (req as any).file)
 
 export class PagosController {
 
@@ -43,120 +38,97 @@ export class PagosController {
     // MÉTODO: GENERAR ORDEN DE PAGO (PDF)
     // --------------------------------------------------------
     
-    async getPaymentOrder(req: Request, res: Response) {
-        try {
-            const { numRegPer } = req.params;
-            const numRegPerId = parseInt(numRegPer, 10);
+async getPaymentOrder(req: Request, res: Response) {
+    try {
+        const { numRegPer } = req.params;
+        const numRegPerId = parseInt(numRegPer, 10);
 
-            if (isNaN(numRegPerId)) {
-                return res.status(400).json({ message: 'ID de registro inválido.' });
-            }
+        if (isNaN(numRegPerId)) {
+            return res.status(400).json({ message: 'ID de registro inválido.' });
+        }
 
-            // 🛑 1. Obtener la data de la orden COMPLETA desde el servicio (incluyendo datos del estudiante)
-            const orderData = await pagosService.getOrderData(numRegPerId);
+        // 1. Obtener la data de la orden completa desde el servicio
+        const orderData = await pagosService.getOrderData(numRegPerId);
 
-            // 🛑 2. Manejo de errores y eventos gratuitos
-            if (!orderData) {
-                return res.status(404).json({ 
-                    message: "Error al generar la orden de pago.", 
-                    error: "Registro de persona o evento asociado no encontrado."
-                });
-            }
+        // 2. Manejo de errores y eventos gratuitos
+        if (!orderData) {
+            return res.status(404).json({ 
+                message: "Error al generar la orden de pago.", 
+                error: "Registro de persona o evento asociado no encontrado."
+            });
+        }
 
-            if (orderData.val_evt === 0) {
-                return res.status(200).json({ 
-                    message: `El evento "${orderData.nom_evt}" es GRATUITO. No se requiere orden de pago.` 
-                });
-            }
+        // ------------------------------
+        // NUEVO: Verificar que se cumplan los requisitos
+        // ------------------------------
+        if (!orderData.requisitos_completos) {
+            return res.status(400).json({
+                success: false,
+                message: 'No se puede generar la orden de pago: requisitos incompletos.'
+            });
+        }
 
-            // 🛑 3. Generar el PDF
-            const pdfBuffer = await generateOrderPdf(orderData);
-            
-            // 4. Enviar el PDF para descarga
-            res.setHeader('Content-Type', 'application/pdf');
-            res.setHeader('Content-Disposition', `attachment; filename=Orden_Pago_${numRegPerId}.pdf`);
-            res.send(pdfBuffer);
+        if (orderData.val_evt === 0) {
+            return res.status(200).json({ 
+                message: `El evento "${orderData.nom_evt}" es GRATUITO. No se requiere orden de pago.` 
+            });
+        }
 
-        } catch (error) {
-            console.error('Error al generar la orden de pago:', error);
-            const errorMessage = (error as Error).message;
-            const statusCode = errorMessage.includes('no encontrado') || errorMessage.includes('Tarifa no definida') ? 404 : 500;
-            return res.status(statusCode).json({ 
-                message: 'Error al generar la orden de pago.',
-                error: errorMessage 
-            });
-        }
-    }
+        // 3. Generar el PDF
+        const pdfBuffer = await generateOrderPdf(orderData);
 
-    // --------------------------------------------------------
-    // MÉTODO: SUBIR COMPROBANTE (USUARIO) - CORREGIDO
-    // --------------------------------------------------------
-    async subirComprobante(req: Request, res: Response) {
-        // 🛑 Usamos (req as any).file para evitar errores de tipado sin MulterRequest
-        const file = (req as any).file; 
-        const { numRegPer } = req.params;
+        // 4. Enviar el PDF para descarga
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename=Orden_Pago_${numRegPerId}.pdf`);
+        res.send(pdfBuffer);
 
-        if (!file) {
-            return res.status(400).json({ message: 'Debe adjuntar un archivo de comprobante (PDF o imagen).' });
-        }
+    } catch (error) {
+        console.error('Error al generar la orden de pago:', error);
+        const errorMessage = (error as Error).message;
+        const statusCode = errorMessage.includes('no encontrado') || errorMessage.includes('Tarifa no definida') ? 404 : 500;
+        return res.status(statusCode).json({ 
+            message: 'Error al generar la orden de pago.',
+            error: errorMessage 
+        });
+    }
+}
 
-        try {
-            // La ruta donde Multer guardó el archivo
-            const rutaArchivo = file.path; 
-            
-            await pagosService.registrarComprobante(
-                parseInt(numRegPer), 
-                rutaArchivo
-            );
+async validarComprobante(req: Request, res: Response) {
+    const { numRegPer } = req.params;
+    const { estado, userId } = req.body; // Se espera userId del auth o frontend
 
-            // Se establece el estado en 0 (Pendiente de Revisión)
-            return res.status(200).json({ 
-                message: 'Comprobante subido correctamente, pendiente de validación administrativa.' 
-            });
-        } catch (error) {
-            const errorMessage = (error as Error).message;
-            const statusCode = errorMessage.includes('404') || errorMessage.includes('no encontrado') ? 404 : 500;
-            return res.status(statusCode).json({ 
-                message: 'Error al procesar el comprobante.', 
-                error: errorMessage 
-            });
-        }
-    }
+    try {
+        if (estado !== 'APROBAR' && estado !== 'RECHAZAR') {
+            return res.status(400).json({ message: 'El campo "estado" debe ser APROBAR o RECHAZAR.' });
+        }
 
-    // --------------------------------------------------------
-    // MÉTODO: VALIDAR COMPROBANTE (ENCARGADO/ADMIN) - SIN CAMBIOS
-    // --------------------------------------------------------
+        // ------------------------------
+        // NUEVO: Verificar que el usuario sea responsable o admin
+        // ------------------------------
+        const pagoData = await pagosService.getPagoData(parseInt(numRegPer));
+        if (!pagoData) {
+            return res.status(404).json({ message: 'Pago o inscripción no encontrado.' });
+        }
 
-    /**
-     * PUT /pagos/validar/:numRegPer
-     * Permite al Encargado/Admin aprobar o rechazar el pago.
-     */
-    async validarComprobante(req: Request, res: Response) {
-        const { numRegPer } = req.params;
-        const { estado } = req.body; // Esperamos "APROBAR" o "RECHAZAR"
+        if (!pagoData.esResponsable(userId)) {
+            return res.status(403).json({ message: 'No tiene permisos para validar este pago.' });
+        }
 
-        try {
-            if (estado !== 'APROBAR' && estado !== 'RECHAZAR') {
-                return res.status(400).json({ message: 'El campo "estado" debe ser APROBAR o RECHAZAR.' });
-            }
+        // Validar comprobante
+        const pagoActualizado = await pagosService.validarComprobante(parseInt(numRegPer), estado === 'APROBAR');
 
-            const pagoActualizado = await pagosService.validarComprobante(
-                parseInt(numRegPer), 
-                estado === 'APROBAR'
-            );
+        return res.status(200).json({ 
+            message: `Pago ${estado.toLowerCase()} con éxito.`,
+            estado_actual: pagoActualizado.pag_o_no === 1 ? 'APROBADO' : 'RECHAZADO'
+        });
 
-            // pag_o_no = 1 para APROBADO, 0 para RECHAZADO
-            return res.status(200).json({ 
-                message: `Pago ${estado.toLowerCase()} con éxito.`,
-                estado_actual: pagoActualizado.pag_o_no === 1 ? 'APROBADO' : 'RECHAZADO'
-            });
-        } catch (error) {
-            const errorMessage = (error as Error).message;
-            const statusCode = errorMessage.includes('404') || errorMessage.includes('no encontrado') ? 404 : 500;
-            return res.status(statusCode).json({ 
-                message: 'Error al validar el comprobante.', 
-                error: errorMessage 
-            });
-        }
-    }
+    } catch (error) {
+        const errorMessage = (error as Error).message;
+        const statusCode = errorMessage.includes('404') || errorMessage.includes('no encontrado') ? 404 : 500;
+        return res.status(statusCode).json({ 
+            message: 'Error al validar el comprobante.', 
+            error: errorMessage 
+        });
+    }
+}
 }
