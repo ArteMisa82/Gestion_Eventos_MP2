@@ -568,17 +568,25 @@ export class EventosService {
       const carrerasUnicas = new Set<string>();
       const semestresUnicos = new Set<string>();
       
-      if (detalle?.registro_evento) {
+      // Extraer carreras y semestres desde registro_evento
+      if (detalle?.registro_evento && Array.isArray(detalle.registro_evento)) {
         detalle.registro_evento.forEach((reg: any) => {
+          // Agregar nombre de la carrera
           if (reg.nivel?.carreras?.nom_car) {
             carrerasUnicas.add(reg.nivel.carreras.nom_car);
           }
+          
+          // Agregar nombre del nivel (semestre)
           if (reg.nivel?.nom_niv) {
-            // Agregar la palabra "semestre" al final si no la tiene
-            const semestre = reg.nivel.nom_niv.toLowerCase().includes('semestre') 
-              ? reg.nivel.nom_niv 
-              : `${reg.nivel.nom_niv} semestre`;
-            semestresUnicos.add(semestre);
+            // Normalizar formato del semestre
+            let nombreSemestre = reg.nivel.nom_niv.trim();
+            
+            // Si no tiene la palabra "semestre", agregarla
+            if (!nombreSemestre.toLowerCase().includes('semestre')) {
+              nombreSemestre = `${nombreSemestre} semestre`;
+            }
+            
+            semestresUnicos.add(nombreSemestre);
           }
         });
       }
@@ -590,8 +598,8 @@ export class EventosService {
 
       return {
         ...evento,
-        carreras: Array.from(carrerasUnicas),
-        semestres: Array.from(semestresUnicos),
+        carreras: Array.from(carrerasUnicas).sort(),
+        semestres: Array.from(semestresUnicos).sort(),
         docentes: docentes,
         // Agregar datos del detalle al evento
         cupos: detalle?.cup_det,
@@ -600,6 +608,7 @@ export class EventosService {
         area: detalle?.are_det,
         categoria: detalle?.cat_det,
         tipoEvento: detalle?.tip_evt,
+        tip_evt: detalle?.tip_evt,
         detalle_eventos: evento.detalle_eventos
       };
     });

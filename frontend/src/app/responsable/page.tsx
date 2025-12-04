@@ -446,8 +446,12 @@ export default function DashboardResponsable() {
 
   const handleCarrerasChange = async (id: string, nuevasCarreras: string[]) => {
     try {
+      const evento = eventos.find(ev => ev.id === id);
+      if (!evento) return;
+
       await eventosAPI.update(id, {
-        carreras: nuevasCarreras
+        carreras: nuevasCarreras,
+        semestres: evento.semestres // Enviar también los semestres actuales
       });
 
       setEventos((prev) =>
@@ -477,7 +481,11 @@ export default function DashboardResponsable() {
 
   const handleSemestresChange = async (id: string, nuevosSemestres: string[]) => {
     try {
+      const evento = eventos.find(ev => ev.id === id);
+      if (!evento) return;
+
       await eventosAPI.update(id, {
+        carreras: evento.carreras, // Enviar también las carreras actuales
         semestres: nuevosSemestres
       });
 
