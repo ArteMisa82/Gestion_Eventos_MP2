@@ -5,9 +5,50 @@ import { generateOrderPdf, OrderData } from '../utils/pdfGenerator';
 
 export class PagosService {
 
-    // --------------------------------------------------------
-    // MÉTODOS EXISTENTES
-    // --------------------------------------------------------
+    // ----------------------------------------
+    // VALIDACIÓN DE REQUISITOS
+    // ----------------------------------------
+    private async verificarRequisitos(numRegPer: number) {
+        const registro = await prisma.registro_personas.findUnique({
+            where: { num_reg_per: numRegPer },
+            select: {
+                estado_registro: true,           // debe existir en tu BD
+                responsable_valida: true,       // NUEVO CAMPO
+                registro_evento: {
+                    select: {
+                        detalle_eventos: {
+                            select: {
+                                requisitos_completos: true // NUEVO CAMPO
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        if (!registro) {
+            throw new Error("No existe el registro.");
+        }
+
+        // 1. Validar requisitos del evento
+        if (!registro.registro_evento.detalle_eventos.requisitos_completos) {
+            throw new Error("No puede generar la orden. Faltan requisitos del evento.");
+        }
+
+        // 2. Validar que el registro esté completo
+        if (registro.estado_registro !== 'COMPLETO') {
+            throw new Error("El registro aún no está completo.");
+        }
+
+        // 3. Validación del responsable
+        if (!registro.responsable_valida) {
+            throw new Error("La orden de pago solo se habilita cuando el responsable apruebe.");
+        }
+    }
+
+    // ----------------------------------------
+    // TARIFAS
+    // ----------------------------------------
 
     async getTarifasByEvento(idEvento: string) {
         const tarifas = await prisma.tarifas_evento.findMany({
@@ -31,6 +72,10 @@ export class PagosService {
         }));
     }
 
+    // ----------------------------------------
+    // REGISTRAR PAGO
+    // ----------------------------------------
+
     async registerPago(idRegistroPersona: number, valorPago: number, metodoPago: string) {
 
         const registro = await prisma.registro_personas.findUnique({
@@ -51,9 +96,9 @@ export class PagosService {
         });
     }
 
-    // --------------------------------------------------------
-    // MÉTODO AUXILIAR: OBTENER DATOS PARA LA ORDEN DE PAGO
-    // --------------------------------------------------------
+    // ----------------------------------------
+    // DATOS ORDEN DE PAGO
+    // ----------------------------------------
 
     async getOrderData(numRegPer: number): Promise<OrderData & { requisitos_completos: boolean }> {
 
@@ -86,14 +131,14 @@ export class PagosService {
             }
         });
 
-        if (!registrationData || !registrationData.registro_evento || !registrationData.usuarios) {
+        if (!registrationData?.registro_evento?.detalle_eventos?.eventos) {
             throw new Error('No se encontraron datos del registro, evento o usuario.');
         }
 
         const event = registrationData.registro_evento.detalle_eventos.eventos;
         const user = registrationData.usuarios;
 
-        // EVENTO GRATUITO
+        // Evento gratuito
         if (event.cos_evt && event.cos_evt.toUpperCase() === 'GRATUITO') {
             return {
                 num_orden: numRegPer,
@@ -134,15 +179,16 @@ export class PagosService {
                 'Pago en ventanilla Banco Pichincha.',
             requisitos_completos: registrationData.requisitos ?? false
         };
-
-        return orderData;
     }
 
-    // --------------------------------------------------------
+    // ----------------------------------------
     // GENERAR ORDEN DE PAGO
-    // --------------------------------------------------------
+    // ----------------------------------------
 
     async generatePaymentOrder(numRegPer: number): Promise<Buffer | string> {
+
+        // 🚨 VALIDAR TODO ANTES!
+        await this.verificarRequisitos(numRegPer);
 
         const orderData = await this.getOrderData(numRegPer);
 
@@ -157,9 +203,9 @@ export class PagosService {
         return generateOrderPdf(orderData);
     }
 
-    // --------------------------------------------------------
-    // REGISTRAR COMPROBANTE
-    // --------------------------------------------------------
+    // ----------------------------------------
+    // SUBIR COMPROBANTE
+    // ----------------------------------------
 
     async registrarComprobante(numRegPer: number, rutaComprobante: string) {
 
@@ -180,9 +226,9 @@ export class PagosService {
         });
     }
 
-    // --------------------------------------------------------
-    // VALIDAR COMPROBANTE
-    // --------------------------------------------------------
+    // ----------------------------------------
+    // VALIDAR PAGO POR RESPONSABLE
+    // ----------------------------------------
 
     async validarComprobante(numRegPer: number, aprobado: boolean) {
 

@@ -1,12 +1,8 @@
 // backend/src/controllers/pagos.controller.ts
 import { Request, Response } from 'express';
-import { PagosService } from '../services/pagos.service'; 
-// 🛑 IMPORTAMOS EL GENERADOR DE PDF para el método getPaymentOrder
-import { generateOrderPdf } from '../utils/pdfGenerator'; 
+import { PagosService } from '../services/pagos.service';
 
 const pagosService = new PagosService();
-
-// 🛑 ELIMINAMOS LA INTERFAZ MulterRequest para evitar el error de tipado (usaremos (req as any).file)
 
 export class PagosController {
 
