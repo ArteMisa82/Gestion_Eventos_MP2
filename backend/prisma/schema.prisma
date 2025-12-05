@@ -22,7 +22,7 @@ model autoridades {
 
 model carreras {
   id_car  String  @id @db.VarChar(10)
-  nom_car String  @db.VarChar(25)
+  nom_car String  @db.VarChar(50)
   nivel   nivel[]
 }
 
@@ -96,7 +96,7 @@ model informes {
 model nivel {
   id_niv          String            @id @db.VarChar(10)
   nom_niv         String            @db.VarChar(10)
-  org_cur_niv     String            @db.VarChar(10)
+  org_cur_niv     String            @db.VarChar(15)
   id_car          String            @db.VarChar(10)
   estudiantes     estudiantes[]
   carreras        carreras          @relation(fields: [id_car], references: [id_car], onDelete: Cascade)

@@ -555,7 +555,13 @@ export default function DashboardResponsable() {
     }
   };
 
-  const carrerasDisponibles = ["Software", "TI", "Telecomunicaciones", "Robótica"];
+  // Nombres completos de carreras tal como están en la base de datos
+  const carrerasDisponibles = [
+    "Ingeniería en Software", 
+    "Ingeniería en Tecnologías de la Información", 
+    "Ingeniería en Telecomunicaciones", 
+    "Ingeniería en Robótica"
+  ];
   const semestresDisponibles = [
     "1er semestre", "2do semestre", "3er semestre", "4to semestre", 
     "5to semestre", "6to semestre", "7mo semestre", "8vo semestre", 
@@ -702,13 +708,17 @@ export default function DashboardResponsable() {
                   </div>
                   <div className="flex flex-wrap gap-1">
                     {carrerasDisponibles.map((carrera) => {
+                      // Comparación exacta con los nombres completos de la BD
                       const estaSeleccionada = ev.carreras && Array.isArray(ev.carreras) && 
-                        ev.carreras.some(c => c && c.toLowerCase().includes(carrera.toLowerCase()));
+                        ev.carreras.some(c => c && c.trim() === carrera.trim());
                       
                       console.log(`🔍 Carrera "${carrera}" en evento "${ev.nombre}":`, {
                         carrerasEvento: ev.carreras,
                         estaSeleccionada: estaSeleccionada
                       });
+                      
+                      // Mostrar solo las primeras palabras para el botón (más compacto)
+                      const carreraCorta = carrera.replace("Ingeniería en ", "");
                       
                       return (
                         <button
@@ -719,8 +729,9 @@ export default function DashboardResponsable() {
                               ? "bg-[#581517] text-white border-[#581517]"
                               : "border-gray-300 text-gray-700 hover:border-[#581517] hover:text-[#581517] bg-white"
                           }`}
+                          title={carrera}
                         >
-                          {carrera}
+                          {carreraCorta}
                         </button>
                       );
                     })}
@@ -786,6 +797,53 @@ export default function DashboardResponsable() {
                     </p>
                   )}
                 </div>
+
+                {/* Botón de guardar carreras/semestres */}
+                {(ev.carreras.length > 0 && ev.semestres.length > 0) && (
+                  <div className="mt-3 text-center">
+                    <button
+                      onClick={async () => {
+                        try {
+                          console.log('💾 Guardando configuración:', { id: ev.id, carreras: ev.carreras, semestres: ev.semestres });
+                          const response = await eventosAPI.update(ev.id, {
+                            carreras: ev.carreras,
+                            semestres: ev.semestres
+                          });
+                          console.log('✅ Respuesta del backend:', response);
+                          
+                          await Swal.fire({
+                            icon: 'success',
+                            title: '¡Guardado!',
+                            text: 'Carreras y semestres actualizados correctamente',
+                            confirmButtonColor: '#581517',
+                            showConfirmButton: false,
+                            timer: 1500
+                          });
+                          
+                          // Recargar eventos para reflejar cambios
+                          const responseEventos = await eventosAPI.getMisEventos();
+                          const data = responseEventos.data || responseEventos;
+                          const eventosArray = Array.isArray(data) ? data : data.eventos || [];
+                          setEventos(eventosArray.map(transformarEvento));
+                        } catch (error: any) {
+                          console.error('❌ Error guardando configuración:', error);
+                          await Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: error.response?.data?.message || 'No se pudo guardar la configuración',
+                            confirmButtonColor: '#581517'
+                          });
+                        }
+                      }}
+                      className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-sm font-medium flex items-center gap-2 mx-auto"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                      Guardar Configuración
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 

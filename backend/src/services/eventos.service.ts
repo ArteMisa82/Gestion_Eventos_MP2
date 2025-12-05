@@ -781,11 +781,22 @@ export class EventosService {
     console.log(`Carreras recibidas:`, carreras);
     console.log(`Semestres recibidos:`, semestres);
 
-    // Normalizar semestres: eliminar la palabra "semestre" si existe
-    // "1er semestre" -> "1er", "2do semestre" -> "2do", etc.
-    const semestresNormalizados = semestres.map(s => 
-      s.replace(/\s+semestre$/i, '').trim()
-    );
+    // Mapeo de semestres del frontend a nom_niv de la BD
+    const mapeoSemestres: Record<string, string> = {
+      '1er semestre': 'PRIMERO',
+      '2do semestre': 'SEGUNDO',
+      '3er semestre': 'TERCERO',
+      '4to semestre': 'CUARTO',
+      '5to semestre': 'QUINTO',
+      '6to semestre': 'SEXTO',
+      '7mo semestre': 'SEPTIMO',  // Sin acento
+      '8vo semestre': 'OCTAVO',
+      '9no semestre': 'NOVENO',
+      '10mo semestre': 'DECIMO'  // Sin acento
+    };
+
+    // Convertir semestres del frontend a formato BD
+    const semestresNormalizados = semestres.map(s => mapeoSemestres[s] || s.toUpperCase());
     
     console.log(`Semestres normalizados:`, semestresNormalizados);
 
