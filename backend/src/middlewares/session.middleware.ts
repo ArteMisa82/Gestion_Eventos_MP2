@@ -10,12 +10,20 @@ export const requireAuth = (req: Request, res: Response, next: NextFunction) => 
       const token = authHeader.split(' ')[1];
       const payload = verifyToken(token);
       
+      console.log(`[JWT Payload] Administrador: ${payload.Administrador}, adm_usu: ${payload.adm_usu}`);
+      
       (req as any).userId = payload.id_usu;
       (req as any).userEmail = payload.cor_usu;
-      (req as any).isAdmin = payload.adm_usu === 1;
-      (req as any).userRole = payload.adm_usu === 1 ? 'administrativo' : 'user';
+      (req as any).isAdmin = payload.Administrador === true;
       
-      console.log(`Autenticado via JWT: ${payload.cor_usu}`);
+      // Determinar rol basado en el payload
+      let userRole = 'user';
+      if (payload.Administrador === true) userRole = 'Administrador';
+      else if (payload.adm_usu === 1) userRole = 'administrativo';
+      
+      (req as any).userRole = userRole;
+      
+      console.log(`Autenticado via JWT: ${payload.cor_usu} (Rol: ${userRole})`);
       return next();
     } catch (error) {
       console.log('JWT token inválido, intentando con sesión...');
@@ -27,7 +35,7 @@ export const requireAuth = (req: Request, res: Response, next: NextFunction) => 
     (req as any).userId = req.session.userId;
     (req as any).userEmail = req.session.userEmail;
     (req as any).userRole = req.session.userRole;
-    (req as any).isAdmin = req.session.userRole === 'admin' || req.session.userRole === 'Administrador';
+    (req as any).isAdmin = req.session.userRole === 'Administrador';
     
     console.log(`Autenticado via sesión: ${req.session.userEmail}`);
     return next();
