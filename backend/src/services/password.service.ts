@@ -1,4 +1,4 @@
-import { PrismaClient } from '../generated/prisma';
+import { PrismaClient } from '@prisma/client';
 import { TokenUtil } from '../utils/token.util';
 import { EmailService } from './email.service';
 import { hashPassword } from '../utils/bcrypt.util';

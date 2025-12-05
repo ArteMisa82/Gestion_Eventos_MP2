@@ -6,11 +6,17 @@ export interface JwtPayload {
   id_usu: number;
   cor_usu: string;
   adm_usu: number | null;
+  Administrador?: boolean;
 }
 
 export const generateToken = (payload: JwtPayload): string => {
   return jwt.sign(
-    { id_usu: payload.id_usu, cor_usu: payload.cor_usu, adm_usu: payload.adm_usu },
+    { 
+      id_usu: payload.id_usu, 
+      cor_usu: payload.cor_usu, 
+      adm_usu: payload.adm_usu,
+      Administrador: payload.Administrador
+    },
     JWT_SECRET,
     { expiresIn: '7d' }
   );
