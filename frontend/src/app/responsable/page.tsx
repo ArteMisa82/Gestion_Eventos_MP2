@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Calendar, Edit, Loader2, ArrowLeft, Users, ClipboardList, Lock, GraduationCap } from "lucide-react";
+import { Calendar, Edit, Loader2, ArrowLeft, Users, ClipboardList, Lock,GraduationCap  } from "lucide-react";
 import ModalEditarEvento from "./ModalEditar";
 import ModalAsistenciaNotas from "./ModalAsistenciaNota";
 import Swal from "sweetalert2";
@@ -307,10 +307,10 @@ export default function DashboardResponsable() {
     }
   };
 
-  /**const cargarInscritos = async (eventoId: string): Promise<Inscrito[]> => {
+  const cargarInscritos = async (eventoId: string): Promise<Inscrito[]> => {
     setIsLoadingInscritos(true);
     try {
-      //const response = await eventosAPI.getInscritosConEvaluacion(eventoId);
+      const response = await eventosAPI.getInscritosConEvaluacion(eventoId);
       const datosInscritos = response.data || [];
       
       setInscritos(datosInscritos);
@@ -327,8 +327,7 @@ export default function DashboardResponsable() {
     } finally {
       setIsLoadingInscritos(false);
     }
-  };**/
-
+  };
   const handleAbrirAsistencia = async (evento: Evento) => {
     if (!puedeEditarEvaluacion(evento)) {
       Swal.fire({
@@ -350,7 +349,7 @@ export default function DashboardResponsable() {
       return;
     }
 
-    //const inscritos = await cargarInscritos(evento.id);
+    const inscritos = await cargarInscritos(evento.id);
     if (inscritos.length === 0) {
       Swal.fire({
         icon: "info",
@@ -373,12 +372,12 @@ export default function DashboardResponsable() {
         fechaModificacion: new Date().toISOString()
       }));
 
-      //await eventosAPI.guardarAsistencia(eventoAsistencia!.id, datosConResponsable);
+      await eventosAPI.guardarAsistencia(eventoAsistencia!.id, datosConResponsable);
       
       const evaluacionCompleta = verificarEvaluacionCompleta(datosConResponsable, eventoAsistencia!);
       
       if (evaluacionCompleta) {
-        //await eventosAPI.marcarEvaluacionCompleta(eventoAsistencia!.id);
+        await eventosAPI.marcarEvaluacionCompleta(eventoAsistencia!.id);
         
         setEventos(prev => prev.map(ev => 
           ev.id === eventoAsistencia!.id 

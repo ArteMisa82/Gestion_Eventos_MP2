@@ -2,6 +2,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation"; // ⬅️ Import agregado
+import { ArrowLeft } from "lucide-react"; // ⬅️ Ícono agregado
+
 import SelectorTipoUsuario from "./components/SelectorTipoUsuario";
 import DatosGenerales from "./components/DatosGenerales";
 import FormUsuarioFinal from "./components/FormUsuarioFinal";
@@ -9,7 +12,8 @@ import FormDesarrollador from "./components/FormDesarrollador";
 import StepFooter from "./components/stepFooter";
 
 export default function SolicitudCambioPage() {
-  const [step, setStep] = useState(1); // 1 select user, 2 datos generales, 3 form role
+  const router = useRouter(); // ⬅️ Hook para redirigir
+  const [step, setStep] = useState(1);
   const [tipoUsuario, setTipoUsuario] = useState<"usuarioFinal" | "desarrollador" | "">("");
   const [payloadBase, setPayloadBase] = useState({
     numeroSolicitud: "",
@@ -21,7 +25,6 @@ export default function SolicitudCambioPage() {
   });
 
   useEffect(() => {
-    // generar numero y fecha al montar
     const ahora = new Date();
     const año = ahora.getFullYear();
     const mes = String(ahora.getMonth() + 1).padStart(2, "0");
@@ -33,13 +36,24 @@ export default function SolicitudCambioPage() {
     setPayloadBase(b => ({ ...b, numeroSolicitud, fechaSolicitud: fecha }));
   }, []);
 
-  const goNext = () => setStep(s => s + 1);
   const goPrev = () => setStep(s => Math.max(1, s - 1));
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4">
-      <div className="max-w-3xl mx-auto bg-white rounded-2xl shadow-lg p-8">
-        <h1 className="text-2xl font-semibold text-gray-800 text-center mb-6">Solicitud de Cambio — Gestión</h1>
+    <div className="min-h-screen bg-gray-50 py-4 px-4">
+      <div className="relative max-w-5xl min-h-[85vh] mx-auto bg-white rounded-2xl shadow-xl p-10 mt-2">
+
+        {/* ⬇️ FLECHA PARA VOLVER AL HOME */}
+        <button
+          onClick={() => router.push("/home")}
+          className="absolute left-4 top-4 text-gray-700 hover:text-gray-900 transition"
+        >
+          <ArrowLeft size={26} />
+        </button>
+        {/* ⬆️ FIN DE LA FLECHA */}
+
+        <h1 className="text-2xl font-semibold text-gray-800 text-center mb-6 mt-6">
+          Solicitud de Cambio — Gestión
+        </h1>
 
         {step === 1 && (
           <SelectorTipoUsuario
@@ -59,28 +73,23 @@ export default function SolicitudCambioPage() {
         )}
 
         {step === 3 && tipoUsuario === "usuarioFinal" && (
-          <FormUsuarioFinal
-            base={payloadBase}
-          />
+          <FormUsuarioFinal base={payloadBase} />
         )}
 
         {step === 3 && tipoUsuario === "desarrollador" && (
-          <FormDesarrollador
-            base={payloadBase}
-          />
+          <FormDesarrollador base={payloadBase} />
         )}
 
         <StepFooter
           step={step}
+          onPrev={goPrev}
           onNext={() => {
             if (step === 1) setStep(2);
             else if (step === 2) setStep(3);
           }}
-          onPrev={goPrev}
           showPrev={step > 1}
           showNext={step < 3}
         />
-       
       </div>
     </div>
   );
