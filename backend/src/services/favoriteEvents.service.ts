@@ -1,4 +1,4 @@
-import prisma from "../config/database"; 
+﻿import prisma from "../config/database"; 
 
 export interface Evento {
   id_evt: string;
@@ -20,14 +20,13 @@ export interface Evento {
  * Marca o desmarca un evento como favorito.
  * Reglas:
  *  - Solo se pueden marcar como favoritos eventos PUBLICADOS.
- *  - No se puede marcar favorito si el evento ya terminó.
+ *  - No se puede marcar favorito si el evento ya terminó (fec_fin_evt < fecha actual).
  *  - Máximo puede haber 6 eventos con fav_evt = 1.
  */
 export const setFavoritoEvento = async (
   id_evt: string,
   makeFavorite: boolean
 ) => {
-  // 1. Buscar el evento
   const evento = await prisma.eventos.findUnique({
     where: {
       id_evt: id_evt,
@@ -44,23 +43,26 @@ export const setFavoritoEvento = async (
     throw new Error("El evento no existe.");
   }
 
-  // 2. Validaciones solo si lo quiero marcar como favorito
   if (makeFavorite) {
-    // 2.1 Debe estar PUBLICADO
+    // 1. Validar que esté PUBLICADO
     if (evento.est_evt !== "PUBLICADO") {
       throw new Error(
         "Solo se pueden marcar como favoritos eventos PUBLICADOS."
       );
     }
 
-    // 2.2 No debe haber terminado
-    if (evento.fec_fin_evt && evento.fec_fin_evt < new Date()) {
-      throw new Error(
-        "No se puede marcar como favorito un evento que ya terminó."
-      );
+    // 2. Validar que no haya terminado (por fecha de finalización)
+    if (evento.fec_fin_evt) {
+      const fechaFin = new Date(evento.fec_fin_evt);
+      const ahora = new Date();
+      if (fechaFin < ahora) {
+        throw new Error(
+          "No se puede marcar como favorito un evento que ya ha finalizado."
+        );
+      }
     }
 
-    // 2.3 Máximo 6 favoritos
+    // 3. Validar máximo 6 favoritos
     const countFavs = await prisma.eventos.count({
       where: {
         fav_evt: 1,
@@ -74,7 +76,6 @@ export const setFavoritoEvento = async (
     }
   }
 
-  // 3. Actualizar fav_evt
   const updateResult = await prisma.eventos.update({
     where: {
       id_evt: id_evt,

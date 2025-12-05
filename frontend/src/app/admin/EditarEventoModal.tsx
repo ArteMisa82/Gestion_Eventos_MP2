@@ -48,41 +48,43 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
+  e.preventDefault();
+  setError(null);
+  setLoading(true);
 
-    try {
-      const originalImage = evento.ima_evt || evento.img_evt || "";
-      const imageChanged = imagePreview !== originalImage && imagePreview.startsWith("data:");
-      
-      const dataToSend: any = {
-        nom_evt: formData.nom_evt,
-        fec_evt: formData.fec_evt,
-        lug_evt: formData.lug_evt,
-        mod_evt: formData.mod_evt,
-        tip_pub_evt: formData.tip_pub_evt,
-      };
+  try {
+    const originalImage = evento.ima_evt || evento.img_evt || "";
+    const imageChanged = imagePreview !== originalImage && imagePreview.startsWith("data:");
+    
+    const dataToSend: any = {
+      nom_evt: formData.nom_evt,
+      fec_evt: formData.fec_evt,
+      lug_evt: formData.lug_evt,
+      mod_evt: formData.mod_evt,
+      tip_pub_evt: formData.tip_pub_evt,
+      // incluir estado si está presente
+      est_evt: formData.est_evt ? formData.est_evt.toUpperCase() : undefined,
+    };
 
-      if (imageChanged) {
-        dataToSend.ima_evt = imagePreview;
-      }
-
-      const response: any = await eventosAPI.update(formData.id_evt, dataToSend);
-
-      if (response?.success || response?.data) {
-        onSave(response.data || formData);
-        onClose();
-        // Recarga la página completamente para obtener datos actualizados
-        window.location.reload();
-      }
-    } catch (err: any) {
-      console.error("Error guardando evento:", err);
-      setError(err.message || "Error al guardar los cambios");
-    } finally {
-      setLoading(false);
+    if (imageChanged) {
+      dataToSend.ima_evt = imagePreview;
     }
-  };
+
+    const response: any = await eventosAPI.update(formData.id_evt, dataToSend);
+
+    if (response?.success || response?.data) {
+      onSave(response.data || formData);
+      onClose();
+      // recarga para asegurarnos de ver los cambios
+      window.location.reload();
+    }
+  } catch (err: any) {
+    console.error("Error guardando evento:", err);
+    setError(err.message || "Error al guardar los cambios");
+  } finally {
+    setLoading(false);
+  }
+};
 
   const formFields = [
     {
