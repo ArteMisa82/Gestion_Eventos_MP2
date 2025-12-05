@@ -119,6 +119,11 @@ export default function LoginModal({
 
       if (onLoginSuccess) onLoginSuccess(usuario);
 
+      setEmail("");
+      setPassword("");
+      setShowPassword(false);
+      setShowRegister(false);
+
       onClose();
       router.push(ruta);
 

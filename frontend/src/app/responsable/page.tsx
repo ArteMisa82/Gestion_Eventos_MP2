@@ -1,11 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-<<<<<<< HEAD
 import { Calendar, Edit, Loader2, ArrowLeft, Users, ClipboardList, Lock,GraduationCap  } from "lucide-react";
-=======
-import { Calendar, Edit, Loader2, ArrowLeft, Users, ClipboardList, Lock, GraduationCap } from "lucide-react";
->>>>>>> 87f527cc13750e562b1891484cdd34aaa10aa41d
 import ModalEditarEvento from "./ModalEditar";
 import ModalAsistenciaNotas from "./ModalAsistenciaNota";
 import Swal from "sweetalert2";

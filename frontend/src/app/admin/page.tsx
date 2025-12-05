@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { Pencil, Search } from "lucide-react";
 import EditEventModal from "./EditarEventoModal";
 import { useAuth } from "@/hooks/useAuth";
+import { dashboardAPI } from "@/services/api";
+
 import {
   Users,
   Calendar,
