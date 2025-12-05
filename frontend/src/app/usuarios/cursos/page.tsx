@@ -10,6 +10,8 @@ interface Curso {
   id_reg_per: string;
   num_reg_per: string;
   id_reg_evt: string;
+  estado_registro?: string;
+  responsable_valida?: boolean;
   registro_evento: {
     id_det: string;
     detalle_eventos: {
@@ -25,9 +27,16 @@ interface Curso {
         ima_evt: string | null;
         mod_evt: string;
         lug_evt: string;
+        cos_evt: string;
       };
     };
   };
+  pagos?: Array<{
+    num_pag: number;
+    pag_o_no: number;
+    met_pag: string;
+    val_pag: number;
+  }>;
 }
 
 export default function MisCursosYEventos() {
@@ -122,6 +131,130 @@ export default function MisCursosYEventos() {
     });
   };
 
+  // Función para obtener badge de estado
+  const getEstadoBadge = (estado?: string) => {
+    switch (estado) {
+      case 'PAGO_PENDIENTE':
+        return {
+          text: '⏳ Pago Pendiente',
+          className: 'bg-yellow-100 text-yellow-800 border border-yellow-300'
+        };
+      case 'VALIDACION_PENDIENTE':
+        return {
+          text: '🔍 En Validación',
+          className: 'bg-blue-100 text-blue-800 border border-blue-300'
+        };
+      case 'COMPLETADO':
+        return {
+          text: '✅ Inscrito',
+          className: 'bg-green-100 text-green-800 border border-green-300'
+        };
+      case 'RECHAZADO':
+        return {
+          text: '❌ Pago Rechazado',
+          className: 'bg-red-100 text-red-800 border border-red-300'
+        };
+      default:
+        return {
+          text: '⏳ Pendiente',
+          className: 'bg-gray-100 text-gray-800 border border-gray-300'
+        };
+    }
+  };
+
+  // Función para manejar subida de comprobante
+  const handleSubirComprobante = async (numRegPer: string) => {
+    const { value: formValues } = await Swal.fire({
+      title: 'Subir Comprobante de Pago',
+      html: `
+        <div style="text-align: left; margin-bottom: 15px;">
+          <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #374151;">
+            Método de Pago
+          </label>
+          <select id="metodoPago" class="swal2-input" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;">
+            <option value="EFECTIVO">Efectivo</option>
+            <option value="TARJETA">Tarjeta</option>
+          </select>
+          
+          <label style="display: block; margin-top: 15px; margin-bottom: 8px; font-weight: 600; color: #374151;">
+            Comprobante (PDF, JPG, PNG)
+          </label>
+          <input type="file" id="comprobanteFile" class="swal2-input" accept=".pdf,.jpg,.jpeg,.png" style="width: 100%; padding: 8px;">
+        </div>
+      `,
+      focusConfirm: false,
+      showCancelButton: true,
+      confirmButtonText: '📤 Subir Comprobante',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#7f1d1d',
+      preConfirm: () => {
+        const metodoPago = (document.getElementById('metodoPago') as HTMLSelectElement)?.value;
+        const fileInput = document.getElementById('comprobanteFile') as HTMLInputElement;
+        const file = fileInput?.files?.[0];
+        
+        if (!file) {
+          Swal.showValidationMessage('Debes seleccionar un archivo');
+          return null;
+        }
+        
+        return { metodoPago, file };
+      }
+    });
+
+    if (formValues && formValues.file) {
+      Swal.fire({
+        title: 'Subiendo comprobante...',
+        text: 'Por favor espera',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+
+      try {
+        const formData = new FormData();
+        formData.append('comprobante', formValues.file);
+        formData.append('metodoPago', formValues.metodoPago);
+
+        const response = await fetch(
+          `http://localhost:3001/api/pagos/subir-comprobante/${numRegPer}`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            },
+            body: formData
+          }
+        );
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Error al subir comprobante');
+        }
+
+        await Swal.fire({
+          icon: 'success',
+          title: '¡Comprobante Subido!',
+          html: `
+            <p>Tu comprobante ha sido recibido correctamente.</p>
+            <p>El administrador validará tu pago en las próximas 24 horas.</p>
+          `,
+          confirmButtonColor: '#7f1d1d',
+        });
+
+        // Recargar datos
+        window.location.reload();
+      } catch (error: any) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: error.message || 'No se pudo subir el comprobante',
+          confirmButtonColor: '#7f1d1d',
+        });
+      }
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -197,15 +330,16 @@ export default function MisCursosYEventos() {
                 {cursos.map((curso) => {
                   const detalle = curso.registro_evento.detalle_eventos;
                   const evento = detalle.eventos;
+                  const estadoBadge = getEstadoBadge(curso.estado_registro);
+                  const esPago = evento.cos_evt === 'DE PAGO' || evento.cos_evt === 'PAGO';
                   
                   return (
                     <div
                       key={curso.num_reg_per}
-                      className="bg-white rounded-xl shadow hover:shadow-xl transition-all duration-200 border border-gray-200 overflow-hidden cursor-pointer"
-                      onClick={() => irAlCurso(evento.id_evt)}
+                      className="bg-white rounded-xl shadow hover:shadow-xl transition-all duration-200 border border-gray-200 overflow-hidden"
                     >
                       {/* Cover */}
-                      <div className="relative h-40 w-full">
+                      <div className="relative h-40 w-full cursor-pointer" onClick={() => irAlCurso(evento.id_evt)}>
                         <Image
                           src={evento.ima_evt || "/Default_Image.png"}
                           alt={evento.nom_evt}
@@ -215,11 +349,16 @@ export default function MisCursosYEventos() {
                         <div className="absolute top-2 left-2 bg-[#7f1d1d] text-white text-xs px-3 py-1 rounded-full font-bold">
                           {detalle.are_det}
                         </div>
+                        {esPago && (
+                          <div className="absolute top-2 right-2 bg-amber-500 text-white text-xs px-3 py-1 rounded-full font-bold">
+                            💰 PAGO
+                          </div>
+                        )}
                       </div>
 
                       {/* Body */}
                       <div className="p-4">
-                        <h2 className="font-bold text-lg text-gray-900 line-clamp-2">
+                        <h2 className="font-bold text-lg text-gray-900 line-clamp-2 cursor-pointer hover:text-[#7f1d1d]" onClick={() => irAlCurso(evento.id_evt)}>
                           {evento.nom_evt}
                         </h2>
 
@@ -235,12 +374,66 @@ export default function MisCursosYEventos() {
                           Modalidad: {evento.mod_evt}
                         </p>
 
-                        {/* Botón */}
-                        <button
-                          className="mt-4 w-full bg-[#7f1d1d] text-white py-2 rounded-lg font-semibold hover:bg-[#991b1b] transition"
-                        >
-                          Ver Detalles →
-                        </button>
+                        {/* Badge de Estado */}
+                        <div className="mt-3">
+                          <span className={`text-xs px-3 py-1 rounded-full font-semibold ${estadoBadge.className}`}>
+                            {estadoBadge.text}
+                          </span>
+                        </div>
+
+                        {/* Botones según estado */}
+                        <div className="mt-4">
+                          {curso.estado_registro === 'PAGO_PENDIENTE' && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSubirComprobante(curso.num_reg_per);
+                              }}
+                              className="w-full bg-amber-600 text-white py-2 rounded-lg font-semibold hover:bg-amber-700 transition"
+                            >
+                              📤 Subir Comprobante
+                            </button>
+                          )}
+                          
+                          {curso.estado_registro === 'VALIDACION_PENDIENTE' && (
+                            <button
+                              disabled
+                              className="w-full bg-blue-100 text-blue-700 py-2 rounded-lg font-semibold cursor-not-allowed"
+                            >
+                              ⏳ Esperando Validación
+                            </button>
+                          )}
+                          
+                          {curso.estado_registro === 'COMPLETADO' && (
+                            <button
+                              onClick={() => irAlCurso(evento.id_evt)}
+                              className="w-full bg-[#7f1d1d] text-white py-2 rounded-lg font-semibold hover:bg-[#991b1b] transition"
+                            >
+                              📚 Ver Curso →
+                            </button>
+                          )}
+                          
+                          {curso.estado_registro === 'RECHAZADO' && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSubirComprobante(curso.num_reg_per);
+                              }}
+                              className="w-full bg-red-600 text-white py-2 rounded-lg font-semibold hover:bg-red-700 transition"
+                            >
+                              🔄 Reintentar Pago
+                            </button>
+                          )}
+
+                          {!curso.estado_registro && (
+                            <button
+                              onClick={() => irAlCurso(evento.id_evt)}
+                              className="w-full bg-[#7f1d1d] text-white py-2 rounded-lg font-semibold hover:bg-[#991b1b] transition"
+                            >
+                              Ver Detalles →
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   );
@@ -284,6 +477,12 @@ export default function MisCursosYEventos() {
                   const detalle = evento.registro_evento.detalle_eventos;
                   const evt = detalle.eventos;
                   
+                  // Get badge styling based on estado_registro
+                  const estadoBadge = getEstadoBadge(evento.estado_registro);
+
+                  // Check if event is paid
+                  const esPago = evt.cos_evt === 'DE PAGO' || evt.cos_evt === 'PAGO';
+                  
                   return (
                     <div
                       key={evento.num_reg_per}
@@ -304,6 +503,12 @@ export default function MisCursosYEventos() {
                         <div className="absolute top-2 right-2 bg-purple-100 text-purple-800 border-purple-200 text-xs px-2 py-1 rounded-full border font-semibold">
                           {evt.mod_evt}
                         </div>
+                        {/* Payment indicator badge */}
+                        {esPago && (
+                          <div className="absolute bottom-2 right-2 bg-green-600 text-white text-xs px-2 py-1 rounded-full font-bold">
+                            💰 PAGO
+                          </div>
+                        )}
                       </div>
 
                       {/* Body */}
@@ -328,12 +533,68 @@ export default function MisCursosYEventos() {
                           N° Registro: {evento.num_reg_per}
                         </p>
 
-                        {/* Botón */}
-                        <button
-                          className="mt-2 w-full bg-[#7f1d1d] text-white py-2 rounded-lg font-semibold hover:bg-[#991b1b] transition"
-                        >
-                          Ver Detalles →
-                        </button>
+                        {/* Estado Badge */}
+                        {estadoBadge && (
+                          <div className="mb-3">
+                            <span className={`inline-block text-xs font-semibold px-3 py-1 rounded-full border ${estadoBadge.className}`}>
+                              {estadoBadge.text}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Conditional Buttons based on estado_registro */}
+                        {evento.estado_registro === 'PAGO_PENDIENTE' && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSubirComprobante(evento.num_reg_per.toString());
+                            }}
+                            className="mt-2 w-full bg-amber-500 text-white py-2 rounded-lg font-semibold hover:bg-amber-600 transition"
+                          >
+                            📤 Subir Comprobante
+                          </button>
+                        )}
+                        
+                        {evento.estado_registro === 'VALIDACION_PENDIENTE' && (
+                          <button
+                            disabled
+                            className="mt-2 w-full bg-blue-300 text-white py-2 rounded-lg font-semibold cursor-not-allowed opacity-75"
+                          >
+                            ⏳ Esperando Validación
+                          </button>
+                        )}
+
+                        {evento.estado_registro === 'COMPLETADO' && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              irAlEvento(evt.id_evt);
+                            }}
+                            className="mt-2 w-full bg-[#7f1d1d] text-white py-2 rounded-lg font-semibold hover:bg-[#991b1b] transition"
+                          >
+                            📚 Ver Evento →
+                          </button>
+                        )}
+
+                        {evento.estado_registro === 'RECHAZADO' && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSubirComprobante(evento.num_reg_per.toString());
+                            }}
+                            className="mt-2 w-full bg-red-600 text-white py-2 rounded-lg font-semibold hover:bg-red-700 transition"
+                          >
+                            🔄 Reintentar Pago
+                          </button>
+                        )}
+
+                        {!evento.estado_registro && (
+                          <button
+                            className="mt-2 w-full bg-[#7f1d1d] text-white py-2 rounded-lg font-semibold hover:bg-[#991b1b] transition"
+                          >
+                            Ver Detalles →
+                          </button>
+                        )}
                       </div>
                     </div>
                   );

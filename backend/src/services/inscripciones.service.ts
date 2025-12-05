@@ -193,9 +193,12 @@ export class InscripcionesService {
       throw new Error('No hay cupos disponibles para este evento');
     }
 
-    // Verificar si ya está inscrito
+    // Verificar si ya está inscrito (solo inscripciones activas, no rechazadas)
     const yaInscrito = detalle.registro_evento.some(reg =>
-      reg.registro_personas?.some(rp => rp.id_usu === data.id_usu)
+      reg.registro_personas?.some(rp => 
+        rp.id_usu === data.id_usu && 
+        rp.estado_registro !== 'RECHAZADO' // Permitir reinscripción si fue rechazado
+      )
     );
 
     if (yaInscrito) {

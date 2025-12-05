@@ -419,6 +419,17 @@ export default function CourseDetailClient({ evento }: { evento: EventoDetalle }
                     </p>
                     <div style="margin-top: 15px;">
                       <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #374151;">
+                        Método de Pago
+                      </label>
+                      <select 
+                        id="metodoPago" 
+                        style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; margin-bottom: 15px;"
+                      >
+                        <option value="EFECTIVO">Efectivo</option>
+                        <option value="TARJETA">Tarjeta</option>
+                      </select>
+                      
+                      <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #374151;">
                         Subir Comprobante (Opcional)
                       </label>
                       <input 
@@ -467,6 +478,10 @@ export default function CourseDetailClient({ evento }: { evento: EventoDetalle }
                     return;
                   }
                   
+                  // Obtener método de pago seleccionado
+                  const selectMetodoPago = document.getElementById('metodoPago') as HTMLSelectElement;
+                  const metodoPago = selectMetodoPago?.value || 'EFECTIVO';
+                  
                   // Subir comprobante
                   Swal.fire({
                     title: 'Subiendo comprobante...',
@@ -480,6 +495,7 @@ export default function CourseDetailClient({ evento }: { evento: EventoDetalle }
                   try {
                     const formData = new FormData();
                     formData.append('comprobante', file);
+                    formData.append('metodoPago', metodoPago);
                     
                     const response = await fetch(
                       `http://localhost:3001/api/pagos/subir-comprobante/${numRegPer}`,
@@ -493,7 +509,8 @@ export default function CourseDetailClient({ evento }: { evento: EventoDetalle }
                     );
                     
                     if (!response.ok) {
-                      throw new Error('Error al subir comprobante');
+                      const errorData = await response.json();
+                      throw new Error(errorData.message || 'Error al subir comprobante');
                     }
                     
                     Swal.fire({
