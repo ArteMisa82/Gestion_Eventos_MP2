@@ -291,7 +291,8 @@ export default function CourseDetailClient({ evento }: { evento: EventoDetalle }
 
       console.log("🔹 LLEGANDO al PASO 3 - Confirmar inscripción");
       // PASO 3: Confirmar inscripción con el usuario
-      const nivelInfo = esParaEstudiantes && registroEvento ? `Nivel: ${registroEvento.nivel?.nom_niv}<br>` : '';
+      const nivelInfo = esParaEstudiantes && registroEvento && registroEvento.nivel ? `Nivel: ${registroEvento.nivel.nom_niv}<br>` : '';
+      const nivelTexto = registroEvento?.nivel?.nom_niv || (esParaEstudiantes ? "-" : "Público General");
       
       const confirmResult = await Swal.fire({
         icon: "question",
@@ -301,7 +302,7 @@ export default function CourseDetailClient({ evento }: { evento: EventoDetalle }
           <p>¿Confirmas tu inscripción a:</p>
           <p><strong>${evento.nom_evt}</strong></p>
           <p style="color: #6b7280; font-size: 14px;">
-            Nivel: ${registroEvento.nivel?.nom_niv || "-"}<br>
+            Nivel: ${nivelTexto}<br>
             Duración: ${detalle.hor_det} horas<br>
             Modalidad: ${evento.mod_evt}
           </p>

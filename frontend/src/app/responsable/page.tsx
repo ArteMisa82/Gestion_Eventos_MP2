@@ -34,6 +34,7 @@ interface Evento {
   id_evt?: string;
   nom_evt?: string;
   fec_evt?: string;
+  fec_fin_evt?: string;
   lug_evt?: string;
   mod_evt?: string;
   tip_pub_evt?: string;
@@ -41,6 +42,13 @@ interface Evento {
   des_evt?: string;
   est_evt?: string;
   docente?: string;
+  cupos?: number;
+  categoria?: string;
+  lugar?: string;
+  horario?: string;
+  precioEstudiantes?: number;
+  precioGeneral?: number;
+  docentes?: string[];
 }
 
 interface Inscrito {
@@ -128,6 +136,9 @@ export default function DashboardResponsable() {
       des_evt: evento.des_evt,
       est_evt: evento.est_evt,
       estado: evento.est_evt === "PUBLICADO" ? "Publicado" : evento.est_evt === "CERRADO" ? "Cerrado" : "Editando",
+      requiereAsistencia: determinarRequiereAsistencia(evento.tipoEvento || evento.categoria),
+      requiereNota: determinarRequiereNota(evento.tipoEvento || evento.categoria),
+      evaluacionCompletada: evento.eval_completada || false,
     };
   };
 
@@ -160,6 +171,7 @@ export default function DashboardResponsable() {
             fechaInicio: evento.fec_evt ? new Date(evento.fec_evt).toLocaleDateString() : "",
             fechaFin: evento.fec_fin_evt ? new Date(evento.fec_fin_evt).toLocaleDateString() : "",
             fec_evt: evento.fec_evt,
+            fec_fin_evt: evento.fec_fin_evt,
             modalidad: evento.mod_evt || "",
             mod_evt: evento.mod_evt,
             capacidad: evento.cap_evt || 0,

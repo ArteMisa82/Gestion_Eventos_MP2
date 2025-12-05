@@ -252,7 +252,7 @@ export default function InfoPersonal({ setMostrarModal }: InfoPersonalProps) {
         />
 
         {/* Nivel (Carrera + Semestre) - Solo para estudiantes */}
-        {userData.stu_usu === 1 && (
+        {user && (user as any).stu_usu === 1 && (
           <select
             name="niv_usu"
             value={formData.niv_usu}
