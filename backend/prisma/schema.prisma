@@ -1,0 +1,419 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model autoridades {
+  id_aut   String   @id @db.VarChar(10)
+  ced_per  String   @db.VarChar(10)
+  dir_aut  String   @db.VarChar(30)
+  car_aut  String   @db.VarChar(20)
+  uni_aut  String?  @db.VarChar(50)
+  img_aut  String?
+  ord_aut  Int?     @default(0)
+  act_aut  Boolean? @default(true)
+  personas personas @relation(fields: [ced_per], references: [ced_per], onDelete: Cascade)
+}
+
+model carreras {
+  id_car  String  @id @db.VarChar(10)
+  nom_car String  @db.VarChar(50)
+  nivel   nivel[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model detalle_eventos {
+  id_det               String                 @id @db.VarChar(10)
+  id_evt_per           String                 @db.VarChar(10)
+  cup_det              Int
+  not_min_evt          Decimal?               @db.Decimal(4, 2)
+  hor_det              Decimal                @db.Decimal(4, 2)
+  cer_evt_det          Int?                   @db.SmallInt
+  apr_evt_det          Int?                   @db.SmallInt
+  are_det              String                 @db.VarChar(40)
+  cat_det              String                 @db.VarChar(20)
+  tip_evt              String                 @db.VarChar(20)
+  est_evt_det          String?                @default("INSCRIPCIONES") @db.VarChar(20)
+  not_fin_evt          Decimal?               @db.Decimal(4, 2)
+  asi_evt_det          Int?                   @db.SmallInt
+  requisitos_completos Boolean?               @default(true)
+  eventos              eventos                @relation(fields: [id_evt_per], references: [id_evt], onDelete: Cascade)
+  detalle_instructores detalle_instructores[]
+  material_curso       material_curso[]
+  registro_evento      registro_evento[]
+  requisitos_evento    requisitos_evento[]
+
+  @@index([id_evt_per], map: "idx_detalle_eventos_evento")
+  @@index([tip_evt], map: "idx_detalle_eventos_tipo")
+  @@index([est_evt_det], map: "idx_detalle_eventos_estado")
+}
+
+model detalle_informe {
+  num_det_inf Int       @id @default(autoincrement())
+  num_inf     Int
+  reg_asi     DateTime? @db.Date
+  not_det     Decimal   @db.Decimal(5, 2)
+  pdf_cer     String?
+  informes    informes  @relation(fields: [num_inf], references: [num_inf], onDelete: Cascade)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model eventos {
+  id_evt          String            @id @db.VarChar(10)
+  nom_evt         String            @db.VarChar(25)
+  fec_evt         DateTime          @db.Date
+  lug_evt         String            @db.VarChar(25)
+  mod_evt         String            @db.VarChar(15)
+  tip_pub_evt     String            @db.VarChar(20)
+  cos_evt         String            @db.VarChar(15)
+  des_evt         String            @db.VarChar(255)
+  id_res_evt      Int?
+  est_evt         String?           @default("EDITANDO") @db.VarChar(20)
+  ima_evt         String?
+  fec_fin_evt     DateTime?         @db.Date
+  fav_evt         Int               @default(0) @db.SmallInt
+  detalle_eventos detalle_eventos[]
+  usuarios        usuarios?         @relation(fields: [id_res_evt], references: [id_usu], map: "fk_eventos_responsable")
+  requerimientos  requerimientos[]
+  tarifas_evento  tarifas_evento[]
+
+  @@index([fec_evt], map: "idx_eventos_fecha")
+  @@index([id_res_evt], map: "idx_eventos_responsable")
+  @@index([est_evt], map: "idx_eventos_estado")
+}
+
+model informes {
+  num_inf           Int               @id @default(autoincrement())
+  num_reg_per       Int
+  detalle_informe   detalle_informe[]
+  registro_personas registro_personas @relation(fields: [num_reg_per], references: [num_reg_per], onDelete: Cascade)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model nivel {
+  id_niv          String            @id @db.VarChar(10)
+  nom_niv         String            @db.VarChar(10)
+  org_cur_niv     String            @db.VarChar(15)
+  id_car          String            @db.VarChar(10)
+  estudiantes     estudiantes[]
+  carreras        carreras          @relation(fields: [id_car], references: [id_car], onDelete: Cascade)
+  registro_evento registro_evento[]
+}
+
+model pagos {
+  num_pag           Int               @id @default(autoincrement())
+  num_reg_per       Int
+  val_pag           Decimal           @db.Decimal(5, 2)
+  met_pag           String            @db.VarChar(15)
+  pdf_orden_pag     String?
+  pdf_comp_pag      String?
+  pag_o_no          Int?              @default(0) @db.SmallInt
+  registro_personas registro_personas @relation(fields: [num_reg_per], references: [num_reg_per], onDelete: Cascade)
+
+  @@index([num_reg_per], map: "idx_pagos_registro")
+}
+
+model personas {
+  ced_per     String        @id @db.VarChar(10)
+  nom_per     String        @db.VarChar(20)
+  ape_per     String        @db.VarChar(20)
+  tel_per     String        @db.VarChar(10)
+  autoridades autoridades[]
+}
+
+model registro_evento {
+  id_reg_evt        String              @id @db.VarChar(10)
+  id_det            String              @db.VarChar(10)
+  id_niv            String              @db.VarChar(10)
+  detalle_eventos   detalle_eventos     @relation(fields: [id_det], references: [id_det], onDelete: Cascade)
+  nivel             nivel               @relation(fields: [id_niv], references: [id_niv], onDelete: Cascade)
+  registro_personas registro_personas[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model registro_personas {
+  num_reg_per             Int             @id @default(autoincrement())
+  id_usu                  Int
+  id_reg_evt              String          @db.VarChar(10)
+  fec_reg_per             DateTime        @default(dbgenerated("CURRENT_DATE")) @db.Date
+  not_fin_evt             Decimal?        @db.Decimal(4, 2)
+  asi_evt_det             Int?            @db.SmallInt
+  apr_evt_det             Int?            @db.SmallInt
+  id_est                  Int?
+  estado_registro         String?         @default("PENDIENTE") @db.VarChar(30)
+  responsable_valida      Boolean?        @default(false)
+  fecha_validacion        DateTime?       @db.Timestamp(6)
+  comentarios_responsable String?
+  informes                informes[]
+  pagos                   pagos[]
+  estudiantes             estudiantes?    @relation(fields: [id_est], references: [id_est], onUpdate: NoAction, map: "fk_registro_personas_estudiante")
+  registro_evento         registro_evento @relation(fields: [id_reg_evt], references: [id_reg_evt], onDelete: Cascade)
+  usuarios                usuarios        @relation(fields: [id_usu], references: [id_usu], onDelete: Cascade)
+
+  @@index([fec_reg_per], map: "idx_registro_personas_fecha")
+  @@index([id_usu], map: "idx_registro_personas_usuario")
+  @@index([id_reg_evt, not_fin_evt, asi_evt_det], map: "idx_registro_personas_calificaciones")
+  @@index([id_est], map: "idx_registro_personas_estudiante")
+  @@index([estado_registro], map: "idx_registro_personas_estado")
+  @@index([responsable_valida], map: "idx_registro_personas_validacion")
+  requisitos_persona requisitos_persona[]
+}
+
+model requisitos_evento {
+  id_req             Int                  @id @default(autoincrement())
+  id_det             String               @db.VarChar(10)
+  tip_req            String               @db.VarChar(50)
+  des_req            String?
+  obligatorio        Boolean?             @default(true)
+  detalle_eventos    detalle_eventos      @relation(fields: [id_det], references: [id_det], onDelete: Cascade)
+  requisitos_persona requisitos_persona[]
+
+  @@index([id_det], map: "idx_requisitos_detalle")
+}
+
+model requisitos_persona {
+  id_req_per         Int                 @id @default(autoincrement())
+  num_reg_per        Int
+  id_req             Int
+  val_req            String?
+  fec_val            DateTime?           @default(now()) @db.Timestamp(6)
+  registro_personas  registro_personas   @relation(fields: [num_reg_per], references: [num_reg_per], onDelete: Cascade)
+  requisitos_evento  requisitos_evento   @relation(fields: [id_req], references: [id_req], onDelete: Cascade)
+
+  @@unique([num_reg_per, id_req])
+  @@index([num_reg_per], map: "idx_requisitos_persona_registro")
+}
+
+model requerimientos {
+  id_rec  String  @id @db.VarChar(10)
+  id_evt  String  @db.VarChar(10)
+  des_rec String  @db.VarChar(255)
+  url_req String  @db.VarChar(255)
+  eventos eventos @relation(fields: [id_evt], references: [id_evt], onDelete: Cascade)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model tarifas_evento {
+  id_tar_evt Int     @id @default(autoincrement())
+  id_evt     String  @db.VarChar(10)
+  tip_par    String  @db.VarChar(10)
+  val_evt    Decimal @db.Decimal(10, 2)
+  eventos    eventos @relation(fields: [id_evt], references: [id_evt], onDelete: Cascade)
+
+  @@index([id_evt], map: "idx_tarifas_evento")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model usuarios {
+  id_usu               Int                    @id @default(autoincrement())
+  cor_usu              String                 @unique @db.VarChar(100)
+  pas_usu              String                 @db.VarChar(255)
+  ced_usu              String?                @db.VarChar(10)
+  nom_usu              String                 @db.VarChar(50)
+  nom_seg_usu          String?                @db.VarChar(50)
+  ape_usu              String                 @db.VarChar(50)
+  ape_seg_usu          String?                @db.VarChar(50)
+  tel_usu              String?                @db.VarChar(10)
+  img_usu              String?
+  pdf_ced_usu          String?
+  stu_usu              Int?                   @db.SmallInt
+  adm_usu              Int?                   @default(0) @db.SmallInt
+  Administrador        Boolean                @default(false)
+  detalle_instructores detalle_instructores[]
+  estudiantes          estudiantes[]
+  eventos              eventos[]
+  material_curso       material_curso[]
+  registro_personas    registro_personas[]
+
+  @@index([ced_usu], map: "idx_usuarios_cedula")
+  @@index([cor_usu], map: "idx_usuarios_correo")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model backup_detalle_eventos_20251108 {
+  id_det      String?  @db.VarChar(10)
+  id_evt_per  String?  @db.VarChar(10)
+  id_usu_doc  Int?
+  cup_det     Int?
+  not_evt_det Decimal? @db.Decimal(4, 2)
+  hor_det     Decimal? @db.Decimal(4, 2)
+  asi_evt_det Decimal? @db.Decimal(3, 2)
+  cer_evt_det Int?     @db.SmallInt
+  apr_evt_det Int?     @db.SmallInt
+  are_det     String?  @db.VarChar(40)
+  cat_det     String?  @db.VarChar(20)
+  tip_evt     String?  @db.VarChar(20)
+  est_evt_det String?  @db.VarChar(20)
+
+  @@ignore
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model detalle_instructores {
+  id_det          String          @db.VarChar(10)
+  id_usu          Int
+  rol_instructor  String?         @default("INSTRUCTOR") @db.VarChar(30)
+  fec_asignacion  DateTime?       @default(now()) @db.Timestamp(6)
+  detalle_eventos detalle_eventos @relation(fields: [id_det], references: [id_det], onDelete: Cascade)
+  usuarios        usuarios        @relation(fields: [id_usu], references: [id_usu], onDelete: Cascade)
+
+  @@id([id_det, id_usu])
+  @@index([id_det], map: "idx_detalle_instructores_detalle")
+  @@index([rol_instructor], map: "idx_detalle_instructores_rol")
+  @@index([id_usu], map: "idx_detalle_instructores_usuario")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model estudiantes {
+  id_est            Int                 @id @default(autoincrement())
+  id_usu            Int
+  id_niv            String              @db.VarChar(10)
+  fec_ingreso       DateTime            @default(dbgenerated("CURRENT_DATE")) @db.Date
+  fec_egreso        DateTime?           @db.Date
+  est_activo        Int                 @default(1) @db.SmallInt
+  observaciones     String?
+  nivel             nivel               @relation(fields: [id_niv], references: [id_niv], onDelete: Cascade)
+  usuarios          usuarios            @relation(fields: [id_usu], references: [id_usu], onDelete: Cascade)
+  registro_personas registro_personas[]
+
+  @@unique([id_usu, id_niv, fec_ingreso], map: "estudiantes_unico_activo")
+  @@index([est_activo], map: "idx_estudiantes_activo")
+  @@index([fec_ingreso, fec_egreso], map: "idx_estudiantes_fechas")
+  @@index([id_niv], map: "idx_estudiantes_nivel")
+  @@index([id_usu], map: "idx_estudiantes_usuario")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model material_curso {
+  id_mat          Int             @id @default(autoincrement())
+  id_det          String          @db.VarChar(10)
+  id_cur_per      String?         @db.VarChar(10)
+  nom_mat         String          @db.VarChar(100)
+  des_mat         String?
+  mat_det         String
+  tip_mat         String?         @default("PDF") @db.VarChar(20)
+  tam_mat         Int?
+  fec_subida      DateTime?       @default(now()) @db.Timestamp(6)
+  id_usu_subida   Int?
+  est_mat         Boolean?        @default(true)
+  vis_est_mat     Boolean?        @default(false)
+  detalle_eventos detalle_eventos @relation(fields: [id_det], references: [id_det], onDelete: Cascade, onUpdate: NoAction, map: "fk_material_detalle")
+  usuarios        usuarios?       @relation(fields: [id_usu_subida], references: [id_usu], onUpdate: NoAction, map: "fk_material_usuario")
+
+  @@index([id_det], map: "idx_material_curso_detalle")
+  @@index([fec_subida], map: "idx_material_curso_fecha")
+  @@index([id_usu_subida], map: "idx_material_curso_usuario")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model contenido_contacto {
+  id_contacto       Int       @id @default(autoincrement())
+  img_banner        String?
+  titulo            String    @db.VarChar(100)
+  email             String    @db.VarChar(100)
+  telefono          String?   @db.VarChar(20)
+  direccion         String?
+  fec_actualizacion DateTime? @default(now()) @db.Timestamp(6)
+  activo            Boolean?  @default(true)
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model contenido_cursos {
+  id_cursos         Int       @id @default(autoincrement())
+  img_default       String?
+  descripcion       String
+  fec_actualizacion DateTime? @default(now()) @db.Timestamp(6)
+  activo            Boolean?  @default(true)
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model contenido_inicio {
+  id_inicio           Int                   @id @default(autoincrement())
+  img_hero            String?
+  fec_actualizacion   DateTime?             @default(now()) @db.Timestamp(6)
+  activo              Boolean?              @default(true)
+  estadisticas_inicio estadisticas_inicio[]
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model contenido_nosotros {
+  id_nosotros       Int       @id @default(autoincrement())
+  img_banner        String?
+  mision            String
+  vision            String
+  fec_actualizacion DateTime? @default(now()) @db.Timestamp(6)
+  activo            Boolean?  @default(true)
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model estadisticas_inicio {
+  id_estadistica   Int              @id @default(autoincrement())
+  id_inicio        Int
+  valor            String           @db.VarChar(50)
+  etiqueta         String           @db.VarChar(100)
+  orden            Int?             @default(0)
+  contenido_inicio contenido_inicio @relation(fields: [id_inicio], references: [id_inicio], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([id_inicio], map: "idx_estadisticas_inicio")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model sc_comite {
+  id_sc_com Int    @id @default(autoincrement())
+  nom_com   String @db.VarChar(100)
+  ape_com   String @db.VarChar(100)
+  cor_com   String @unique(map: "sc_comite_cor_com_uk") @db.VarChar(150)
+  tok_seg   String @unique(map: "sc_comite_tok_seg_uk") @db.VarChar(200)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model sc_programadores {
+  id_sc_prog Int      @id @default(autoincrement())
+  nom_proy   String   @db.VarChar(150)
+  fec_sol    DateTime @default(dbgenerated("CURRENT_DATE")) @db.Date
+  nom_sol    String   @db.VarChar(100)
+  cor_sol    String   @db.VarChar(150)
+  tel_sol    String   @db.VarChar(20)
+  tit_cam    String   @db.VarChar(200)
+  des_cam    String
+  jus_cam    String?
+  modulo     String   @db.VarChar(100)
+  sub_modulo String?  @db.VarChar(100)
+  imp_no_imp String
+  tip_cam    String   @db.VarChar(50)
+  cla_cam    String   @db.VarChar(50)
+  imp_alc    String?
+  imp_dias   Int?     @db.SmallInt
+  rec_nec    String?
+  riesgos    String?
+  apv_cam    String   @default("EN ESPERA") @db.VarChar(15)
+  prioridad  String   @default("NORMAL") @db.VarChar(20)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model sc_usuarios {
+  id_sc_usu  Int      @id @default(autoincrement())
+  num_sol    String   @unique(map: "sc_usuarios_num_sol_uk") @default(dbgenerated("((('SCR-'::text || to_char((CURRENT_DATE)::timestamp with time zone, 'YYYYMMDD'::text)) || '-'::text) || lpad((nextval('sc_usuarios_num_sol_seq'::regclass))::text, 4, '0'::text))")) @db.VarChar(20)
+  nom_proy   String   @db.VarChar(150)
+  fec_sol    DateTime @default(dbgenerated("CURRENT_DATE")) @db.Date
+  nom_sol    String   @db.VarChar(100)
+  cor_sol    String   @db.VarChar(150)
+  tel_sol    String   @db.VarChar(20)
+  tit_cam    String   @db.VarChar(200)
+  des_cam    String
+  jus_cam    String?
+  modulo     String   @db.VarChar(100)
+  sub_modulo String?  @db.VarChar(100)
+  apv_cam    String   @default("EN ESPERA") @db.VarChar(15)
+  prioridad  String   @default("NORMAL") @db.VarChar(20)
+}
