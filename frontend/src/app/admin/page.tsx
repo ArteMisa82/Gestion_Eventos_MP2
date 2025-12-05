@@ -1,15 +1,31 @@
-﻿"use client";
+"use client";
 import React, { useState, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { Pencil, Search } from "lucide-react";
+import EditEventModal from "./EditarEventoModal";
+import { useAuth } from "@/hooks/useAuth";
+import { dashboardAPI } from "@/services/api";
+
 import {
   Users,
   Calendar,
   Star,
   Activity,
   PieChart,
-  TrendingUp
+  TrendingUp,
 } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
-import { dashboardAPI } from "@/services/api";
+
+interface Evento {
+  id_evt: string;
+  nom_evt: string;
+  fec_evt: string;
+  lug_evt: string;
+  mod_evt: string;
+  tip_pub_evt: string;
+  est_evt_det: string; 
+  img_evt: string;
+}
+
 
 type EstadoEvento = "NUEVO" | "EN_PROCESO" | "FINALIZADO";
 type TipoEvento = "CURSO" | "TALLER" | "SEMINARIO" | "WEBINAR";

@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Calendar, Edit, Loader2, ArrowLeft, Users, ClipboardList, Lock, GraduationCap } from "lucide-react";
+import { Calendar, Edit, Loader2, ArrowLeft, Users, ClipboardList, Lock,GraduationCap  } from "lucide-react";
 import ModalEditarEvento from "./ModalEditar";
 import ModalAsistenciaNotas from "./ModalAsistenciaNota";
 import Swal from "sweetalert2";
@@ -142,34 +142,45 @@ export default function DashboardResponsable() {
           throw new Error("Formato de datos inválido recibido del servidor");
         }
         
-        const eventosTransformados: Evento[] = data.map((evento: any) => ({
-          id: evento.id_evt,
-          id_evt: evento.id_evt,
-          nombre: evento.nom_evt,
-          nom_evt: evento.nom_evt,
-          fechaInicio: evento.fec_evt ? new Date(evento.fec_evt).toLocaleDateString() : "",
-          fechaFin: evento.fec_fin_evt ? new Date(evento.fec_fin_evt).toLocaleDateString() : "",
-          fec_evt: evento.fec_evt,
-          modalidad: evento.mod_evt || "",
-          mod_evt: evento.mod_evt,
-          capacidad: evento.cap_evt || 0,
-          publico: evento.tip_pub_evt === "PUBLICO" ? "General" : "Estudiantes",
-          tip_pub_evt: evento.tip_pub_evt,
-          horas: evento.hrs_evt || 0,
-          pago: evento.cos_evt === "GRATIS" ? "Gratis" : "Pago",
-          cos_evt: evento.cos_evt,
-          carreras: evento.carreras || [],
-          semestres: evento.semestres || [],
-          tipoEvento: evento.tip_evt || "",
-          camposExtra: evento.campos_extra || {},
-          lug_evt: evento.lug_evt,
-          des_evt: evento.des_evt,
-          est_evt: evento.est_evt,
-          estado: mapEstadoBackendToFrontend(evento.est_evt),
-          requiereAsistencia: determinarRequiereAsistencia(evento.tip_evt),
-          requiereNota: determinarRequiereNota(evento.tip_evt),
-          evaluacionCompletada: evento.eval_completada || false,
-        }));
+        console.log('\n🌐 ===== DATOS RECIBIDOS DEL BACKEND =====');
+        console.log('Total de eventos:', data.length);
+        
+        const eventosTransformados: Evento[] = data.map((evento: any, idx: number) => {
+          console.log(`\n📊 EVENTO #${idx + 1}: ${evento.nom_evt}`);
+          console.log('  📌 ID:', evento.id_evt);
+          console.log('  📚 Carreras recibidas:', evento.carreras);
+          console.log('  📖 Semestres recibidos:', evento.semestres);
+          console.log('  🔍 Tipo:', evento.tip_evt || evento.tipoEvento);
+          
+          return {
+            id: evento.id_evt,
+            id_evt: evento.id_evt,
+            nombre: evento.nom_evt,
+            nom_evt: evento.nom_evt,
+            fechaInicio: evento.fec_evt ? new Date(evento.fec_evt).toLocaleDateString() : "",
+            fechaFin: evento.fec_fin_evt ? new Date(evento.fec_fin_evt).toLocaleDateString() : "",
+            fec_evt: evento.fec_evt,
+            modalidad: evento.mod_evt || "",
+            mod_evt: evento.mod_evt,
+            capacidad: evento.cap_evt || 0,
+            publico: evento.tip_pub_evt === "PUBLICO" ? "General" : "Estudiantes",
+            tip_pub_evt: evento.tip_pub_evt,
+            horas: evento.hrs_evt || 0,
+            pago: evento.cos_evt === "GRATIS" ? "Gratis" : "Pago",
+            cos_evt: evento.cos_evt,
+            carreras: Array.isArray(evento.carreras) ? evento.carreras : [],
+            semestres: Array.isArray(evento.semestres) ? evento.semestres : [],
+            tipoEvento: evento.tip_evt || evento.tipoEvento || "",
+            camposExtra: evento.campos_extra || {},
+            lug_evt: evento.lug_evt,
+            des_evt: evento.des_evt,
+            est_evt: evento.est_evt,
+            estado: mapEstadoBackendToFrontend(evento.est_evt),
+            requiereAsistencia: determinarRequiereAsistencia(evento.tip_evt || evento.tipoEvento),
+            requiereNota: determinarRequiereNota(evento.tip_evt || evento.tipoEvento),
+            evaluacionCompletada: evento.eval_completada || false,
+          };
+        });
 
         setEventos(eventosTransformados);
       } catch (error: any) {
@@ -284,10 +295,10 @@ export default function DashboardResponsable() {
     }
   };
 
-  /**const cargarInscritos = async (eventoId: string): Promise<Inscrito[]> => {
+  const cargarInscritos = async (eventoId: string): Promise<Inscrito[]> => {
     setIsLoadingInscritos(true);
     try {
-      //const response = await eventosAPI.getInscritosConEvaluacion(eventoId);
+      const response = await eventosAPI.getInscritosConEvaluacion(eventoId);
       const datosInscritos = response.data || [];
       
       setInscritos(datosInscritos);
@@ -304,8 +315,7 @@ export default function DashboardResponsable() {
     } finally {
       setIsLoadingInscritos(false);
     }
-  };**/
-
+  };
   const handleAbrirAsistencia = async (evento: Evento) => {
     if (!puedeEditarEvaluacion(evento)) {
       Swal.fire({
@@ -327,7 +337,7 @@ export default function DashboardResponsable() {
       return;
     }
 
-    //const inscritos = await cargarInscritos(evento.id);
+    const inscritos = await cargarInscritos(evento.id);
     if (inscritos.length === 0) {
       Swal.fire({
         icon: "info",
@@ -350,12 +360,12 @@ export default function DashboardResponsable() {
         fechaModificacion: new Date().toISOString()
       }));
 
-      //await eventosAPI.guardarAsistencia(eventoAsistencia!.id, datosConResponsable);
+      await eventosAPI.guardarAsistencia(eventoAsistencia!.id, datosConResponsable);
       
       const evaluacionCompleta = verificarEvaluacionCompleta(datosConResponsable, eventoAsistencia!);
       
       if (evaluacionCompleta) {
-        //await eventosAPI.marcarEvaluacionCompleta(eventoAsistencia!.id);
+        await eventosAPI.marcarEvaluacionCompleta(eventoAsistencia!.id);
         
         setEventos(prev => prev.map(ev => 
           ev.id === eventoAsistencia!.id 
@@ -445,14 +455,22 @@ export default function DashboardResponsable() {
   }
 
   const handleCarrerasChange = async (id: string, nuevasCarreras: string[]) => {
+    console.log('🚀 handleCarrerasChange EJECUTADO:', { id, nuevasCarreras });
     try {
       const evento = eventos.find(ev => ev.id === id);
-      if (!evento) return;
+      if (!evento) {
+        console.error('❌ Evento no encontrado en handleCarrerasChange:', id);
+        return;
+      }
 
-      await eventosAPI.update(id, {
+      console.log('📡 Enviando request a backend:', { id, carreras: nuevasCarreras, semestres: evento.semestres });
+      
+      const response = await eventosAPI.update(id, {
         carreras: nuevasCarreras,
         semestres: evento.semestres // Enviar también los semestres actuales
       });
+
+      console.log('✅ Response del backend:', response);
 
       setEventos((prev) =>
         prev.map((ev) =>
@@ -469,7 +487,8 @@ export default function DashboardResponsable() {
         showConfirmButton: false
       });
     } catch (error: any) {
-      console.error("Error al actualizar carreras:", error);
+      console.error("❌ ERROR COMPLETO al actualizar carreras:", error);
+      console.error("Stack trace:", error.stack);
       Swal.fire({
         icon: "error",
         title: "Error",
@@ -480,14 +499,22 @@ export default function DashboardResponsable() {
   };
 
   const handleSemestresChange = async (id: string, nuevosSemestres: string[]) => {
+    console.log('🚀 handleSemestresChange EJECUTADO:', { id, nuevosSemestres });
     try {
       const evento = eventos.find(ev => ev.id === id);
-      if (!evento) return;
+      if (!evento) {
+        console.error('❌ Evento no encontrado en handleSemestresChange:', id);
+        return;
+      }
 
-      await eventosAPI.update(id, {
+      console.log('📡 Enviando request a backend:', { id, carreras: evento.carreras, semestres: nuevosSemestres });
+      
+      const response = await eventosAPI.update(id, {
         carreras: evento.carreras, // Enviar también las carreras actuales
         semestres: nuevosSemestres
       });
+
+      console.log('✅ Response del backend:', response);
 
       setEventos((prev) =>
         prev.map((ev) =>
@@ -504,7 +531,8 @@ export default function DashboardResponsable() {
         showConfirmButton: false
       });
     } catch (error: any) {
-      console.error("Error al actualizar semestres:", error);
+      console.error("❌ ERROR COMPLETO al actualizar semestres:", error);
+      console.error("Stack trace:", error.stack);
       Swal.fire({
         icon: "error",
         title: "Error",
@@ -522,24 +550,34 @@ export default function DashboardResponsable() {
   ];
 
   const toggleCarrera = (eventoId: string, carrera: string) => {
+    console.log('🎯 toggleCarrera llamado:', { eventoId, carrera });
     const evento = eventos.find(ev => ev.id === eventoId);
-    if (!evento) return;
+    if (!evento) {
+      console.error('❌ Evento no encontrado:', eventoId);
+      return;
+    }
 
     const nuevasCarreras = evento.carreras.includes(carrera)
       ? evento.carreras.filter(c => c !== carrera)
       : [...evento.carreras, carrera];
 
+    console.log('📤 Llamando a handleCarrerasChange con:', { eventoId, nuevasCarreras, semestresActuales: evento.semestres });
     handleCarrerasChange(eventoId, nuevasCarreras);
   };
 
   const toggleSemestre = (eventoId: string, semestre: string) => {
+    console.log('🎯 toggleSemestre llamado:', { eventoId, semestre });
     const evento = eventos.find(ev => ev.id === eventoId);
-    if (!evento) return;
+    if (!evento) {
+      console.error('❌ Evento no encontrado:', eventoId);
+      return;
+    }
 
     const nuevosSemestres = evento.semestres.includes(semestre)
       ? evento.semestres.filter(s => s !== semestre)
       : [...evento.semestres, semestre];
 
+    console.log('📤 Llamando a handleSemestresChange con:', { eventoId, nuevosSemestres, carrerasActuales: evento.carreras });
     handleSemestresChange(eventoId, nuevosSemestres);
   };
 
@@ -650,19 +688,29 @@ export default function DashboardResponsable() {
                     </label>
                   </div>
                   <div className="flex flex-wrap gap-1">
-                    {carrerasDisponibles.map((carrera) => (
-                      <button
-                        key={carrera}
-                        onClick={() => toggleCarrera(ev.id, carrera)}
-                        className={`px-2 py-1 rounded text-xs font-medium border transition-all ${
-                          ev.carreras.includes(carrera)
-                            ? "bg-[#581517] text-white border-[#581517]"
-                            : "border-gray-300 text-gray-700 hover:border-[#581517] hover:text-[#581517] bg-white"
-                        }`}
-                      >
-                        {carrera}
-                      </button>
-                    ))}
+                    {carrerasDisponibles.map((carrera) => {
+                      const estaSeleccionada = ev.carreras && Array.isArray(ev.carreras) && 
+                        ev.carreras.some(c => c && c.toLowerCase().includes(carrera.toLowerCase()));
+                      
+                      console.log(`🔍 Carrera "${carrera}" en evento "${ev.nombre}":`, {
+                        carrerasEvento: ev.carreras,
+                        estaSeleccionada: estaSeleccionada
+                      });
+                      
+                      return (
+                        <button
+                          key={carrera}
+                          onClick={() => toggleCarrera(ev.id, carrera)}
+                          className={`px-2 py-1 rounded text-xs font-medium border transition-all ${
+                            estaSeleccionada
+                              ? "bg-[#581517] text-white border-[#581517]"
+                              : "border-gray-300 text-gray-700 hover:border-[#581517] hover:text-[#581517] bg-white"
+                          }`}
+                        >
+                          {carrera}
+                        </button>
+                      );
+                    })}
                   </div>
                   {ev.carreras.length > 0 && (
                     <p className="text-xs text-gray-500 mt-1">
@@ -680,19 +728,44 @@ export default function DashboardResponsable() {
                     </label>
                   </div>
                   <div className="grid grid-cols-2 gap-1">
-                    {semestresDisponibles.map((semestre) => (
-                      <button
-                        key={semestre}
-                        onClick={() => toggleSemestre(ev.id, semestre)}
-                        className={`px-2 py-1 rounded text-xs font-medium border transition-all text-center ${
-                          ev.semestres.includes(semestre)
-                            ? "bg-[#581517] text-white border-[#581517]"
-                            : "border-gray-300 text-gray-700 hover:border-[#581517] hover:text-[#581517] bg-white"
-                        }`}
-                      >
-                        {semestre}
-                      </button>
-                    ))}
+                    {semestresDisponibles.map((semestre) => {
+                      const estaSeleccionado = ev.semestres && Array.isArray(ev.semestres) && 
+                        ev.semestres.some(s => {
+                          if (!s) return false;
+                          // Comparación flexible: normalizar ambos valores
+                          const semestreNormalizado = semestre.toLowerCase().replace(/\s+/g, ' ').trim();
+                          const sBackendNormalizado = s.toLowerCase().replace(/\s+/g, ' ').trim();
+                          const coincide = sBackendNormalizado.includes(semestreNormalizado) || 
+                                 semestreNormalizado.includes(sBackendNormalizado);
+                          
+                          console.log(`🔍 Comparando semestre "${semestre}" con "${s}":`, {
+                            frontend: semestreNormalizado,
+                            backend: sBackendNormalizado,
+                            coincide: coincide
+                          });
+                          
+                          return coincide;
+                        });
+                      
+                      console.log(`📋 Semestre "${semestre}" - evento "${ev.nombre}":`, {
+                        semestresEvento: ev.semestres,
+                        estaSeleccionado: estaSeleccionado
+                      });
+                      
+                      return (
+                        <button
+                          key={semestre}
+                          onClick={() => toggleSemestre(ev.id, semestre)}
+                          className={`px-2 py-1 rounded text-xs font-medium border transition-all text-center ${
+                            estaSeleccionado
+                              ? "bg-[#581517] text-white border-[#581517]"
+                              : "border-gray-300 text-gray-700 hover:border-[#581517] hover:text-[#581517] bg-white"
+                          }`}
+                        >
+                          {semestre}
+                        </button>
+                      );
+                    })}
                   </div>
                   {ev.semestres.length > 0 && (
                     <p className="text-xs text-gray-500 mt-1">

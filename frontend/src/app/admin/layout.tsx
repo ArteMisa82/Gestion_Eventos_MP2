@@ -21,6 +21,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     //{ name: "Validaciones", icon: <FileCheck size={18} />, href: "/admin/validaciones" },
     { name: "Contenido", icon: <Settings size={18} />, href: "/admin/contenido" },
     { name: "Categorías", icon: <Folder size={18} />, href: "/admin/categoria" },
+    { name: "Control de Cambios", icon: <Folder size={18} />, href: "../control-cambios" },
   ];
 
   const handleLogout = () => {

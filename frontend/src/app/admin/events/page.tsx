@@ -32,11 +32,11 @@ const EventsPage: React.FC = () => {
         const eventosTransformados: EventItem[] = data.map((evento: any, index: number) => ({
           id: index + 1, // Usar índice temporal para la UI
           realId: evento.id_evt, // Guardar el ID real del backend
-          title: evento.nom_evt,
+          title: evento.nom_evt || "Sin título",
           person: evento.responsable 
             ? `${evento.responsable.nom_usu} ${evento.responsable.ape_usu}`
             : "Sin asignar",
-          start: new Date(evento.fec_evt).toLocaleDateString(),
+          start: evento.fec_evt ? new Date(evento.fec_evt).toLocaleDateString() : "Sin fecha",
           end: "Por definir",
         }));
 
@@ -60,8 +60,8 @@ const EventsPage: React.FC = () => {
   // 🔍 Filtro por búsqueda
   const filteredEvents = events.filter(
     (event) =>
-      event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      event.person.toLowerCase().includes(searchTerm.toLowerCase())
+      (event.title && event.title.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (event.person && event.person.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   // 🗑️ Confirmar eliminación

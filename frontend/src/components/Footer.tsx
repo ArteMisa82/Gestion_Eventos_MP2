@@ -23,7 +23,7 @@ export default function Footer() {
         <div>
           <h4>Soporte</h4>
           <ul>
-            <li><a href="#">Formulario de cambios</a></li>
+            <li><a href="http://localhost:3000/solicitudes">Formulario de cambios</a></li>
           </ul>
         </div>
 

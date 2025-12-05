@@ -299,8 +299,13 @@ export class EventosService {
     }, 
     userId: number
   ) {
+    console.log('🔥🔥🔥 ACTUALIZANDO EVENTO:', idEvento);
+    console.log('📦 Datos recibidos:', JSON.stringify(data, null, 2));
+    
     // Actualizar el evento primero
     const evento = await this.actualizarEvento(idEvento, data, userId);
+    
+    console.log('✅ Evento actualizado. tip_pub_evt:', evento.tip_pub_evt);
 
     // Verificar si hay detalles o carreras/semestres para procesar
     const tieneDetalles = data.detalles && (data.detalles.cup_det || data.detalles.hor_det || data.detalles.tip_evt || data.detalles.cat_det);
@@ -563,33 +568,89 @@ export class EventosService {
 
     // Transformar para incluir carreras, semestres y docentes
     return eventos.map(evento => {
+      console.log('\n🔍 ===== PROCESANDO EVENTO =====');
+      console.log('📌 ID Evento:', evento.id_evt);
+      console.log('📌 Nombre:', evento.nom_evt);
+      
       const detalle = evento.detalle_eventos?.[0]; // Tomamos el primer detalle
+      console.log('📦 Detalle encontrado:', detalle ? detalle.id_det : 'NO HAY DETALLE');
       
       const carrerasUnicas = new Set<string>();
       const semestresUnicos = new Set<string>();
       
       // Extraer carreras y semestres desde registro_evento
       if (detalle?.registro_evento && Array.isArray(detalle.registro_evento)) {
-        detalle.registro_evento.forEach((reg: any) => {
+        console.log('📚 Registros de evento encontrados:', detalle.registro_evento.length);
+        
+        detalle.registro_evento.forEach((reg: any, index: number) => {
+          console.log(`\n  📋 Registro #${index + 1}:`);
+          console.log('    - ID Registro:', reg.id_reg_evt);
+          console.log('    - ID Nivel:', reg.id_niv);
+          console.log('    - Nivel completo:', reg.nivel);
+          
           // Agregar nombre de la carrera
           if (reg.nivel?.carreras?.nom_car) {
-            carrerasUnicas.add(reg.nivel.carreras.nom_car);
+            const nombreCarrera = reg.nivel.carreras.nom_car;
+            console.log('    ✅ Carrera encontrada:', nombreCarrera);
+            carrerasUnicas.add(nombreCarrera);
+          } else {
+            console.log('    ⚠️ Sin carrera en este registro');
           }
           
           // Agregar nombre del nivel (semestre)
           if (reg.nivel?.nom_niv) {
-            // Normalizar formato del semestre
-            let nombreSemestre = reg.nivel.nom_niv.trim();
+            // Mapear nombres de semestres a formato frontend
+            const nombreOriginal = reg.nivel.nom_niv.trim().toUpperCase();
+            console.log('    📖 Semestre original:', nombreOriginal);
             
-            // Si no tiene la palabra "semestre", agregarla
-            if (!nombreSemestre.toLowerCase().includes('semestre')) {
-              nombreSemestre = `${nombreSemestre} semestre`;
+            const mapeoDeSemestres: { [key: string]: string } = {
+              'PRIMERO': '1er semestre',
+              'SEGUNDO': '2do semestre',
+              'TERCERO': '3er semestre',
+              'CUARTO': '4to semestre',
+              'QUINTO': '5to semestre',
+              'SEXTO': '6to semestre',
+              'SÉPTIMO': '7mo semestre',
+              'SEPTIMO': '7mo semestre',
+              'OCTAVO': '8vo semestre',
+              'NOVENO': '9no semestre',
+              'DÉCIMO': '10mo semestre',
+              'DECIMO': '10mo semestre'
+            };
+            
+            // Buscar mapeo exacto
+            let nombreSemestre = mapeoDeSemestres[nombreOriginal];
+            
+            if (!nombreSemestre) {
+              // Si ya tiene formato "Xer/do/to/mo semestre", usarlo tal cual
+              if (nombreOriginal.includes('SEMESTRE')) {
+                nombreSemestre = reg.nivel.nom_niv.trim();
+              } else {
+                // Fallback: añadir " semestre" al original
+                nombreSemestre = `${reg.nivel.nom_niv.trim()} semestre`;
+              }
             }
             
+            console.log('    ✅ Semestre mapeado:', nombreSemestre);
             semestresUnicos.add(nombreSemestre);
+          } else {
+            console.log('    ⚠️ Sin nivel/semestre en este registro');
           }
         });
+      } else {
+        console.log('⚠️ NO hay registros de evento para este detalle');
+        if (!detalle) {
+          console.log('   Razón: No existe detalle_eventos');
+        } else if (!detalle.registro_evento) {
+          console.log('   Razón: detalle.registro_evento es undefined/null');
+        } else if (!Array.isArray(detalle.registro_evento)) {
+          console.log('   Razón: detalle.registro_evento no es un array');
+        }
       }
+      
+      console.log('\n📊 RESUMEN DEL EVENTO:');
+      console.log('  Carreras únicas:', Array.from(carrerasUnicas));
+      console.log('  Semestres únicos:', Array.from(semestresUnicos));
 
       // Extraer nombres de docentes/instructores
       const docentes = detalle?.detalle_instructores?.map((instructor: any) => 

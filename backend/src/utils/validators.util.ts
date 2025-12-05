@@ -9,6 +9,8 @@ export async function validateIsAdmin(userId: number): Promise<void> {
     where: { id_usu: userId }
   });
 
+  console.log(`[validateIsAdmin] Usuario ID: ${userId}, Administrador: ${admin?.Administrador}, adm_usu: ${admin?.adm_usu}, Email: ${admin?.cor_usu}`);
+
   if (!admin || !admin.Administrador) {
     throw new Error('Solo el administrador puede realizar esta acción');
   }
