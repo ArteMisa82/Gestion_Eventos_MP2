@@ -3,7 +3,8 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useAuth } from '@/hooks/useAuth';
 import { Home } from "lucide-react";
 import styles from "./navbar.module.css";
 import LoginModal from "../components/loginModal";
@@ -18,46 +19,37 @@ const links = [
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
-
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
-  const [user, setUser] = useState<any>(null);
 
-  // Cargar usuario desde localStorage
-  useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (!storedUser || storedUser === "undefined") return;
+  // auth context
+  const { user, isAuthenticated, isLoading, logout } = useAuth();
 
-    try {
-      setUser(JSON.parse(storedUser));
-    } catch (err) {
-      console.error("Error al leer usuario:", err);
-      localStorage.removeItem("user");
-    }
-  }, []);
+  // ⭐ Roles coherentes con LoginModal
+  const isAdmin = user?.Administrador === true;
+  // Determinar si el usuario es responsable (tiene eventos asignados)
+  const isResponsable = !!(user?.eventos && user.eventos.length > 0);
+  const isStudent = user?.stu_usu === 1;
 
-  const handleLoginSuccess = (userData: any) => {
-    setUser(userData);
-    localStorage.setItem("user", JSON.stringify(userData));
+  const handleLoginSuccess = (_userData: any) => {
     setIsLoginOpen(false);
   };
 
   const handleLogout = () => {
-    setUser(null);
-    localStorage.removeItem("user");
-    localStorage.removeItem("token");
-    router.push("/home");
+    try {
+      logout();
+    } catch (e) {
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
+    }
+    router.push('/home');
   };
 
-  // ⭐ Roles coherentes con LoginModal
-  const isAdmin = user?.Administrador === true;
-  const isResponsable = user?.adm_usu === 1;
-  const isStudent = user?.stu_usu === 1;
+ 
 
   return (
     <header className={styles.header}>
       <nav className={styles.nav}>
-
         {/* Logo */}
         <Link href="/" className={styles.brand}>
           <Image
@@ -84,7 +76,7 @@ export default function Navbar() {
             </li>
           ))}
 
-          {/* Panel SOLO Admin */}
+            {/* Panel SOLO Admin */}
           {isAdmin && (
             <li>
               <Link
@@ -104,6 +96,7 @@ export default function Navbar() {
         <div className={styles.actions}>
           {user ? (
             <>
+            {/* (Responsable/Docente panels removed from main navbar — accessible through user menu) */}
               {/* Icono HOME → Solo si NO es Admin */}
               {!isAdmin && (
                 <button
@@ -112,8 +105,8 @@ export default function Navbar() {
                       isResponsable
                         ? "/usuarios/cursos"
                         : isStudent
-                        ? "/cursos"
-                        : "/home"
+                        ? "/usuarios/cursos"
+                        : "/users/cursos"
                     )
                   }
                   className="mr-4 hover:scale-105 transition"
@@ -123,7 +116,7 @@ export default function Navbar() {
               )}
 
               <span className={styles.userName}>
-                👋 {user.nom_usu || user.name || "Usuario"}
+                👋 {user?.nom_usu || "Usuario"}
               </span>
 
               <button onClick={handleLogout} className={styles.secondaryBtn}>

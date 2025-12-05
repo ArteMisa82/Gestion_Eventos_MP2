@@ -630,24 +630,27 @@ export default function DashboardResponsable() {
             key={ev.id}
             className="relative bg-white border border-gray-200 rounded-lg shadow-md p-5 hover:shadow-lg transition-all"
           >
-            {/* 🟢 Badge de estado */}
-            <span
-              className={`absolute top-3 right-3 px-3 py-1 text-xs font-semibold rounded-full border ${getEstadoColor(
-                ev.estado
-              )}`}
-            >
-              {ev.estado}
-            </span>
+            {/* 🔒 Badge de evaluación - MOVER ARRIBA DEL TÍTULO */}
+            <div className="flex justify-between items-start mb-2">
+              <span
+                className={`px-2 py-1 text-xs font-semibold rounded-full border ${getEvaluacionColor(ev)}`}
+              >
+                {!puedeEditarEvaluacion(ev) ? <Lock size={10} className="inline mr-1" /> : ""}
+                {ev.evaluacionCompletada ? "Evaluado" : "Por evaluar"}
+              </span>
+              
+              {/* 🟢 Badge de estado */}
+              <span
+                className={`px-3 py-1 text-xs font-semibold rounded-full border ${getEstadoColor(
+                  ev.estado
+                )}`}
+              >
+                {ev.estado}
+              </span>
+            </div>
 
-            {/* 🔒 Badge de evaluación */}
-            <span
-              className={`absolute top-3 left-3 px-2 py-1 text-xs font-semibold rounded-full border ${getEvaluacionColor(ev)}`}
-            >
-              {!puedeEditarEvaluacion(ev) ? <Lock size={10} className="inline mr-1" /> : ""}
-              {ev.evaluacionCompletada ? "Evaluado" : "Por evaluar"}
-            </span>
-
-            <h2 className="text-lg font-semibold mb-2 pr-20 pl-12">{ev.nombre}</h2>
+            {/* Título del evento - AHORA TIENE ESPACIO PROPIO */}
+            <h2 className="text-lg font-semibold mb-2 pr-4">{ev.nombre}</h2>
 
             <p className="text-sm text-gray-600 flex items-center mb-1">
               <Calendar size={16} className="mr-1 text-gray-500" />
@@ -656,6 +659,7 @@ export default function DashboardResponsable() {
                 : "Fechas no definidas"}
             </p>
 
+            {/* Resto del contenido permanece igual... */}
             <p className="text-sm text-gray-600 mb-1">
               <span className="font-medium">Modalidad:</span>{" "}
               {ev.modalidad || "Por definir"}

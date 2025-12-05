@@ -21,6 +21,23 @@ export interface Usuario {
   adm_usu?: number;
   stu_usu?: number;
   Administrador?: boolean;
+  // Relaciónes opcionales (cargadas en el perfil para facilitar UI)
+  eventos?: {
+    id_evt: string;
+    nom_evt: string;
+    est_evt?: string;
+  }[];
+
+  detalle_instructores?: {
+    id_det: string;
+    rol_instructor?: string;
+    usuarios?: {
+      id_usu: number;
+      nom_usu: string;
+      ape_usu: string;
+      cor_usu: string;
+    };
+  }[];
 }
 
 export interface LoginResponse {
