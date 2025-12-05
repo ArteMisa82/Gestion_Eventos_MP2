@@ -29,6 +29,29 @@ export class UserService {
             est_activo: 1
           },
           take: 1
+        },
+        // Eventos donde el usuario fue asignado como responsable
+        eventos: {
+          select: {
+            id_evt: true,
+            nom_evt: true,
+            est_evt: true
+          }
+        },
+        // Relación que indica si el usuario aparece como instructor en algún detalle
+        detalle_instructores: {
+          select: {
+            id_det: true,
+            rol_instructor: true,
+            usuarios: {
+              select: {
+                id_usu: true,
+                nom_usu: true,
+                ape_usu: true,
+                cor_usu: true
+              }
+            }
+          }
         }
       }
     });
