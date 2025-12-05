@@ -91,6 +91,7 @@ export class CalificacionesService {
           num_reg_per: true,
           not_fin_evt: true,
           asi_evt_det: true,
+          apr_evt_det: true,
           usuarios: {
             select: {
               id_usu: true,
@@ -125,7 +126,7 @@ export class CalificacionesService {
           not_fin_evt: inscripcion.not_fin_evt ? Number(inscripcion.not_fin_evt) : null,
           asi_evt_det: inscripcion.asi_evt_det,
           cer_evt_det: detalle?.cer_evt_det || null,
-          apr_evt_det: detalle?.apr_evt_det || null,
+          apr_evt_det: inscripcion.apr_evt_det || null,
         };
       });
 
@@ -197,6 +198,47 @@ export class CalificacionesService {
         throw new AppError('Esta inscripción no pertenece a este curso', 400);
       }
 
+      // Obtener detalle para validar requisitos mínimos
+      const detalle = await prisma.detalle_eventos.findUnique({
+        where: { id_det: idDetalle },
+        select: {
+          not_min_evt: true,
+          asi_evt_det: true,
+          cer_evt_det: true,
+          apr_evt_det: true,
+        },
+      });
+
+      // Obtener valores actuales del estudiante para validación
+      const valoresActuales = {
+        not_fin_evt: data.not_fin_evt !== undefined ? data.not_fin_evt : (registroPersona.not_fin_evt ? Number(registroPersona.not_fin_evt) : null),
+        asi_evt_det: data.asi_evt_det !== undefined ? data.asi_evt_det : registroPersona.asi_evt_det,
+      };
+
+      // VALIDACIÓN Y AUTO-APROBACIÓN
+      let aprobado: number | null = null;
+
+      // Solo calcular aprobación si hay nota final asignada
+      if (valoresActuales.not_fin_evt !== null) {
+        aprobado = 1; // Inicialmente aprobado
+
+        // Validar nota mínima
+        if (detalle?.not_min_evt) {
+          const notaMinima = Number(detalle.not_min_evt);
+          if (valoresActuales.not_fin_evt < notaMinima) {
+            aprobado = 0; // Reprobado por nota
+          }
+        }
+
+        // Validar asistencia requerida
+        if (detalle?.asi_evt_det === 1) {
+          // Si la asistencia es obligatoria (1) y el estudiante no asistió (0 o null)
+          if (!valoresActuales.asi_evt_det || valoresActuales.asi_evt_det === 0) {
+            aprobado = 0; // Reprobado por falta de asistencia
+          }
+        }
+      }
+
       // Actualizar calificación
       const dataActualizacion: any = {};
       if (data.not_fin_evt !== undefined) {
@@ -204,6 +246,11 @@ export class CalificacionesService {
       }
       if (data.asi_evt_det !== undefined) {
         dataActualizacion.asi_evt_det = data.asi_evt_det;
+      }
+      
+      // Incluir estado de aprobación si se calculó
+      if (aprobado !== null) {
+        dataActualizacion.apr_evt_det = aprobado;
       }
 
       const inscripcionActualizada = await prisma.registro_personas.update({
@@ -213,15 +260,6 @@ export class CalificacionesService {
           num_reg_per: true,
           not_fin_evt: true,
           asi_evt_det: true,
-        },
-      });
-
-      // Obtener detalle para nota mínima
-      const detalle = await prisma.detalle_eventos.findUnique({
-        where: { id_det: idDetalle },
-        select: {
-          not_min_evt: true,
-          cer_evt_det: true,
           apr_evt_det: true,
         },
       });
@@ -240,7 +278,7 @@ export class CalificacionesService {
         not_fin_evt: inscripcionActualizada.not_fin_evt ? Number(inscripcionActualizada.not_fin_evt) : null,
         asi_evt_det: inscripcionActualizada.asi_evt_det,
         cer_evt_det: detalle?.cer_evt_det || null,
-        apr_evt_det: detalle?.apr_evt_det || null,
+        apr_evt_det: inscripcionActualizada.apr_evt_det || null,
       };
     } catch (error) {
       if (error instanceof AppError) throw error;

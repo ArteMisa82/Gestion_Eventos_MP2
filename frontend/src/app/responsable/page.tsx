@@ -5,7 +5,7 @@ import { Calendar, Edit, Loader2, ArrowLeft, Users, ClipboardList, Lock,Graduati
 import ModalEditarEvento from "./ModalEditar";
 import ModalAsistenciaNotas from "./ModalAsistenciaNota";
 import Swal from "sweetalert2";
-import { eventosAPI } from "@/services/api";
+import { eventosAPI, calificacionesAPI } from "@/services/api";
 import ValidacionesResponsable from "./validaciones";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -307,14 +307,35 @@ export default function DashboardResponsable() {
     }
   };
 
-  const cargarInscritos = async (eventoId: string): Promise<Inscrito[]> => {
+  const cargarInscritos = async (evento: Evento): Promise<Inscrito[]> => {
     setIsLoadingInscritos(true);
     try {
-      // TODO: Implementar endpoint getInscritosConEvaluacion en el backend
-      // const response = await eventosAPI.getInscritosConEvaluacion(eventoId);
-      // const datosInscritos = response.data || [];
+      // Obtener el primer detalle del evento
+      const response = await eventosAPI.getDetallesPorEvento(evento.id_evt || evento.id);
+      const detalles = response.data || [];
       
-      const datosInscritos: Inscrito[] = []; // Mock data vacía por ahora
+      if (detalles.length === 0) {
+        throw new Error("Este evento no tiene detalles configurados");
+      }
+
+      const idDetalle = detalles[0].id_det;
+      
+      // Obtener calificaciones del detalle
+      const calificacionesResponse = await calificacionesAPI.obtenerCalificaciones(idDetalle);
+      const datosCalificaciones = calificacionesResponse.data || [];
+      
+      const datosInscritos: Inscrito[] = datosCalificaciones.map((cal: any) => ({
+        id: cal.id_reg_per?.toString() || cal.id,
+        nombre: `${cal.nombre} ${cal.apellido}`,
+        email: cal.email || 'N/A',
+        carrera: cal.carrera || 'N/A',
+        semestre: cal.semestre || 'N/A',
+        asistio: cal.asi_evt_det ? cal.asi_evt_det > 0 : undefined,
+        nota: cal.not_fin_evt || undefined,
+        observaciones: cal.observaciones || '',
+        asistenciaModificadaPor: undefined,
+        notaModificadaPor: undefined,
+      }));
       
       setInscritos(datosInscritos);
       return datosInscritos;
@@ -323,7 +344,7 @@ export default function DashboardResponsable() {
       Swal.fire({
         icon: "error",
         title: "Error",
-        text: "No se pudieron cargar los participantes del evento",
+        text: error.message || "No se pudieron cargar los participantes del evento",
         confirmButtonColor: "#581517",
       });
       return [];
@@ -352,7 +373,7 @@ export default function DashboardResponsable() {
       return;
     }
 
-    const inscritos = await cargarInscritos(evento.id);
+    const inscritos = await cargarInscritos(evento);
     if (inscritos.length === 0) {
       Swal.fire({
         icon: "info",
@@ -368,33 +389,44 @@ export default function DashboardResponsable() {
 
   const handleGuardarAsistencia = async (datosAsistencia: any[]) => {
     try {
-      // TODO: Implementar endpoints de asistencia en el backend
-      // const datosConResponsable = datosAsistencia.map(inscrito => ({
-      //   ...inscrito,
-      //   asistenciaModificadaPor: 'responsable',
-      //   notaModificadaPor: inscrito.nota !== undefined ? 'responsable' : undefined,
-      //   fechaModificacion: new Date().toISOString()
-      // }));
+      if (!eventoAsistencia) return;
 
-      // await eventosAPI.guardarAsistencia(eventoAsistencia!.id, datosConResponsable);
+      // Obtener el ID del detalle
+      const response = await eventosAPI.getDetallesPorEvento(eventoAsistencia.id_evt || eventoAsistencia.id);
+      const detalles = response.data || [];
       
-      // const evaluacionCompleta = verificarEvaluacionCompleta(datosConResponsable, eventoAsistencia!);
-      
-      // if (evaluacionCompleta) {
-      //   await eventosAPI.marcarEvaluacionCompleta(eventoAsistencia!.id);
-        
-      //   setEventos(prev => prev.map(ev => 
-      //     ev.id === eventoAsistencia!.id 
-      //       ? { ...ev, evaluacionCompletada: true }
-      //       : ev
-      //   ));
-      // }
+      if (detalles.length === 0) {
+        throw new Error("Este evento no tiene detalles configurados");
+      }
 
+      const idDetalle = detalles[0].id_det;
+
+      // Preparar datos para enviar al backend
+      const calificaciones = datosAsistencia.map(inscrito => ({
+        id_reg_per: inscrito.id,
+        not_fin_evt: inscrito.nota !== undefined && inscrito.nota !== null ? Number(inscrito.nota) : undefined,
+        asi_evt_det: inscrito.asistio !== undefined ? (inscrito.asistio ? 100 : 0) : undefined,
+      })).filter(cal => cal.not_fin_evt !== undefined || cal.asi_evt_det !== undefined);
+
+      if (calificaciones.length === 0) {
+        Swal.fire({
+          icon: "warning",
+          title: "Sin cambios",
+          text: "No se detectaron cambios en las calificaciones o asistencia",
+          confirmButtonColor: "#581517",
+        });
+        return;
+      }
+
+      // Guardar calificaciones en lote
+      await calificacionesAPI.asignarCalificacionesLote(idDetalle, calificaciones);
+      
       Swal.fire({
-        icon: "info",
-        title: "Funcionalidad no disponible",
-        text: "La gestión de asistencia y notas está en desarrollo",
+        icon: "success",
+        title: "¡Guardado!",
+        text: `Se guardaron ${calificaciones.length} registro(s) correctamente`,
         confirmButtonColor: "#581517",
+        timer: 2000,
       });
       
       setEventoAsistencia(null);

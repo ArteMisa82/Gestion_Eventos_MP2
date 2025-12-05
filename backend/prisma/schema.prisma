@@ -47,6 +47,7 @@ model detalle_eventos {
   detalle_instructores detalle_instructores[]
   material_curso       material_curso[]
   registro_evento      registro_evento[]
+  requisitos_evento    requisitos_evento[]
 
   @@index([id_evt_per], map: "idx_detalle_eventos_evento")
   @@index([tip_evt], map: "idx_detalle_eventos_tipo")
@@ -143,6 +144,7 @@ model registro_personas {
   fec_reg_per             DateTime        @default(dbgenerated("CURRENT_DATE")) @db.Date
   not_fin_evt             Decimal?        @db.Decimal(4, 2)
   asi_evt_det             Int?            @db.SmallInt
+  apr_evt_det             Int?            @db.SmallInt
   id_est                  Int?
   estado_registro         String?         @default("PENDIENTE") @db.VarChar(30)
   responsable_valida      Boolean?        @default(false)
@@ -160,6 +162,32 @@ model registro_personas {
   @@index([id_est], map: "idx_registro_personas_estudiante")
   @@index([estado_registro], map: "idx_registro_personas_estado")
   @@index([responsable_valida], map: "idx_registro_personas_validacion")
+  requisitos_persona requisitos_persona[]
+}
+
+model requisitos_evento {
+  id_req             Int                  @id @default(autoincrement())
+  id_det             String               @db.VarChar(10)
+  tip_req            String               @db.VarChar(50)
+  des_req            String?
+  obligatorio        Boolean?             @default(true)
+  detalle_eventos    detalle_eventos      @relation(fields: [id_det], references: [id_det], onDelete: Cascade)
+  requisitos_persona requisitos_persona[]
+
+  @@index([id_det], map: "idx_requisitos_detalle")
+}
+
+model requisitos_persona {
+  id_req_per         Int                 @id @default(autoincrement())
+  num_reg_per        Int
+  id_req             Int
+  val_req            String?
+  fec_val            DateTime?           @default(now()) @db.Timestamp(6)
+  registro_personas  registro_personas   @relation(fields: [num_reg_per], references: [num_reg_per], onDelete: Cascade)
+  requisitos_evento  requisitos_evento   @relation(fields: [id_req], references: [id_req], onDelete: Cascade)
+
+  @@unique([num_reg_per, id_req])
+  @@index([num_reg_per], map: "idx_requisitos_persona_registro")
 }
 
 model requerimientos {
