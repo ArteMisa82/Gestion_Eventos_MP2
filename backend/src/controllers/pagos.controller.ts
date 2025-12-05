@@ -120,9 +120,21 @@ async subirComprobante(req: Request, res: Response) {
     // 🛑 Usamos (req as any).file para evitar errores de tipado sin MulterRequest
     const file = (req as any).file; 
     const { numRegPer } = req.params;
+    const { metodoPago } = req.body; // Recibir método de pago del frontend
 
     if (!file) {
         return res.status(400).json({ message: 'Debe adjuntar un archivo de comprobante (PDF o imagen).' });
+    }
+
+    if (!metodoPago) {
+        return res.status(400).json({ message: 'Debe especificar el método de pago (EFECTIVO o TARJETA).' });
+    }
+
+    // Validar que el método de pago sea válido
+    if (metodoPago !== 'EFECTIVO' && metodoPago !== 'TARJETA') {
+        return res.status(400).json({ 
+            message: 'Método de pago inválido. Solo se acepta EFECTIVO o TARJETA.' 
+        });
     }
 
     try {
@@ -131,7 +143,8 @@ async subirComprobante(req: Request, res: Response) {
         
         await pagosService.registrarComprobante(
             parseInt(numRegPer), 
-            rutaArchivo
+            rutaArchivo,
+            metodoPago
         );
 
         // Se establece el estado en 0 (Pendiente de Revisión)

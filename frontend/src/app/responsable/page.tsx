@@ -310,8 +310,11 @@ export default function DashboardResponsable() {
   const cargarInscritos = async (eventoId: string): Promise<Inscrito[]> => {
     setIsLoadingInscritos(true);
     try {
-      const response = await eventosAPI.getInscritosConEvaluacion(eventoId);
-      const datosInscritos = response.data || [];
+      // TODO: Implementar endpoint getInscritosConEvaluacion en el backend
+      // const response = await eventosAPI.getInscritosConEvaluacion(eventoId);
+      // const datosInscritos = response.data || [];
+      
+      const datosInscritos: Inscrito[] = []; // Mock data vacía por ahora
       
       setInscritos(datosInscritos);
       return datosInscritos;
@@ -365,31 +368,32 @@ export default function DashboardResponsable() {
 
   const handleGuardarAsistencia = async (datosAsistencia: any[]) => {
     try {
-      const datosConResponsable = datosAsistencia.map(inscrito => ({
-        ...inscrito,
-        asistenciaModificadaPor: 'responsable',
-        notaModificadaPor: inscrito.nota !== undefined ? 'responsable' : undefined,
-        fechaModificacion: new Date().toISOString()
-      }));
+      // TODO: Implementar endpoints de asistencia en el backend
+      // const datosConResponsable = datosAsistencia.map(inscrito => ({
+      //   ...inscrito,
+      //   asistenciaModificadaPor: 'responsable',
+      //   notaModificadaPor: inscrito.nota !== undefined ? 'responsable' : undefined,
+      //   fechaModificacion: new Date().toISOString()
+      // }));
 
-      await eventosAPI.guardarAsistencia(eventoAsistencia!.id, datosConResponsable);
+      // await eventosAPI.guardarAsistencia(eventoAsistencia!.id, datosConResponsable);
       
-      const evaluacionCompleta = verificarEvaluacionCompleta(datosConResponsable, eventoAsistencia!);
+      // const evaluacionCompleta = verificarEvaluacionCompleta(datosConResponsable, eventoAsistencia!);
       
-      if (evaluacionCompleta) {
-        await eventosAPI.marcarEvaluacionCompleta(eventoAsistencia!.id);
+      // if (evaluacionCompleta) {
+      //   await eventosAPI.marcarEvaluacionCompleta(eventoAsistencia!.id);
         
-        setEventos(prev => prev.map(ev => 
-          ev.id === eventoAsistencia!.id 
-            ? { ...ev, evaluacionCompletada: true }
-            : ev
-        ));
-      }
+      //   setEventos(prev => prev.map(ev => 
+      //     ev.id === eventoAsistencia!.id 
+      //       ? { ...ev, evaluacionCompletada: true }
+      //       : ev
+      //   ));
+      // }
 
       Swal.fire({
-        icon: "success",
-        title: "Datos guardados",
-        text: `Los datos de ${obtenerTextoEvaluacion(eventoAsistencia!)} se han guardado correctamente${evaluacionCompleta ? '. Evaluación completada.' : ''}`,
+        icon: "info",
+        title: "Funcionalidad no disponible",
+        text: "La gestión de asistencia y notas está en desarrollo",
         confirmButtonColor: "#581517",
       });
       
