@@ -207,7 +207,7 @@ export class PagosService {
     // SUBIR COMPROBANTE
     // ----------------------------------------
 
-    async registrarComprobante(numRegPer: number, rutaComprobante: string) {
+    async registrarComprobante(numRegPer: number, rutaComprobante: string, metodoPago: string) {
 
         const pagoExistente = await prisma.pagos.findFirst({
             where: { num_reg_per: numRegPer }
@@ -217,20 +217,34 @@ export class PagosService {
             throw new Error('No existe un pago registrado antes de subir el comprobante.');
         }
 
-        return prisma.pagos.update({
+        // Actualizar el pago con el comprobante y método de pago
+        await prisma.pagos.update({
             where: { num_pag: pagoExistente.num_pag },
             data: {
                 pdf_comp_pag: rutaComprobante,
-                pag_o_no: 0,
+                met_pag: metodoPago,
+                pag_o_no: 0, // 0 = Pendiente de validación
             }
         });
+
+        // Actualizar el estado del registro a VALIDACION_PENDIENTE
+        await prisma.registro_personas.update({
+            where: { num_reg_per: numRegPer },
+            data: {
+                estado_registro: 'VALIDACION_PENDIENTE'
+            }
+        });
+
+        return {
+            message: 'Comprobante registrado correctamente. Esperando validación del responsable.'
+        };
     }
 
     // ----------------------------------------
     // VALIDAR PAGO POR RESPONSABLE
     // ----------------------------------------
 
-    async validarComprobante(numRegPer: number, aprobado: boolean) {
+    async validarComprobante(numRegPer: number, aprobado: boolean, comentarios?: string) {
 
         const pagoExistente = await prisma.pagos.findFirst({
             where: { num_reg_per: numRegPer }
@@ -240,10 +254,28 @@ export class PagosService {
             throw new Error('No se encontró pago para este registro.');
         }
 
-        return prisma.pagos.update({
+        // Actualizar el estado del pago
+        await prisma.pagos.update({
             where: { num_pag: pagoExistente.num_pag },
-            data: { pag_o_no: aprobado ? 1 : 0 }
+            data: { pag_o_no: aprobado ? 1 : -1 } // 1 = Aprobado, -1 = Rechazado
         });
+
+        // Actualizar el estado del registro
+        await prisma.registro_personas.update({
+            where: { num_reg_per: numRegPer },
+            data: {
+                estado_registro: aprobado ? 'COMPLETADO' : 'RECHAZADO',
+                responsable_valida: aprobado,
+                fecha_validacion: new Date(),
+                comentarios_responsable: comentarios
+            }
+        });
+
+        return {
+            message: aprobado 
+                ? 'Comprobante aprobado. Inscripción completada.' 
+                : 'Comprobante rechazado. El usuario debe volver a subir el comprobante.'
+        };
     }
 
     // --------------------------------------------------------

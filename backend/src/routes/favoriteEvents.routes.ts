@@ -16,7 +16,7 @@ const router = Router();
 router.patch(
   "/:id_evt/favorito",
   requireAuth,
-  requireAdmin,
+  //requireAdmin,
   toggleFavorito
 );
 

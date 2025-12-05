@@ -233,7 +233,11 @@ export class EstudiantesService {
   async obtenerDetallesPorInstructor(id_usu: number) {
     const detalles = await prisma.detalle_eventos.findMany({
       where: {
-        id_usr_instructor: id_usu
+        detalle_instructores: {
+          some: {
+            id_usu: id_usu
+          }
+        }
       },
       include: {
         eventos: {

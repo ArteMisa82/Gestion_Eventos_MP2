@@ -91,8 +91,13 @@ export class InscripcionesService {
     const registroEvento = await prisma.registro_evento.findUnique({
       where: { id_reg_evt: data.id_reg_evt },
       include: {
-        detalle_eventos: true,
-        registro_personas: true
+        detalle_eventos: {
+          include: {
+            eventos: true
+          }
+        },
+        registro_personas: true,
+        nivel: true
       }
     });
 
@@ -111,14 +116,43 @@ export class InscripcionesService {
       throw new Error(validacion.mensaje);
     }
 
-    // Crear la inscripción
+    // Obtener información del evento para determinar si requiere pago
+    const detalle = registroEvento.detalle_eventos;
+    const evento = detalle.eventos;
+    
+    // Determinar el estado inicial basado en si el evento requiere pago
+    const esPago = evento.cos_evt === 'DE PAGO' || evento.cos_evt === 'PAGO';
+    const estadoInicial = esPago ? 'PAGO_PENDIENTE' : 'COMPLETADO';
+    
+    // Crear la inscripción con el estado apropiado
     const inscripcion = await prisma.registro_personas.create({
       data: {
         id_usu: data.id_usu,
-        id_reg_evt: data.id_reg_evt
+        id_reg_evt: data.id_reg_evt,
+        estado_registro: estadoInicial,
+        responsable_valida: !esPago // Si es gratuito, se auto-aprueba
       },
       include: INSCRIPCION_INCLUDES
     });
+
+    // Si requiere pago, crear el registro de pago pendiente
+    if (esPago) {
+      // Obtener tarifa del evento
+      const tarifa = await prisma.tarifas_evento.findFirst({
+        where: { id_evt: evento.id_evt }
+      });
+      
+      if (tarifa) {
+        await prisma.pagos.create({
+          data: {
+            num_reg_per: inscripcion.num_reg_per,
+            val_pag: tarifa.val_evt,
+            met_pag: 'EFECTIVO', // Método por defecto, se actualizará cuando el usuario suba el comprobante
+            pag_o_no: 0 // Pendiente de pago
+          }
+        });
+      }
+    }
 
     return this.formatResponse(inscripcion);
   }
@@ -249,7 +283,23 @@ export class InscripcionesService {
     }
 
     const detalle = registroEvento.detalle_eventos;
+    
+    if (!detalle) {
+      return {
+        valido: false,
+        mensaje: 'El detalle del evento no existe'
+      };
+    }
+    
     const evento = detalle.eventos;
+    
+    if (!evento) {
+      return {
+        valido: false,
+        mensaje: 'El evento asociado no existe'
+      };
+    }
+    
     const inscritos = registroEvento.registro_personas || [];
     const nivelRequerido = registroEvento.id_niv;
     const tipoPublico = evento.tip_pub_evt; // GENERAL, ESTUDIANTES, ADMINISTRATIVOS

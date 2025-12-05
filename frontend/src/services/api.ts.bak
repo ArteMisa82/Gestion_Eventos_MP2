@@ -1,5 +1,5 @@
-﻿// ==========================================
-// ðŸ’¸ TARIFAS DE EVENTO
+// ==========================================
+// 💸 TARIFAS DE EVENTO
 // ==========================================
 
 export const tarifasAPI = {
@@ -17,7 +17,7 @@ export const tarifasAPI = {
   },
 };
 /**
- * Servicio centralizado para comunicaciÃ³n con el backend
+ * Servicio centralizado para comunicación con el backend
  * Base URL: http://localhost:3001/api
  */
 
@@ -25,7 +25,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
 /**
  * Headers comunes para todas las peticiones
- * Incluye el token JWT si estÃ¡ disponible
+ * Incluye el token JWT si está disponible
  */
 const getHeaders = (token?: string): HeadersInit => {
   const headers: HeadersInit = {
@@ -49,13 +49,13 @@ const getHeaders = (token?: string): HeadersInit => {
 };
 
 /**
- * Opciones de fetch con credentials para cookies de sesiÃ³n
+ * Opciones de fetch con credentials para cookies de sesión
  */
 const getFetchOptions = (method: string = 'GET', body?: any): RequestInit => {
   const options: RequestInit = {
     method,
     headers: getHeaders(),
-    credentials: 'include', // âœ… IMPORTANTE: Incluir cookies de sesiÃ³n
+    credentials: 'include', // ✅ IMPORTANTE: Incluir cookies de sesión
   };
   
   if (body) {
@@ -92,12 +92,12 @@ const handleResponse = async (response: Response) => {
 };
 
 // ==========================================
-// ðŸ” AUTENTICACIÃ“N
+// 🔐 AUTENTICACIÓN
 // ==========================================
 
 export const authAPI = {
   /**
-   * Iniciar sesiÃ³n
+   * Iniciar sesión
    * POST /api/auth/login
    */
   login: async (cor_usu: string, password: string) => {
@@ -105,7 +105,7 @@ export const authAPI = {
     const response = await fetch(`${API_URL}/auth/login`, {
       ...getFetchOptions('POST', { email: cor_usu, password }),
       headers: getHeaders(),
-      credentials: 'include',                // <- importante: enviar/recibir cookie de sesiÃ³n
+      credentials: 'include',                // <- importante: enviar/recibir cookie de sesión
       body: JSON.stringify({ email: cor_usu, password }), // <- claves que el backend espera
     });
     return handleResponse(response);
@@ -145,7 +145,7 @@ export const authAPI = {
   },
   
   /**
-   * Solicitar recuperaciÃ³n de contraseÃ±a
+   * Solicitar recuperación de contraseña
    * POST /api/auth/forgot-password
    */
   forgotPassword: async (email: string) => {
@@ -159,7 +159,7 @@ export const authAPI = {
   },
 
   /**
-   * Restablecer contraseÃ±a
+   * Restablecer contraseña
    * POST /api/auth/reset-password
    */
   resetPassword: async (token: string, newPassword: string) => {
@@ -187,7 +187,7 @@ export const authAPI = {
   },
 
   /**
-   * Enviar cÃ³digo de verificaciÃ³n por email (usa sesiÃ³n/cookies)
+   * Enviar código de verificación por email (usa sesión/cookies)
    * POST /api/auth/send-verification
    */
   sendVerification: async (token?: string) => {
@@ -200,7 +200,7 @@ export const authAPI = {
   },
 
   /**
-   * Verificar cÃ³digo de email (requiere sesiÃ³n)
+   * Verificar código de email (requiere sesión)
    * POST /api/auth/verify-email
    */
   verifyEmail: async (token?: string, code?: string) => {
@@ -214,7 +214,7 @@ export const authAPI = {
   },
 
   /**
-   * Logout (usa sesiÃ³n/cookies)
+   * Logout (usa sesión/cookies)
    * POST /api/auth/logout
    */
   logout: async (token?: string) => {
@@ -227,7 +227,7 @@ export const authAPI = {
   },
 
   /**
-   * Obtener perfil (usa sesiÃ³n)
+   * Obtener perfil (usa sesión)
    * GET /api/auth/profile
    */
   getProfile: async (token?: string) => {
@@ -240,7 +240,7 @@ export const authAPI = {
 };
 
 // ==========================================
-// ðŸ“… EVENTOS
+// 📅 EVENTOS
 // ==========================================
 
 export const eventosAPI = {
@@ -263,21 +263,21 @@ export const eventosAPI = {
   },
 
   /**
-   * Obtener evento por ID (endpoint pÃºblico)
+   * Obtener evento por ID (endpoint público)
    * GET /api/eventos/publico/:id
    */
   getById: async (id: string) => {
-    // Intentar primero el endpoint pÃºblico (sin autenticaciÃ³n)
+    // Intentar primero el endpoint público (sin autenticación)
     try {
       const response = await fetch(`${API_URL}/eventos/publico/${id}`);
       if (response.ok) {
         return handleResponse(response);
       }
     } catch (error) {
-      console.log('Error en endpoint pÃºblico, intentando con autenticaciÃ³n:', error);
+      console.log('Error en endpoint público, intentando con autenticación:', error);
     }
     
-    // Fallback: endpoint con autenticaciÃ³n
+    // Fallback: endpoint con autenticación
     const response = await fetch(`${API_URL}/eventos/${id}`, getFetchOptions());
     return handleResponse(response);
   },
@@ -347,87 +347,7 @@ export const eventosAPI = {
   },
 
   /**
-<<<<<<< HEAD
-   * Obtener inscritos con datos de evaluación para un evento
-   * Nota: el backend expone calificaciones por id_det (detalle), no por id_evt.
-   * Aquí intentamos obtener el detalle del evento y luego llamar al endpoint
-   * de calificaciones correspondiente.
-   */
-  getInscritosConEvaluacion: async (id_evt: string) => {
-    // obtener detalles del evento
-    const detallesResp = await fetch(`${API_URL}/detalles/${id_evt}`, getFetchOptions());
-    const detalles = await handleResponse(detallesResp);
-
-    // handleResponse devuelve { success, data }
-    const detallesData = detalles.data || detalles;
-    if (!Array.isArray(detallesData) || detallesData.length === 0) {
-      return { success: true, data: [] };
-    }
-
-    // Elegimos el primer detalle (se puede mejorar la lógica si se necesita otro criterio)
-    const detalle = detallesData[0];
-    const id_det = detalle.id_det;
-
-    // Llamar a calificaciones para ese detalle
-    const resp = await fetch(`${API_URL}/calificaciones/${id_det}`, getFetchOptions());
-    return handleResponse(resp);
-  },
-
-  /**
-   * Guardar (actualizar) asistencia / notas para múltiples inscritos
-   * Mapea los datos a la estructura que espera el backend y usa asignar-lote
-   */
-  guardarAsistencia: async (id_evt: string, datos: any[]) => {
-    // obtener detalle asociado al evento
-    const detallesResp = await fetch(`${API_URL}/detalles/${id_evt}`, getFetchOptions());
-    const detalles = await handleResponse(detallesResp);
-    const detallesData = detalles.data || detalles;
-    if (!Array.isArray(detallesData) || detallesData.length === 0) {
-      throw new Error('No se encontró detalle para el evento');
-    }
-
-    const id_det = detallesData[0].id_det;
-
-    // preparar payload: backend acepta { calificaciones: AsignarNotaDTO[] }
-    const calificacionesPayload = datos.map(d => ({
-      id_reg_per: d.id || d.id_reg_per,
-      not_fin_evt: d.nota === undefined ? undefined : d.nota,
-      asi_evt_det: d.asistio === undefined ? undefined : (typeof d.asistio === 'boolean' ? (d.asistio ? 100 : 0) : d.asistio)
-    }));
-
-    const response = await fetch(`${API_URL}/calificaciones/${id_det}/asignar-lote`, getFetchOptions('PUT', { calificaciones: calificacionesPayload }));
-    return handleResponse(response);
-  },
-
-  /**
-   * Marcar evaluación como completada. El backend no tiene un endpoint específico
-   * para esto en el proyecto actual, así que por ahora lo registramos localmente
-   * devolviendo éxito para que la UI pueda actualizar el estado sin crash.
-   * (Si más adelante se agrega un endpoint, cambiar la implementación para persistir)
-   */
-  marcarEvaluacionCompleta: async (id_evt: string) => {
-    // Intentamos localizar el detalle para posible futura persistencia
-    try {
-      const detallesResp = await fetch(`${API_URL}/detalles/${id_evt}`, getFetchOptions());
-      const detalles = await handleResponse(detallesResp);
-      const detallesData = detalles.data || detalles;
-
-      if (Array.isArray(detallesData) && detallesData.length > 0) {
-        // no-op on server for now; return success shape
-        return { success: true, message: 'Marcado localmente (pendiente persistencia en backend)' };
-      }
-      return { success: true, message: 'Marcado localmente (sin detalle asociado)' };
-    } catch (err: any) {
-      // No queremos romper la UI si el backend no soporta persistencia
-      return { success: true, message: 'Marcado localmente' };
-    }
-  },
-
-  /**
    * Obtener usuarios que son responsables activos de algún curso
-=======
-   * Obtener usuarios que son responsables activos de algÃºn curso
->>>>>>> 1c12c3f45b1a24c507403e2343ef7cabeeb949d8
    * GET /api/eventos/usuarios/responsables-activos
    */
   getResponsablesActivos: async () => {
@@ -436,7 +356,7 @@ export const eventosAPI = {
   },
 
   /**
-   * Obtener eventos publicados (PÃšBLICO - sin token)
+   * Obtener eventos publicados (PÚBLICO - sin token)
    * GET /api/eventos/publicos
    */
   getPublicados: async (filters?: {
@@ -452,14 +372,14 @@ export const eventosAPI = {
     if (filters?.busqueda) params.append('busqueda', filters.busqueda);
     
     const response = await fetch(`${API_URL}/eventos/publicos?${params}`, {
-      headers: getHeaders(), // Sin token - es pÃºblico
+      headers: getHeaders(), // Sin token - es público
     });
     return handleResponse(response);
   },
 };
 
 // ==========================================
-// ðŸ“‹ DETALLES DE EVENTOS
+// 📋 DETALLES DE EVENTOS
 // ==========================================
 
 export const detallesAPI = {
@@ -515,7 +435,7 @@ export const detallesAPI = {
 };
 
 // ==========================================
-// ðŸ“ REGISTRO DE EVENTOS (Cursos por nivel)
+// 📝 REGISTRO DE EVENTOS (Cursos por nivel)
 // ==========================================
 
 export const registroEventoAPI = {
@@ -579,7 +499,7 @@ export const registroEventoAPI = {
 };
 
 // ==========================================
-// ðŸ‘¥ INSCRIPCIONES
+// 👥 INSCRIPCIONES
 // ==========================================
 
 export const inscripcionesAPI = {
@@ -638,7 +558,7 @@ export const inscripcionesAPI = {
   },
 
   /**
-   * Cancelar inscripciÃ³n
+   * Cancelar inscripción
    * DELETE /api/inscripciones/:id
    */
   cancelar: async (token: string, id: number) => {
@@ -650,7 +570,7 @@ export const inscripcionesAPI = {
   },
 
   /**
-   * Obtener estadÃ­sticas de inscripciones
+   * Obtener estadísticas de inscripciones
    * GET /api/inscripciones/estadisticas/:id_reg_evt
    */
   getEstadisticas: async (token: string, id_reg_evt: string) => {
@@ -662,7 +582,7 @@ export const inscripcionesAPI = {
 };
 
 // ==========================================
-// ðŸŽ“ ESTUDIANTES
+// 🎓 ESTUDIANTES
 // ==========================================
 
 export const estudiantesAPI = {
@@ -724,7 +644,7 @@ export const estudiantesAPI = {
 };
 
 // ==========================================
-// ðŸ« CARRERAS
+// 🏫 CARRERAS
 // ==========================================
 
 export const carrerasAPI = {
@@ -793,7 +713,7 @@ export const carrerasAPI = {
   },
 
   /**
-   * Obtener estadÃ­sticas
+   * Obtener estadísticas
    * GET /api/carreras/estadisticas
    */
   getEstadisticas: async (token: string) => {
@@ -805,7 +725,7 @@ export const carrerasAPI = {
 };
 
 // ==========================================
-// ðŸ“š NIVELES
+// 📚 NIVELES
 // ==========================================
 
 export const nivelesAPI = {
@@ -887,7 +807,7 @@ export const nivelesAPI = {
 };
 
 // ==========================================
-// ðŸ‘¤ USUARIOS
+// 👤 USUARIOS
 // ==========================================
 
 export const usuariosAPI = {
@@ -901,7 +821,7 @@ export const usuariosAPI = {
   },
 
   /**
-   * Obtener usuario por cÃ©dula
+   * Obtener usuario por cédula
    * GET /api/user/ced/:ced
    */
   getByCedula: async (cedula: string) => {
@@ -930,50 +850,6 @@ export const usuariosAPI = {
   },
 };
 
-
-/* ==========================================
-   ⭐ FAVORITOS (EVENTOS)
-   ========================================== */
-export const favoritesAPI = {
-  /**
-   * Obtener lista pública de eventos favoritos
-   * GET /api/eventos/favoritos/list
-   */
-  getList: async () => {
-    const response = await fetch(`${API_URL}/eventos/favoritos/list`, getFetchOptions());
-    return handleResponse(response);
-  },
-
-  /**
-   * Marcar / desmarcar favorito (ADMIN)
-   * PATCH /api/eventos/:id_evt/favorito
-   * Body: { favorito: boolean }
-   */
-  toggle: async (id_evt: string, favorito: boolean) => {
-    const response = await fetch(`${API_URL}/eventos/${id_evt}/favorito`, getFetchOptions('PATCH', { favorito }));
-    return handleResponse(response);
-  },
-};
-
-
-/* ==========================================
-   ðŸ“Š DASHBOARD (ADMIN)
-   ========================================== */
-export const dashboardAPI = {
-  /**
-   * Obtener resumen del dashboard (ADMIN)
-   * GET /api/admin/dashboard/summary
-   * Devuelve { success, data: DashboardSummary, message }
-   */
-  getSummary: async () => {
-    const response = await fetch(`${API_URL}/admin/dashboard/summary`, getFetchOptions());
-    return handleResponse(response);
-  },
-};
-/* ==========================================
-   â­ FAVORITOS (EVENTOS)
-   ========================================== */
-
 export default {
   auth: authAPI,
   eventos: eventosAPI,
@@ -985,6 +861,18 @@ export default {
   niveles: nivelesAPI,
   usuarios: usuariosAPI,
   tarifas: tarifasAPI,
-  dashboard: dashboardAPI,
-  favorites: favoritesAPI,
+};
+/* ==========================================
+   📊 DASHBOARD (ADMIN)
+   ========================================== */
+export const dashboardAPI = {
+  /**
+   * Obtener resumen del dashboard (ADMIN)
+   * GET /api/admin/dashboard/summary
+   * Devuelve { success, data: DashboardSummary, message }
+   */
+  getSummary: async () => {
+    const response = await fetch(`${API_URL}/admin/dashboard/summary`, getFetchOptions());
+    return handleResponse(response);
+  },
 };
