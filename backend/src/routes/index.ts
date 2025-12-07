@@ -45,6 +45,7 @@ router.use('/certificados', certificadosRoutes);
 router.use('/requisitos', requisitosRoutes);
 
 router.use('/tarifas-evento', tarifasEventoRoutes);
+router.use('/api/certificados-usuario', certificadosRoutes);
 // 👇 ESTA LÍNEA FALTABA
 router.use('/comite', comiteRoutes);
 
