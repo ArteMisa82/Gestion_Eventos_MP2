@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authenticateToken } from '../middlewares/auth.middleware';
+import { authMiddleware } from '../middlewares/auth.middleware';
 import * as requisitosController from '../controllers/requisitos.controller';
 
 const router = Router();
@@ -9,7 +9,7 @@ const router = Router();
  * @desc    Crear un requisito para un evento
  * @access  Private (Admin/Responsable)
  */
-router.post('/', authenticateToken, (req, res) => requisitosController.crearRequisito(req, res));
+router.post('/', authMiddleware, (req, res) => requisitosController.crearRequisito(req, res));
 
 /**
  * @route   GET /api/requisitos/detalle/:idDetalle
@@ -23,7 +23,7 @@ router.get('/detalle/:idDetalle', (req, res) => requisitosController.obtenerRequ
  * @desc    Completar un requisito
  * @access  Private
  */
-router.post('/completar', authenticateToken, (req, res) => requisitosController.completarRequisito(req, res));
+router.post('/completar', authMiddleware, (req, res) => requisitosController.completarRequisito(req, res));
 
 /**
  * @route   GET /api/requisitos/verificar/:numRegPer/:idDetalle
@@ -32,7 +32,7 @@ router.post('/completar', authenticateToken, (req, res) => requisitosController.
  */
 router.get(
   '/verificar/:numRegPer/:idDetalle',
-  authenticateToken,
+  authMiddleware,
   (req, res) => requisitosController.verificarRequisitosCompletos(req, res)
 );
 
@@ -43,7 +43,7 @@ router.get(
  */
 router.get(
   '/completados/:numRegPer',
-  authenticateToken,
+  authMiddleware,
   (req, res) => requisitosController.obtenerRequisitosCompletados(req, res)
 );
 
@@ -52,6 +52,6 @@ router.get(
  * @desc    Eliminar un requisito
  * @access  Private (Admin/Responsable)
  */
-router.delete('/:idRequisito', authenticateToken, (req, res) => requisitosController.eliminarRequisito(req, res));
+router.delete('/:idRequisito', authMiddleware, (req, res) => requisitosController.eliminarRequisito(req, res));
 
 export default router;
