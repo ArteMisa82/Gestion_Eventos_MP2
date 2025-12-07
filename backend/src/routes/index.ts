@@ -16,7 +16,7 @@ import calificacionesRoutes from './calificaciones.routes';
 import comiteRoutes from './comite.routes'; // 👈 NUEVO
 import certificadosRoutes from './certificados.routes';
 import tarifasEventoRoutes from './tarifas-evento.routes';
-import requisitosRoutes from './requisitos.routes';
+// import requisitosRoutes from './requisitos.routes'; // TODO: Resolver problema de carga de módulo
 
 // 👉 IMPORTAR LAS RUTAS NUEVAS AQUÍ
 import favoriteEventsRoutes from './favoriteEvents.routes';
@@ -42,7 +42,7 @@ router.use('/pagos', pagosRoutes);
 router.use('/materiales', materialesRoutes);
 router.use('/calificaciones', calificacionesRoutes);
 router.use('/certificados', certificadosRoutes);
-router.use('/requisitos', requisitosRoutes);
+// router.use('/requisitos', requisitosRoutes); // TODO: Resolver problema de carga de módulo
 
 router.use('/tarifas-evento', tarifasEventoRoutes);
 // 👇 ESTA LÍNEA FALTABA
