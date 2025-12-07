@@ -105,6 +105,10 @@ export class InscripcionesService {
       throw new Error('El registro de evento no existe');
     }
 
+    if (!data.id_reg_evt) {
+      throw new Error('El id_reg_evt es requerido');
+    }
+
     // Validar inscripción (cupo, estado, duplicados)
     const validacion = await this.validarInscripcion(
       data.id_usu,
@@ -218,6 +222,10 @@ export class InscripcionesService {
         throw new Error('No hay niveles configurados en el sistema');
       }
 
+      if (!data.id_det) {
+        throw new Error('El id_det es requerido para crear el registro de evento');
+      }
+
       const { generateRegistroEventoId } = require('../utils/id-generator.util');
       const id_reg_evt = await generateRegistroEventoId();
 
@@ -227,7 +235,7 @@ export class InscripcionesService {
           id_det: data.id_det,
           id_niv: primerNivel.id_niv
         }
-      });
+      }) as any;
     }
 
     // Crear la inscripción

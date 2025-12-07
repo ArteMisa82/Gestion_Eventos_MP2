@@ -1,4 +1,4 @@
-import prisma from "../prisma.config";
+import prisma from "../config/database";
 
 interface RequisitoData {
   id_det: string;
