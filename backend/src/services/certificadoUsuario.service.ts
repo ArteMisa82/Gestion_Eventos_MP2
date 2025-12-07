@@ -11,7 +11,9 @@ class CertificadoUsuarioService {
             fs.mkdirSync(dir, { recursive: true });
         }
 
-        const filePath = path.join(dir, `${nombre}.pdf`);
+        const safeName = nombre.replace(/[<>:"/\\|?*]/g, '_');
+        const filePath = path.join(dir, `${safeName}.pdf`);
+
         fs.writeFileSync(filePath, pdfBuffer);
 
         const relativePath = `uploads/certificados/user_${userId}/${nombre}.pdf`;
