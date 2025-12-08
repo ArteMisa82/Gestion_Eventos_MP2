@@ -30,7 +30,7 @@ export default function HomePage() {
       </section>
 
       {/* PROGRAMS */}
-        <ProgramsGrid />
+      <ProgramsGrid />
     </main>
   );
 }
