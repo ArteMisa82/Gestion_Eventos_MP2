@@ -11,8 +11,8 @@ export class CertificadoUsuarioController {
             const userId = Number(req.params.id);
             const data = req.body;
 
-            if (!userId || !data?.nombre || !data?.id_est || !data?.id_reg_evt) {
-                return res.status(400).json({ message: "Faltan datos: nombre del certificado es obligatorio." });
+            if (!userId || !data?.nombre || !data?.id_est || !data?.num_reg_per) {
+                return res.status(400).json({ message: "Faltan datos obligatorios: nombre, id_est, num_reg_per." });
             }
 
             // 1. Generar PDF desde instancia
@@ -22,11 +22,10 @@ export class CertificadoUsuarioController {
             const certificado = await certificadoUsuarioService.generarYGuardar(
                 userId,
                 data.id_est,
-                data.id_reg_evt,
+                data.num_reg_per,
                 pdf,
                 data.nombre
             );
-
 
             return res.json({
                 message: "Certificado generado y guardado.",

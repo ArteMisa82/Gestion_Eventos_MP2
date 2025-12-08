@@ -1,4 +1,3 @@
-
 import { Router } from "express";
 import { certificadoUsuarioController } from "../controllers/certificadoUsuario.controller";
 
@@ -34,6 +33,9 @@ const router = Router();
  *               nombre:
  *                 type: string
  *                 example: "Certificado de Participación"
+ *               id_est:
+ *                 type: integer
+ *                 example: 7
  *               num_reg_per:
  *                 type: integer
  *                 example: 1456
@@ -56,7 +58,6 @@ const router = Router();
  *         description: Error generando certificado
  */
 router.post('/:id', certificadoUsuarioController.generar.bind(certificadoUsuarioController));
-
 
 /**
  * @swagger
@@ -83,16 +84,12 @@ router.post('/:id', certificadoUsuarioController.generar.bind(certificadoUsuario
  *                 properties:
  *                   id_cert:
  *                     type: integer
- *                     example: 3
  *                   nombre:
  *                     type: string
- *                     example: "Certificado de Asistencia"
  *                   url_cert:
  *                     type: string
- *                     example: "uploads/certificados/user_5/certificado_1456.pdf"
  *                   creado_en:
  *                     type: string
- *                     example: "2025-01-03T18:23:45.000Z"
  *       500:
  *         description: Error obteniendo certificados
  */

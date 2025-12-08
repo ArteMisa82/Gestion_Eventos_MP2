@@ -134,7 +134,6 @@ model registro_evento {
   detalle_eventos   detalle_eventos        @relation(fields: [id_det], references: [id_det], onDelete: Cascade)
   nivel             nivel                  @relation(fields: [id_niv], references: [id_niv], onDelete: Cascade)
   registro_personas registro_personas[]
-  certificados      certificados_usuario[] // <-- agregamos lado inverso
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -157,7 +156,7 @@ model registro_personas {
   registro_evento         registro_evento      @relation(fields: [id_reg_evt], references: [id_reg_evt], onDelete: Cascade)
   usuarios                usuarios             @relation(fields: [id_usu], references: [id_usu], onDelete: Cascade)
   requisitos_persona      requisitos_persona[]
-
+  certificados_usuario certificados_usuario[] @relation("RegistroCertificados")
   @@index([fec_reg_per], map: "idx_registro_personas_fecha")
   @@index([id_usu], map: "idx_registro_personas_usuario")
   @@index([id_reg_evt, not_fin_evt, asi_evt_det], map: "idx_registro_personas_calificaciones")
@@ -191,7 +190,7 @@ model requisitos_persona {
   validado_por          Int?
   requisitos_evento     requisitos_evento @relation(fields: [id_req], references: [id_req], onDelete: Cascade)
   registro_personas     registro_personas @relation(fields: [num_reg_per], references: [num_reg_per], onDelete: Cascade)
-
+  certificados certificados_usuario[] @relation("RequisitosCertificados")
   @@unique([num_reg_per, id_req])
   @@index([num_reg_per], map: "idx_requisitos_persona_registro")
   @@index([estado_validacion], map: "idx_requisitos_validacion")
@@ -428,20 +427,18 @@ model sc_usuarios {
 }
 
 model certificados_usuario {
-  id_cert    Int      @id @default(autoincrement())
-  id_usu     Int
-  id_est     Int
-  id_reg_evt String   @db.VarChar(10)
-  nombre     String   @db.VarChar(150)
-  url_cert   String   @db.VarChar(255)
-  creado_en  DateTime @default(now())
+  id_cert          Int                  @id @default(autoincrement())
+  id_usu           Int
+  id_est           Int
+  num_reg_per      Int
+  id_req_per       Int?                 // Campo opcional para vincular requisitos_persona
+  nombre           String               @db.VarChar(150)
+  url_cert         String               @db.VarChar(255)
+  creado_en        DateTime             @default(now())
 
-  usuarios        usuarios        @relation(fields: [id_usu], references: [id_usu], onDelete: Cascade)
-  estudiantes     estudiantes     @relation(fields: [id_est], references: [id_est], onDelete: Cascade)
-  registro_evento registro_evento @relation(fields: [id_reg_evt], references: [id_reg_evt], onDelete: Cascade)
-
-  @@unique([id_est, id_reg_evt])
-  @@index([id_usu])
-  @@index([id_est])
-  @@index([id_reg_evt])
+  // Relaciones
+  usuarios         usuarios             @relation(fields: [id_usu], references: [id_usu], onDelete: Cascade)
+  estudiantes      estudiantes          @relation(fields: [id_est], references: [id_est], onDelete: Cascade)
+  registro_persona registro_personas   @relation(fields: [num_reg_per], references: [num_reg_per], onDelete: Cascade, name: "RegistroCertificados")
+  requisitos_persona requisitos_persona? @relation(fields: [id_req_per], references: [id_req_per], name: "RequisitosCertificados")
 }
