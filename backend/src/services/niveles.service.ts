@@ -228,8 +228,7 @@ export class NivelesService {
       where: { id_niv },
       include: {
         estudiantes: true,
-        registro_evento: true,
-        usuarios: true
+        registro_evento: true
       }
     });
 
@@ -240,16 +239,12 @@ export class NivelesService {
     // Verificar restricciones
     const restricciones = [];
 
-    if (nivel.estudiantes.length > 0) {
+    if (nivel.estudiantes?.length > 0) {
       restricciones.push(`${nivel.estudiantes.length} estudiante(s)`);
     }
 
-    if (nivel.registro_evento.length > 0) {
+    if (nivel.registro_evento?.length > 0) {
       restricciones.push(`${nivel.registro_evento.length} curso(s)`);
-    }
-
-    if (nivel.usuarios.length > 0) {
-      restricciones.push(`${nivel.usuarios.length} usuario(s) asignado(s)`);
     }
 
     if (restricciones.length > 0) {

@@ -1,7 +1,7 @@
 ---
 name: Solicitud de Cambio Usuario Final
-about: Registrar una solicitud de cambio ingresada por el usuario final.
-title: 'SRC - '
+about: Formulario de cambios del Usuario Final
+title: SRC
 labels: ''
 assignees: ''
 

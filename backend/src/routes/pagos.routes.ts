@@ -36,7 +36,7 @@ const upload = multer({ dest: 'uploads/comprobantes/' });
  *       404:
  *         description: Evento sin tarifas
  */
-router.get('/tarifas/:idEvento', pagosController.getTarifas);
+router.get('/tarifas/:idEvento', pagosController.getTarifas.bind(pagosController));
 
 /**
  * @swagger
@@ -67,7 +67,7 @@ router.get('/tarifas/:idEvento', pagosController.getTarifas);
  *       400:
  *         description: Datos inválidos
  */
-router.post('/registrar', pagosController.registrarPago);
+router.post('/registrar', pagosController.registrarPago.bind(pagosController));
 
 /**
  * @swagger
@@ -89,7 +89,7 @@ router.post('/registrar', pagosController.registrarPago);
  *       404:
  *         description: Registro o evento no encontrado
  */
-router.get('/orden_pago/:numRegPer', pagosController.getPaymentOrder);
+router.get('/orden_pago/:numRegPer', pagosController.getPaymentOrder.bind(pagosController));
 
 /**
  * @swagger
@@ -125,7 +125,7 @@ router.post(
     '/subir-comprobante/:numRegPer',
     authMiddleware,                 // Requiere login
     upload.single('comprobante'),   // Subida del archivo
-    pagosController.subirComprobante
+    pagosController.subirComprobante.bind(pagosController)
 );
 
 /**
@@ -163,7 +163,7 @@ router.post(
 router.put(
     '/validar/:numRegPer',
     adminMiddleware,                // Solo el responsable/admin puede validar
-    pagosController.validarComprobante
+    pagosController.validarComprobante.bind(pagosController)
 );
 
 export default router;

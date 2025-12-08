@@ -347,6 +347,15 @@ export const eventosAPI = {
   },
 
   /**
+   * Obtener detalles de un evento
+   * GET /api/eventos/:id/detalles
+   */
+  getDetallesPorEvento: async (idEvento: string) => {
+    const response = await fetch(`${API_URL}/eventos/${idEvento}/detalles`, getFetchOptions());
+    return handleResponse(response);
+  },
+
+  /**
 <<<<<<< HEAD
    * Obtener inscritos con datos de evaluación para un evento
    * Nota: el backend expone calificaciones por id_det (detalle), no por id_evt.
@@ -970,8 +979,182 @@ export const dashboardAPI = {
     return handleResponse(response);
   },
 };
+
 /* ==========================================
-   â­ FAVORITOS (EVENTOS)
+   ðŸ"� CALIFICACIONES
+   ========================================== */
+export const calificacionesAPI = {
+  /**
+   * Obtener calificaciones de un evento
+   * GET /api/calificaciones/:idDetalle
+   */
+  obtenerCalificaciones: async (idDetalle: string) => {
+    const response = await fetch(`${API_URL}/calificaciones/${idDetalle}`, getFetchOptions());
+    return handleResponse(response);
+  },
+
+  /**
+   * Asignar calificación a un participante
+   * PUT /api/calificaciones/:idDetalle/asignar
+   */
+  asignarCalificacion: async (idDetalle: string, data: {
+    id_reg_per: string;
+    not_fin_evt?: number;
+    asi_evt_det?: number;
+  }) => {
+    const response = await fetch(`${API_URL}/calificaciones/${idDetalle}/asignar`, getFetchOptions('PUT', data));
+    return handleResponse(response);
+  },
+
+  /**
+   * Asignar calificaciones en lote
+   * PUT /api/calificaciones/:idDetalle/asignar-lote
+   */
+  asignarCalificacionesLote: async (idDetalle: string, calificaciones: Array<{
+    id_reg_per: string;
+    not_fin_evt?: number;
+    asi_evt_det?: number;
+  }>) => {
+    const response = await fetch(`${API_URL}/calificaciones/${idDetalle}/asignar-lote`, getFetchOptions('PUT', { calificaciones }));
+    return handleResponse(response);
+  },
+};
+
+/* ==========================================
+   📚 MATERIALES
+   ========================================== */
+export const materialesAPI = {
+  /**
+   * Obtener todos los materiales de un detalle (profesor)
+   * GET /api/materiales/:idDetalle/todos
+   */
+  obtenerTodos: async (idDetalle: string) => {
+    const response = await fetch(`${API_URL}/materiales/${idDetalle}/todos`, getFetchOptions());
+    return handleResponse(response);
+  },
+
+  /**
+   * Obtener materiales visibles (estudiantes)
+   * GET /api/materiales/:idDetalle/visibles
+   */
+  obtenerVisibles: async (idDetalle: string) => {
+    const response = await fetch(`${API_URL}/materiales/${idDetalle}/visibles`, getFetchOptions());
+    return handleResponse(response);
+  },
+
+  /**
+   * Subir nuevo material
+   * POST /api/materiales
+   */
+  subir: async (data: {
+    id_det: string;
+    nom_mat: string;
+    des_mat?: string;
+    mat_det: string;
+    tip_mat?: string;
+    tam_mat?: number;
+    vis_est_mat?: boolean;
+  }) => {
+    const response = await fetch(`${API_URL}/materiales`, getFetchOptions('POST', data));
+    return handleResponse(response);
+  },
+
+  /**
+   * Cambiar visibilidad de un material
+   * PATCH /api/materiales/:idMaterial/visibilidad
+   */
+  cambiarVisibilidad: async (idMaterial: string, visible: boolean) => {
+    const response = await fetch(`${API_URL}/materiales/${idMaterial}/visibilidad`, getFetchOptions('PATCH', { visible }));
+    return handleResponse(response);
+  },
+
+  /**
+   * Eliminar material
+   * DELETE /api/materiales/:idMaterial
+   */
+  eliminar: async (idMaterial: string) => {
+    const response = await fetch(`${API_URL}/materiales/${idMaterial}`, getFetchOptions('DELETE'));
+    return handleResponse(response);
+  },
+};
+
+/* ==========================================
+   📋 REQUISITOS
+   ========================================== */
+
+export const requisitosAPI = {
+  /**
+   * Obtener requisitos por detalle de evento
+   * GET /api/requisitos/detalle/:idDetalle
+   */
+  obtenerPorDetalle: async (idDetalle: string) => {
+    const response = await fetch(`${API_URL}/requisitos/detalle/${idDetalle}`, getFetchOptions('GET'));
+    return handleResponse(response);
+  },
+
+  /**
+   * Crear un requisito
+   * POST /api/requisitos
+   */
+  crear: async (data: {
+    id_det: string;
+    tip_req: string;
+    des_req?: string;
+    obligatorio?: boolean;
+  }) => {
+    const response = await fetch(`${API_URL}/requisitos`, getFetchOptions('POST', data));
+    return handleResponse(response);
+  },
+
+  /**
+   * Completar un requisito (estudiante)
+   * POST /api/requisitos/completar
+   */
+  completar: async (data: {
+    num_reg_per: number;
+    id_req: number;
+    val_req?: string;
+  }) => {
+    const response = await fetch(`${API_URL}/requisitos/completar`, getFetchOptions('POST', data));
+    return handleResponse(response);
+  },
+
+  /**
+   * Verificar si todos los requisitos están completos
+   * GET /api/requisitos/verificar/:numRegPer/:idDetalle
+   */
+  verificarCompletos: async (numRegPer: number, idDetalle: string) => {
+    const response = await fetch(
+      `${API_URL}/requisitos/verificar/${numRegPer}/${idDetalle}`,
+      getFetchOptions('GET')
+    );
+    return handleResponse(response);
+  },
+
+  /**
+   * Obtener requisitos completados por un estudiante
+   * GET /api/requisitos/completados/:numRegPer
+   */
+  obtenerCompletados: async (numRegPer: number) => {
+    const response = await fetch(
+      `${API_URL}/requisitos/completados/${numRegPer}`,
+      getFetchOptions('GET')
+    );
+    return handleResponse(response);
+  },
+
+  /**
+   * Eliminar un requisito
+   * DELETE /api/requisitos/:idRequisito
+   */
+  eliminar: async (idRequisito: number) => {
+    const response = await fetch(`${API_URL}/requisitos/${idRequisito}`, getFetchOptions('DELETE'));
+    return handleResponse(response);
+  },
+};
+
+/* ==========================================
+   â­ FAVORITOS (EVENTOS)
    ========================================== */
 
 export default {
@@ -987,4 +1170,7 @@ export default {
   tarifas: tarifasAPI,
   dashboard: dashboardAPI,
   favorites: favoritesAPI,
+  calificaciones: calificacionesAPI,
+  materiales: materialesAPI,
+  requisitos: requisitosAPI,
 };
