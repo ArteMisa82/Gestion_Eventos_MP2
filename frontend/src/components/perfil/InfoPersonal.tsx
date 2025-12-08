@@ -68,15 +68,15 @@ export default function InfoPersonal({ setMostrarModal }: InfoPersonalProps) {
     }
   }, [user]);
   // ✅ Detectar si es estudiante
-const esEstudiante = (user as any)?.stu_usu === 1;
+const esEstudiante = Number((user as any)?.stu_usu) === 1;
 
 // ✅ Obtener solo las carreras activas del estudiante
 const carrerasDelEstudiante = ((user as any)?.estudiantes || [])
-  .filter((e: any) => e.est_activo === 1)
   .map((e: any) => ({
     id_niv: e.nivel.id_niv,
     nombre: `${e.nivel.carreras.nom_car} - ${e.nivel.nom_niv}`
   }));
+
 
   // Cargar niveles desde el backend
   /*useEffect(() => {

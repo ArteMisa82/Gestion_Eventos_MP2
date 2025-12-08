@@ -28,7 +28,7 @@ export class UserService {
           where: {
             est_activo: 1
           },
-          take: 1
+          //take: 1
         },
         // Eventos donde el usuario fue asignado como responsable
         eventos: {
