@@ -43,7 +43,7 @@ export default function InfoPersonal({ setMostrarModal }: InfoPersonalProps) {
     niv_usu: '',
     cor_usu: ''
   });
-  const [niveles, setNiveles] = useState<Nivel[]>([]);
+  //const [niveles, setNiveles] = useState<Nivel[]>([]);
   const [loading, setLoading] = useState(false);
 
   // Cargar datos del usuario
@@ -51,10 +51,10 @@ export default function InfoPersonal({ setMostrarModal }: InfoPersonalProps) {
     if (user) {
       const userData = user as any;
       // Obtener el nivel del estudiante activo
-      const nivelActual = userData.estudiantes && userData.estudiantes.length > 0 
-        ? userData.estudiantes[0].id_niv 
+      const nivelActual = userData.estudiantes && userData.estudiantes.length > 0
+        ? userData.estudiantes[0].id_niv
         : '';
-      
+
       setFormData({
         nom_usu: user.nom_usu || '',
         nom_seg_usu: userData.nom_seg_usu || '',
@@ -67,9 +67,19 @@ export default function InfoPersonal({ setMostrarModal }: InfoPersonalProps) {
       });
     }
   }, [user]);
+  // ✅ Detectar si es estudiante
+const esEstudiante = (user as any)?.stu_usu === 1;
+
+// ✅ Obtener solo las carreras activas del estudiante
+const carrerasDelEstudiante = ((user as any)?.estudiantes || [])
+  .filter((e: any) => e.est_activo === 1)
+  .map((e: any) => ({
+    id_niv: e.nivel.id_niv,
+    nombre: `${e.nivel.carreras.nom_car} - ${e.nivel.nom_niv}`
+  }));
 
   // Cargar niveles desde el backend
-  useEffect(() => {
+  /*useEffect(() => {
     const fetchNiveles = async () => {
       try {
         const response = await fetch('http://localhost:3001/api/niveles', {
@@ -91,7 +101,7 @@ export default function InfoPersonal({ setMostrarModal }: InfoPersonalProps) {
     if (token) {
       fetchNiveles();
     }
-  }, [token]);
+  }, [token]);*/
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -103,7 +113,7 @@ export default function InfoPersonal({ setMostrarModal }: InfoPersonalProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validaciones
     if (!formData.nom_usu || !formData.ape_usu || !formData.ced_usu) {
       await Swal.fire({
@@ -130,7 +140,7 @@ export default function InfoPersonal({ setMostrarModal }: InfoPersonalProps) {
     try {
       // Remove niv_usu and cor_usu from formData as they shouldn't be updated this way
       const { niv_usu, cor_usu, ...dataToUpdate } = formData;
-      
+
       const response = await fetch(`http://localhost:3001/api/user/${user?.id_usu}`, {
         method: 'PUT',
         headers: {
@@ -149,7 +159,7 @@ export default function InfoPersonal({ setMostrarModal }: InfoPersonalProps) {
           text: 'Tus datos se han guardado correctamente',
           confirmButtonColor: '#7A1C1C'
         });
-        
+
         // Actualizar localStorage
         const updatedUser = { ...user, ...formData };
         localStorage.setItem('user', JSON.stringify(updatedUser));
@@ -252,19 +262,18 @@ export default function InfoPersonal({ setMostrarModal }: InfoPersonalProps) {
         />
 
         {/* Nivel (Carrera + Semestre) - Solo para estudiantes */}
-        {user && (user as any).stu_usu === 1 && (
+        {esEstudiante && carrerasDelEstudiante.length > 0 && (
           <select
             name="niv_usu"
             value={formData.niv_usu}
-            onChange={handleChange}
+            disabled
             className="p-3 border border-gray-300 rounded-xl
                        focus:ring-2 focus:ring-[#7A1C1C] focus:border-transparent
                        transition-all duration-200 text-gray-700 bg-white"
           >
-            <option value="">Seleccionar nivel académico</option>
-            {niveles.map((nivel) => (
-              <option key={nivel.id_niv} value={nivel.id_niv}>
-                {nivel.carrera.nom_car} - {nivel.nom_niv}
+            {carrerasDelEstudiante.map((c) => (
+              <option key={c.id_niv} value={c.id_niv}>
+                {c.nombre}
               </option>
             ))}
           </select>

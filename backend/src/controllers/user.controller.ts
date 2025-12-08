@@ -17,9 +17,9 @@ export class UserController {
       const user = await userService.getById(id);
 
       if (!user) {
-        return res.status(404).json({
+        return res.status(404).json({ 
           success: false,
-          msg: "Usuario no encontrado"
+          msg: "Usuario no encontrado" 
         });
       }
 
@@ -29,10 +29,10 @@ export class UserController {
       });
     } catch (error) {
       console.error('Error al obtener usuario:', error);
-      res.status(500).json({
+      res.status(500).json({ 
         success: false,
-        msg: "Error interno",
-        error
+        msg: "Error interno", 
+        error 
       });
     }
   }
@@ -61,62 +61,46 @@ export class UserController {
   async updateById(req: Request, res: Response) {
     try {
       const id = Number(req.params.id);
-      const { niv_usu, id_car, ...userData } = req.body;
-
+      const { niv_usu, ...userData } = req.body;
+      
       console.log('Actualizando usuario ID:', id);
       console.log('Datos recibidos:', req.body);
-
+      
       // Actualizar datos básicos del usuario
       const updated = await userService.updateById(id, userData);
-
+      
       // Si se proporciona niv_usu, actualizar en la tabla estudiantes
-      // ✅ Nivel / carrera como STRING (compatibilidad Prisma)
-      let idNivelFinal: string | null = null;
-
-      // Si llega carrera, buscar nivel por id_car (string)
-      if (id_car) {
-        const nivel = await prisma.nivel.findFirst({
-          where: { id_car: String(id_car) }
-        });
-
-        if (nivel) {
-          idNivelFinal = String(nivel.id_niv);
-        }
-      }
-      // Si llega nivel directo
-      else if (niv_usu) {
-        idNivelFinal = String(niv_usu);
-      }
-
-      // Guardar en estudiantes
-      if (idNivelFinal) {
+      if (niv_usu) {
+        console.log('Actualizando nivel del estudiante a:', niv_usu);
+        
+        // Buscar estudiante activo del usuario
         const estudiante = await prisma.estudiantes.findFirst({
           where: {
             id_usu: id,
             est_activo: 1
           }
         });
-
+        
         if (estudiante) {
+          // Actualizar nivel del estudiante existente
           await prisma.estudiantes.update({
             where: { id_est: estudiante.id_est },
-            data: { id_niv: idNivelFinal }
+            data: { id_niv: niv_usu }
           });
         } else {
+          // Crear nuevo registro de estudiante
           await prisma.estudiantes.create({
             data: {
               id_usu: id,
-              id_niv: idNivelFinal,
+              id_niv: niv_usu,
               fec_ingreso: new Date(),
               est_activo: 1,
-              observaciones: 'Asignado desde perfil'
+              observaciones: 'Creado desde actualización de perfil'
             }
           });
         }
       }
-
-
-
+      
       res.json({
         success: true,
         message: 'Usuario actualizado correctamente',
@@ -124,10 +108,10 @@ export class UserController {
       });
     } catch (error) {
       console.error('Error al actualizar usuario:', error);
-      res.status(500).json({
+      res.status(500).json({ 
         success: false,
         message: 'Error al actualizar usuario',
-        error
+        error 
       });
     }
   }
