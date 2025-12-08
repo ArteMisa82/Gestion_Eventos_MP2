@@ -22,9 +22,10 @@ model autoridades {
 }
 
 model carreras {
-  id_car  String  @id @db.VarChar(10)
-  nom_car String  @db.VarChar(50)
-  nivel   nivel[]
+  id_car   String     @id @db.VarChar(10)
+  nom_car  String     @db.VarChar(50)
+  nivel    nivel[]
+  usuarios usuarios[] // ✅ AGREGA ESTA LÍNEA
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -226,6 +227,7 @@ model usuarios {
   ape_usu              String                 @db.VarChar(50)
   ape_seg_usu          String?                @db.VarChar(50)
   tel_usu              String?                @db.VarChar(10)
+  id_car               String?                @db.VarChar(10) // ✅ nueva columna
   img_usu              String?
   pdf_ced_usu          String?
   stu_usu              Int?                   @db.SmallInt
@@ -236,7 +238,9 @@ model usuarios {
   eventos              eventos[]
   material_curso       material_curso[]
   registro_personas    registro_personas[]
+  carrera              carreras?              @relation(fields: [id_car], references: [id_car])
 
+  @@index([id_car])
   @@index([ced_usu], map: "idx_usuarios_cedula")
   @@index([cor_usu], map: "idx_usuarios_correo")
 }

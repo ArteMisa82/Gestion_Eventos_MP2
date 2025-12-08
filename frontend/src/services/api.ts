@@ -356,7 +356,6 @@ export const eventosAPI = {
   },
 
   /**
-<<<<<<< HEAD
    * Obtener inscritos con datos de evaluación para un evento
    * Nota: el backend expone calificaciones por id_det (detalle), no por id_evt.
    * Aquí intentamos obtener el detalle del evento y luego llamar al endpoint
@@ -434,9 +433,6 @@ export const eventosAPI = {
 
   /**
    * Obtener usuarios que son responsables activos de algún curso
-=======
-   * Obtener usuarios que son responsables activos de algÃºn curso
->>>>>>> 1c12c3f45b1a24c507403e2343ef7cabeeb949d8
    * GET /api/eventos/usuarios/responsables-activos
    */
   getResponsablesActivos: async () => {
