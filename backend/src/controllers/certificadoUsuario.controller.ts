@@ -11,7 +11,7 @@ export class CertificadoUsuarioController {
             const userId = Number(req.params.id);
             const data = req.body;
 
-            if (!userId || !data?.nombre) {
+            if (!userId || !data?.nombre || !data?.id_est || !data?.id_reg_evt) {
                 return res.status(400).json({ message: "Faltan datos: nombre del certificado es obligatorio." });
             }
 
@@ -21,9 +21,12 @@ export class CertificadoUsuarioController {
             // 2. Guardar registro
             const certificado = await certificadoUsuarioService.generarYGuardar(
                 userId,
+                data.id_est,
+                data.id_reg_evt,
                 pdf,
                 data.nombre
             );
+
 
             return res.json({
                 message: "Certificado generado y guardado.",

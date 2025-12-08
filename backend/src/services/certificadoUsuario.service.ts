@@ -4,7 +4,13 @@ import path from 'path';
 
 class CertificadoUsuarioService {
 
-    async generarYGuardar(userId: number, pdfBuffer: Buffer, nombre: string) {
+    async generarYGuardar(
+        userId: number,
+        idEst: number,
+        idRegEvt: string,
+        pdfBuffer: Buffer,
+        nombre: string
+    ) {
         const dir = path.join(__dirname, '../uploads/certificados/user_' + userId);
 
         if (!fs.existsSync(dir)) {
@@ -21,10 +27,13 @@ class CertificadoUsuarioService {
         const certificado = await prisma.certificados_usuario.create({
             data: {
                 id_usu: userId,
+                id_est: idEst,
+                id_reg_evt: idRegEvt,
                 nombre,
                 url_cert: relativePath
             }
         });
+
 
         return certificado;
     }

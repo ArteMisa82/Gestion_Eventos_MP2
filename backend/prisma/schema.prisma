@@ -128,12 +128,13 @@ model personas {
 }
 
 model registro_evento {
-  id_reg_evt        String              @id @db.VarChar(10)
-  id_det            String              @db.VarChar(10)
-  id_niv            String              @db.VarChar(10)
-  detalle_eventos   detalle_eventos     @relation(fields: [id_det], references: [id_det], onDelete: Cascade)
-  nivel             nivel               @relation(fields: [id_niv], references: [id_niv], onDelete: Cascade)
+  id_reg_evt        String                 @id @db.VarChar(10)
+  id_det            String                 @db.VarChar(10)
+  id_niv            String                 @db.VarChar(10)
+  detalle_eventos   detalle_eventos        @relation(fields: [id_det], references: [id_det], onDelete: Cascade)
+  nivel             nivel                  @relation(fields: [id_niv], references: [id_niv], onDelete: Cascade)
   registro_personas registro_personas[]
+  certificados      certificados_usuario[] // <-- agregamos lado inverso
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -236,7 +237,7 @@ model usuarios {
   eventos              eventos[]
   material_curso       material_curso[]
   registro_personas    registro_personas[]
-  certificados         certificados_usuario[] // ✅ relación inversa
+  certificados         certificados_usuario[] // <-- agregamos este lado inverso
 
   @@index([ced_usu], map: "idx_usuarios_cedula")
   @@index([cor_usu], map: "idx_usuarios_correo")
@@ -280,16 +281,17 @@ model detalle_instructores {
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model estudiantes {
-  id_est            Int                 @id @default(autoincrement())
+  id_est            Int                    @id @default(autoincrement())
   id_usu            Int
-  id_niv            String              @db.VarChar(10)
-  fec_ingreso       DateTime            @default(dbgenerated("CURRENT_DATE")) @db.Date
-  fec_egreso        DateTime?           @db.Date
-  est_activo        Int                 @default(1) @db.SmallInt
+  id_niv            String                 @db.VarChar(10)
+  fec_ingreso       DateTime               @default(dbgenerated("CURRENT_DATE")) @db.Date
+  fec_egreso        DateTime?              @db.Date
+  est_activo        Int                    @default(1) @db.SmallInt
   observaciones     String?
-  nivel             nivel               @relation(fields: [id_niv], references: [id_niv], onDelete: Cascade)
-  usuarios          usuarios            @relation(fields: [id_usu], references: [id_usu], onDelete: Cascade)
+  nivel             nivel                  @relation(fields: [id_niv], references: [id_niv], onDelete: Cascade)
+  usuarios          usuarios               @relation(fields: [id_usu], references: [id_usu], onDelete: Cascade)
   registro_personas registro_personas[]
+  certificados      certificados_usuario[]
 
   @@unique([id_usu, id_niv, fec_ingreso], map: "estudiantes_unico_activo")
   @@index([est_activo], map: "idx_estudiantes_activo")
@@ -426,13 +428,20 @@ model sc_usuarios {
 }
 
 model certificados_usuario {
-  id_cert   Int      @id @default(autoincrement())
-  id_usu    Int
-  nombre    String   @db.VarChar(100)
-  url_cert  String   @db.VarChar(255)
-  creado_en DateTime @default(now())
+  id_cert    Int      @id @default(autoincrement())
+  id_usu     Int
+  id_est     Int
+  id_reg_evt String   @db.VarChar(10)
+  nombre     String   @db.VarChar(150)
+  url_cert   String   @db.VarChar(255)
+  creado_en  DateTime @default(now())
 
-  usuarios usuarios @relation(fields: [id_usu], references: [id_usu], onDelete: Cascade)
+  usuarios        usuarios        @relation(fields: [id_usu], references: [id_usu], onDelete: Cascade)
+  estudiantes     estudiantes     @relation(fields: [id_est], references: [id_est], onDelete: Cascade)
+  registro_evento registro_evento @relation(fields: [id_reg_evt], references: [id_reg_evt], onDelete: Cascade)
 
+  @@unique([id_est, id_reg_evt])
   @@index([id_usu])
+  @@index([id_est])
+  @@index([id_reg_evt])
 }
