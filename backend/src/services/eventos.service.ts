@@ -301,11 +301,17 @@ export class EventosService {
   ) {
     console.log('🔥🔥🔥 ACTUALIZANDO EVENTO:', idEvento);
     console.log('📦 Datos recibidos:', JSON.stringify(data, null, 2));
+    console.log('📊 MOD_EVT recibido:', data.mod_evt);
+    console.log('💰 COS_EVT recibido:', data.cos_evt);
+    console.log('🎯 CUPOS recibidos:', data.detalles?.cup_det);
     
     // Actualizar el evento primero
     const evento = await this.actualizarEvento(idEvento, data, userId);
     
-    console.log('✅ Evento actualizado. tip_pub_evt:', evento.tip_pub_evt);
+    console.log('✅ Evento actualizado en tabla EVENTOS:');
+    console.log('   - mod_evt guardado:', evento.mod_evt);
+    console.log('   - cos_evt guardado:', evento.cos_evt);
+    console.log('   - tip_pub_evt guardado:', evento.tip_pub_evt);
 
     // Verificar si hay detalles o carreras/semestres para procesar
     const tieneDetalles = data.detalles && (data.detalles.cup_det || data.detalles.hor_det || data.detalles.tip_evt || data.detalles.cat_det);
@@ -354,14 +360,21 @@ export class EventosService {
           tip_evt: tipEvtValue,
         };
 
+        console.log('📝 Datos del DETALLE a guardar:');
+        console.log('   - cup_det:', detalleData.cup_det);
+        console.log('   - hor_det:', detalleData.hor_det);
+        console.log('   - cat_det:', detalleData.cat_det);
+
         if (detalleExistente) {
           // Actualizar detalle existente
-          await prisma.detalle_eventos.update({
+          const detalleActualizado = await prisma.detalle_eventos.update({
             where: { id_det: detalleExistente.id_det },
             data: detalleData
           });
           id_det_final = detalleExistente.id_det;
-          console.log('  ✅ Detalle actualizado:', id_det_final);
+          console.log('  ✅ Detalle ACTUALIZADO en BD:', id_det_final);
+          console.log('     - cup_det guardado:', detalleActualizado.cup_det);
+          console.log('     - hor_det guardado:', detalleActualizado.hor_det);
         } else {
           // Crear nuevo detalle
           const { generateDetalleId } = await import('../utils/id-generator.util');
@@ -457,15 +470,26 @@ export class EventosService {
         if (instructorDtos.length > 0) {
           console.log(`  🔄 Reemplazando ${instructorDtos.length} instructores...`);
           await this.instructoresService.reemplazarInstructores(id_det_final, instructorDtos);
+          console.log(`  ✅ Instructores guardados en BD correctamente`);
+        } else {
+          console.log(`  ⚠️ No se encontraron instructores para guardar`);
         }
       }
     }
 
     // Retornar evento actualizado con detalles
-    return await prisma.eventos.findUnique({
+    console.log('📤 Retornando evento actualizado desde la BD...');
+    const eventoFinal = await prisma.eventos.findUnique({
       where: { id_evt: idEvento },
       include: EVENTO_INCLUDES.full
     });
+    
+    console.log('🎉 EVENTO FINAL DESDE BD:');
+    console.log('   - mod_evt:', eventoFinal?.mod_evt);
+    console.log('   - cos_evt:', eventoFinal?.cos_evt);
+    console.log('   - detalle_eventos[0]?.cup_det:', eventoFinal?.detalle_eventos?.[0]?.cup_det);
+    
+    return eventoFinal;
   }
 
   /**

@@ -116,6 +116,9 @@ export class EventosController {
       console.log("ID evento:", req.params.id);
       console.log("User ID:", userId);
       console.log("Data recibida:", JSON.stringify(data, null, 2));
+      console.log("mod_evt (modalidad):", data.mod_evt);
+      console.log("cos_evt (pago):", data.cos_evt);
+      console.log("detalles.cup_det (cupos):", data.detalles?.cup_det);
 
       // Validar datos básicos
       if (data.detalles) {

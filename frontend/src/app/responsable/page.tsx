@@ -85,9 +85,23 @@ export default function DashboardResponsable() {
 
   // Función helper para transformar eventos del backend
   const transformarEvento = (evento: any): Evento => {
+    // 🔍 LOGGING DETALLADO DE CUPOS
+    console.log(`\n🔍 transformarEvento - ${evento.nom_evt}`);
+    console.log('  📦 detalle_eventos completo:', evento.detalle_eventos);
+    console.log('  📦 detalle_eventos[0]:', evento.detalle_eventos?.[0]);
+    console.log('  📦 cup_det:', evento.detalle_eventos?.[0]?.cup_det);
+    console.log('  📦 detalles (alternativo):', evento.detalles);
+    
     // Extraer tarifas desde tarifas_evento
     const tarifaEstudiante = evento.tarifas_evento?.find((t: any) => t.tip_par === "ESTUDIANTE");
     const tarifaPersona = evento.tarifas_evento?.find((t: any) => t.tip_par === "PERSONA");
+    
+    // Extraer cupos del detalle_eventos si existe
+    const cuposDelDetalle = evento.detalle_eventos?.[0]?.cup_det || evento.detalles?.cup_det || 0;
+    const horasDelDetalle = evento.detalle_eventos?.[0]?.hor_det || evento.detalles?.hor_det || 0;
+    
+    console.log('  ✅ cuposDelDetalle calculado:', cuposDelDetalle);
+    console.log('  ✅ horasDelDetalle calculado:', horasDelDetalle);
     
     // Función para extraer solo la fecha (yyyy-MM-dd) sin conversión de zona horaria
     const extraerFecha = (fechaISO: string | undefined): string => {
@@ -115,12 +129,12 @@ export default function DashboardResponsable() {
       fec_fin_evt: evento.fec_fin_evt,
       modalidad: evento.mod_evt || "",
       mod_evt: evento.mod_evt,
-      capacidad: evento.capacidad || evento.cupos || 0,
-      cupos: evento.cupos || evento.capacidad || 0,
+      capacidad: cuposDelDetalle,
+      cupos: cuposDelDetalle,
       publico: evento.tip_pub_evt === "GENERAL" ? "General" : "Estudiantes",
       tip_pub_evt: evento.tip_pub_evt,
-      horas: evento.horas || 0,
-      pago: evento.cos_evt === "GRATUITO" ? "Gratis" : "Pago",
+      horas: horasDelDetalle,
+      pago: (evento.cos_evt === "GRATUITO" || evento.cos_evt === "Gratis") ? "Gratis" : "Pago",
       cos_evt: evento.cos_evt,
       precioEstudiantes: tarifaEstudiante?.val_evt || 0,
       precioGeneral: tarifaPersona?.val_evt || 0,
@@ -162,24 +176,14 @@ export default function DashboardResponsable() {
           console.log('  📚 Carreras recibidas:', evento.carreras);
           console.log('  📖 Semestres recibidos:', evento.semestres);
           console.log('  🔍 Tipo:', evento.tip_evt || evento.tipoEvento);
+          console.log('  📦 cup_det en detalle:', evento.detalle_eventos?.[0]?.cup_det);
           
+          // Usar transformarEvento para consistencia
+          const eventoTransformado = transformarEvento(evento);
+          
+          // Agregar campos adicionales que no están en transformarEvento
           return {
-            id: evento.id_evt,
-            id_evt: evento.id_evt,
-            nombre: evento.nom_evt,
-            nom_evt: evento.nom_evt,
-            fechaInicio: evento.fec_evt ? new Date(evento.fec_evt).toLocaleDateString() : "",
-            fechaFin: evento.fec_fin_evt ? new Date(evento.fec_fin_evt).toLocaleDateString() : "",
-            fec_evt: evento.fec_evt,
-            fec_fin_evt: evento.fec_fin_evt,
-            modalidad: evento.mod_evt || "",
-            mod_evt: evento.mod_evt,
-            capacidad: evento.cap_evt || 0,
-            publico: evento.tip_pub_evt === "PUBLICO" ? "General" : "Estudiantes",
-            tip_pub_evt: evento.tip_pub_evt,
-            horas: evento.hrs_evt || 0,
-            pago: evento.cos_evt === "GRATIS" ? "Gratis" : "Pago",
-            cos_evt: evento.cos_evt,
+            ...eventoTransformado,
             carreras: Array.isArray(evento.carreras) ? evento.carreras : [],
             semestres: Array.isArray(evento.semestres) ? evento.semestres : [],
             tipoEvento: evento.tip_evt || evento.tipoEvento || "",

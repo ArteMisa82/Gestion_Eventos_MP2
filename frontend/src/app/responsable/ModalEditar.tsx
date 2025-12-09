@@ -151,6 +151,52 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
     requisitosCategoria: evento.requisitosCategoria || [],
   });
 
+  // Actualizar formData cuando cambie el evento
+  useEffect(() => {
+    if (evento) {
+      console.log("=== USEEFFECT: Actualizando formData desde evento ===");
+      console.log("evento.modalidad:", evento.modalidad);
+      console.log("evento.mod_evt:", evento.mod_evt);
+      console.log("evento.cupos:", evento.cupos);
+      console.log("evento.capacidad:", evento.capacidad);
+      console.log("evento.pago:", evento.pago);
+      console.log("evento.cos_evt:", evento.cos_evt);
+      
+      setFormData({
+        ...evento,
+        id: evento.id || evento.id_evt || "",
+        nombre: evento.nombre || evento.nom_evt || "",
+        fechaInicio: formatDateForInput(evento.fec_evt || evento.fechaInicio),
+        fechaFin: formatDateForInput(evento.fec_fin_evt || evento.fechaFin),
+        modalidad: evento.modalidad || evento.mod_evt || "",
+        cupos: evento.cupos ?? evento.capacidad ?? 0,
+        capacidad: evento.capacidad ?? evento.cupos ?? 0,
+        publico: evento.publico || evento.tip_pub_evt || "",
+        horas: evento.horas ?? 0,
+        pago: evento.pago || evento.cos_evt || "",
+        precioEstudiantes: evento.precioEstudiantes ?? 0,
+        precioGeneral: evento.precioGeneral ?? 0,
+        requiereAsistencia: false,
+        asistenciaMinima: 0,
+        nota: 0,
+        cartaMotivacion: false,
+        horario: evento.horario || "",
+        lugar: evento.lugar || evento.lug_evt || "",
+        carreras: Array.isArray(evento.carreras) ? evento.carreras : [],
+        semestres: Array.isArray(evento.semestres) ? evento.semestres : [],
+        tipoEvento: evento.tipoEvento || evento.categoria || "CURSO",
+        docentes: evento.docentes || (evento.docente ? [evento.docente] : []),
+        imagen: evento.imagen || imageDefault,
+        categoria: evento.categoria || "",
+        requisitosCategoria: evento.requisitosCategoria || [],
+      });
+      
+      console.log("formData actualizado - modalidad:", evento.modalidad || evento.mod_evt);
+      console.log("formData actualizado - cupos:", evento.cupos ?? evento.capacidad);
+      console.log("formData actualizado - pago:", evento.pago || evento.cos_evt);
+    }
+  }, [evento]);
+
   // Cargar usuarios desde el backend
   useEffect(() => {
     const fetchUsuarios = async () => {
@@ -450,6 +496,12 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
     console.log("Requisitos personalizados:", requisitosPersonalizados);
     console.log("formData al inicio:", JSON.stringify(formData, null, 2));
     
+    // LOGS ADICIONALES PARA DEPURACIÓN
+    console.log("=== VALORES CRÍTICOS ANTES DE ENVIAR ===");
+    console.log("modalidad:", formData.modalidad);
+    console.log("cupos:", formData.cupos, "tipo:", typeof formData.cupos);
+    console.log("pago:", formData.pago);
+    
     try {
       if (!formData.nombre || formData.nombre.trim() === "") {
         console.error("❌ Error: Nombre requerido - formData.nombre:", formData.nombre);
@@ -587,8 +639,24 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
       console.log("FormData completo:", JSON.parse(JSON.stringify(formData)));
       console.log("Evento original:", JSON.parse(JSON.stringify(evento)));
       
-      const costoEvento = formData.pago === "Gratuito" ? "GRATUITO" : "DE PAGO";
-      const modalidadEvento = formData.modalidad === "Presencial" ? "PRESENCIAL" : "VIRTUAL";
+      // Mapeo robusto para pago (manejar tanto "Gratis" como "Gratuito")
+      const costoEvento = (formData.pago === "Gratis" || formData.pago === "Gratuito" || formData.pago === "GRATUITO") 
+        ? "GRATUITO" 
+        : "DE PAGO";
+      
+      // Mapeo robusto para modalidad (ya viene en mayúsculas desde el select)
+      let modalidadEvento = "PRESENCIAL"; // valor por defecto
+      if (formData.modalidad) {
+        const modalidadUpper = formData.modalidad.toUpperCase();
+        if (modalidadUpper === "PRESENCIAL" || modalidadUpper.includes("PRESENCIAL")) {
+          modalidadEvento = "PRESENCIAL";
+        } else if (modalidadUpper === "VIRTUAL" || modalidadUpper.includes("VIRTUAL")) {
+          modalidadEvento = "VIRTUAL";
+        } else if (modalidadUpper === "HIBRIDA" || modalidadUpper.includes("HIBRID")) {
+          modalidadEvento = "VIRTUAL"; // En BD solo existen PRESENCIAL y VIRTUAL
+        }
+      }
+      
       const publicoEvento = formData.publico === "General" ? "GENERAL" : 
                            formData.publico === "Estudiantes" ? "ESTUDIANTES" : "ADMINISTRATIVOS";
 
@@ -675,6 +743,10 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
       };
 
       console.log("=== DATOS A ENVIAR ===");
+      console.log("eventoData completo:", JSON.stringify(eventoData, null, 2));
+      console.log("mod_evt (modalidad):", eventoData.mod_evt);
+      console.log("cos_evt (pago):", eventoData.cos_evt);
+      console.log("cup_det (cupos):", eventoData.detalles.cup_det);
       console.log("eventoData.fec_evt:", eventoData.fec_evt);
       console.log("eventoData.fec_fin_evt:", eventoData.fec_fin_evt);
 
@@ -696,10 +768,16 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
 
       console.log("Datos transformados a enviar:", JSON.parse(JSON.stringify(eventoData)));
       console.log("ID del evento a actualizar:", evento.id);
+      
+      console.log("🚀 === ENVIANDO PETICIÓN AL BACKEND ===");
+      console.log("URL:", `http://localhost:3001/api/eventos/${evento.id}`);
+      console.log("Payload completo que se enviará:");
+      console.log(JSON.stringify(eventoData, null, 2));
 
       const response = await eventosAPI.update(evento.id, eventoData);
       
-      console.log("Respuesta del servidor:", response);
+      console.log("✅ === RESPUESTA DEL BACKEND ===");
+      console.log("Response completa:", JSON.stringify(response, null, 2));
 
       if (response && response.success) {
         // Actualizar tarifas si el evento es de pago

@@ -150,6 +150,15 @@ model registro_personas {
   responsable_valida      Boolean?        @default(false)
   fecha_validacion        DateTime?       @db.Timestamp(6)
   comentarios_responsable String?
+  // Nuevos campos para documentos y requisitos adicionales
+  carta_motivacion        String?         @db.Text
+  documento_especifico    String?         @db.VarChar(255)
+  documento_especifico_url String?        @db.VarChar(500)
+  documento_extra_1       String?         @db.VarChar(255)
+  documento_extra_1_url   String?         @db.VarChar(500)
+  documento_extra_2       String?         @db.VarChar(255)
+  documento_extra_2_url   String?         @db.VarChar(500)
+  fec_envio_documentos    DateTime?       @db.Timestamp(6)
   informes                informes[]
   pagos                   pagos[]
   estudiantes             estudiantes?    @relation(fields: [id_est], references: [id_est], onUpdate: NoAction, map: "fk_registro_personas_estudiante")
