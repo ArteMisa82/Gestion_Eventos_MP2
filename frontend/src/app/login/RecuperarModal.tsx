@@ -15,6 +15,19 @@ export default function RecoveryModal({ isOpen, onClose, onRecoverySent }: Recov
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // ✅ Validar que NO sea correo @uta.edu.ec
+    if (recoveryEmail.toLowerCase().endsWith('@uta.edu.ec')) {
+      Swal.fire({
+        title: "Correo Institucional",
+        text: "No se puede cambiar la contraseña. Diríjase a la DITIC.",
+        icon: "warning",
+        confirmButtonColor: "#581517"
+      });
+      return;
+    }
+    
+    // ✅ Aceptar solo correos personales (@gmail.com, @hotmail.com, etc)
     setIsLoading(true);
     try {
       const res = await authAPI.forgotPassword(recoveryEmail);
