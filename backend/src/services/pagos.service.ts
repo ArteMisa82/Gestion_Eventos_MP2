@@ -104,32 +104,19 @@ export class PagosService {
 
         const registrationData = await prisma.registro_personas.findUnique({
             where: { num_reg_per: numRegPer },
-            select: {
-                usuarios: {
-                    select: {
-                        nom_usu: true,
-                        ape_usu: true,
-                        ced_usu: true,
-                    }
-                },
+            include: {
+                usuarios: true,
                 registro_evento: {
-                    select: {
+                    include: {
                         detalle_eventos: {
-                            select: {
-                                id_evt_per: true,
-                                eventos: {
-                                    select: {
-                                        nom_evt: true,
-                                        cos_evt: true,
-                                    }
-                                }
+                            include: {
+                                eventos: true
                             }
                         }
                     }
-                },
-                requisitos: true, // <- Asumimos que existe un campo que indica requisitos completados
+                }
             }
-        });
+        }) as any;
 
         if (!registrationData?.registro_evento?.detalle_eventos?.eventos) {
             throw new Error('No se encontraron datos del registro, evento o usuario.');
@@ -165,7 +152,7 @@ export class PagosService {
             throw new Error('El evento requiere pago, pero no existe tarifa definida.');
         }
 
-        const orderData: OrderData & { requisitos_completos: boolean } = {
+        return {
             num_orden: numRegPer,
             nom_evt: event.nom_evt,
             val_evt: tarifa.val_evt.toNumber(),
@@ -177,7 +164,7 @@ export class PagosService {
             metodos_pago:
                 'Transferencia bancaria a cuenta UTA: XXXXXX\n' +
                 'Pago en ventanilla Banco Pichincha.',
-            requisitos_completos: registrationData.requisitos ?? false
+            requisitos_completos: true // TODO: Implementar lógica de requisitos
         };
     }
 
@@ -286,17 +273,21 @@ export class PagosService {
         const pago = await prisma.pagos.findFirst({
             where: { num_reg_per: numRegPer },
             include: {
-                registro_personas: true, // Para acceder a quien puede validar
+                registro_personas: {
+                    include: {
+                        usuarios: true
+                    }
+                }
             }
-        });
+        }) as any;
 
         if (!pago) return null;
 
         return {
             ...pago,
             esResponsable: (userId: number) => {
-                // Lógica: si el userId coincide con el responsable o es admin
-                return pago.registro_personas.responsable_id === userId || pago.registro_personas.es_admin;
+                // Lógica: si el userId coincide con el usuario del registro o es admin
+                return pago.registro_personas.id_usu === userId || pago.registro_personas.usuarios?.adm_usu === 1;
             }
         };
     }

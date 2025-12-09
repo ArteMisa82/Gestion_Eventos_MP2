@@ -138,32 +138,24 @@ model registro_evento {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model registro_personas {
-  num_reg_per             Int             @id @default(autoincrement())
+  num_reg_per             Int                  @id @default(autoincrement())
   id_usu                  Int
-  id_reg_evt              String          @db.VarChar(10)
-  fec_reg_per             DateTime        @default(dbgenerated("CURRENT_DATE")) @db.Date
-  not_fin_evt             Decimal?        @db.Decimal(4, 2)
-  asi_evt_det             Int?            @db.SmallInt
-  apr_evt_det             Int?            @db.SmallInt
+  id_reg_evt              String               @db.VarChar(10)
+  fec_reg_per             DateTime             @default(dbgenerated("CURRENT_DATE")) @db.Date
+  not_fin_evt             Decimal?             @db.Decimal(4, 2)
+  asi_evt_det             Int?                 @db.SmallInt
   id_est                  Int?
-  estado_registro         String?         @default("PENDIENTE") @db.VarChar(30)
-  responsable_valida      Boolean?        @default(false)
-  fecha_validacion        DateTime?       @db.Timestamp(6)
+  estado_registro         String?              @default("PENDIENTE") @db.VarChar(30)
+  responsable_valida      Boolean?             @default(false)
+  fecha_validacion        DateTime?            @db.Timestamp(6)
   comentarios_responsable String?
-  // Nuevos campos para documentos y requisitos adicionales
-  carta_motivacion        String?         @db.Text
-  documento_especifico    String?         @db.VarChar(255)
-  documento_especifico_url String?        @db.VarChar(500)
-  documento_extra_1       String?         @db.VarChar(255)
-  documento_extra_1_url   String?         @db.VarChar(500)
-  documento_extra_2       String?         @db.VarChar(255)
-  documento_extra_2_url   String?         @db.VarChar(500)
-  fec_envio_documentos    DateTime?       @db.Timestamp(6)
+  apr_evt_det             Int?                 @db.SmallInt
   informes                informes[]
   pagos                   pagos[]
-  estudiantes             estudiantes?    @relation(fields: [id_est], references: [id_est], onUpdate: NoAction, map: "fk_registro_personas_estudiante")
-  registro_evento         registro_evento @relation(fields: [id_reg_evt], references: [id_reg_evt], onDelete: Cascade)
-  usuarios                usuarios        @relation(fields: [id_usu], references: [id_usu], onDelete: Cascade)
+  estudiantes             estudiantes?         @relation(fields: [id_est], references: [id_est], onUpdate: NoAction, map: "fk_registro_personas_estudiante")
+  registro_evento         registro_evento      @relation(fields: [id_reg_evt], references: [id_reg_evt], onDelete: Cascade)
+  usuarios                usuarios             @relation(fields: [id_usu], references: [id_usu], onDelete: Cascade)
+  requisitos_persona      requisitos_persona[]
 
   @@index([fec_reg_per], map: "idx_registro_personas_fecha")
   @@index([id_usu], map: "idx_registro_personas_usuario")
@@ -171,7 +163,6 @@ model registro_personas {
   @@index([id_est], map: "idx_registro_personas_estudiante")
   @@index([estado_registro], map: "idx_registro_personas_estado")
   @@index([responsable_valida], map: "idx_registro_personas_validacion")
-  requisitos_persona requisitos_persona[]
 }
 
 model requisitos_evento {
@@ -187,16 +178,22 @@ model requisitos_evento {
 }
 
 model requisitos_persona {
-  id_req_per         Int                 @id @default(autoincrement())
-  num_reg_per        Int
-  id_req             Int
-  val_req            String?
-  fec_val            DateTime?           @default(now()) @db.Timestamp(6)
-  registro_personas  registro_personas   @relation(fields: [num_reg_per], references: [num_reg_per], onDelete: Cascade)
-  requisitos_evento  requisitos_evento   @relation(fields: [id_req], references: [id_req], onDelete: Cascade)
+  id_req_per            Int               @id @default(autoincrement())
+  num_reg_per           Int
+  id_req                Int
+  val_req               String?
+  fec_val               DateTime?         @default(now()) @db.Timestamp(6)
+  archivo_documento     String?
+  comentario_validacion String?
+  estado_validacion     String?           @default("PENDIENTE") @db.VarChar(20)
+  fecha_validacion      DateTime?         @db.Timestamp(6)
+  validado_por          Int?
+  requisitos_evento     requisitos_evento @relation(fields: [id_req], references: [id_req], onDelete: Cascade)
+  registro_personas     registro_personas @relation(fields: [num_reg_per], references: [num_reg_per], onDelete: Cascade)
 
   @@unique([num_reg_per, id_req])
   @@index([num_reg_per], map: "idx_requisitos_persona_registro")
+  @@index([estado_validacion], map: "idx_requisitos_validacion")
 }
 
 model requerimientos {
