@@ -12,10 +12,11 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* Forzamos fondo claro en todo el sitio (sin alternar a dark por preferencia del SO) */
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #ffffff;
+    --foreground: #171717;
   }
 }
 
