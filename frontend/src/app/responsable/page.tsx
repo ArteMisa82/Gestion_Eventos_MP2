@@ -6,7 +6,6 @@ import ModalEditarEvento from "./ModalEditar";
 import ModalAsistenciaNotas from "./ModalAsistenciaNota";
 import Swal from "sweetalert2";
 import { eventosAPI, calificacionesAPI } from "@/services/api";
-import ValidacionesResponsable from "./validaciones";
 import { useAuth } from "@/hooks/useAuth";
 
 interface Evento {
@@ -650,10 +649,19 @@ export default function DashboardResponsable() {
         Regresar
       </button>
 
-      {/* Título principal */}
-      <h1 className="text-3xl font-semibold mb-6 tracking-tight text-center text-[#581517]">
-        Mis Eventos Asignados
-      </h1>
+      {/* Título principal y botón de validaciones */}
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-semibold tracking-tight text-[#581517]">
+          Mis Eventos Asignados
+        </h1>
+        <button
+          onClick={() => router.push("/responsable/validaciones")}
+          className="flex items-center gap-2 bg-[#581517] text-white px-4 py-2 rounded-lg hover:bg-[#7a1c1c] transition shadow-md"
+        >
+          <ClipboardList size={20} />
+          Validar Pagos
+        </button>
+      </div>
 
       {/* Estadísticas rápidas */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">

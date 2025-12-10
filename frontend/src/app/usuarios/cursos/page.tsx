@@ -12,6 +12,7 @@ interface Curso {
   id_reg_evt: string;
   estado_registro?: string;
   responsable_valida?: boolean;
+  comentarios_responsable?: string;
   registro_evento: {
     id_det: string;
     detalle_eventos: {
@@ -163,7 +164,26 @@ export default function MisCursosYEventos() {
   };
 
   // Función para manejar subida de comprobante
-  const handleSubirComprobante = async (numRegPer: string) => {
+  const handleSubirComprobante = async (numRegPer: string, comentariosRechazo?: string) => {
+    // Si hay comentarios de rechazo, mostrarlos primero
+    if (comentariosRechazo) {
+      await Swal.fire({
+        title: 'Pago Rechazado',
+        html: `
+          <div style="text-align: left; padding: 10px; background: #fee; border-left: 4px solid #f00; border-radius: 4px;">
+            <p style="margin: 0; font-weight: 600; color: #991b1b;">Motivo del rechazo:</p>
+            <p style="margin: 10px 0 0 0; color: #7f1d1d;">${comentariosRechazo}</p>
+          </div>
+          <p style="margin-top: 15px; color: #374151;">Por favor, corrige el problema y sube nuevamente el comprobante.</p>
+        `,
+        icon: 'warning',
+        confirmButtonText: 'Subir Nuevo Comprobante',
+        confirmButtonColor: '#7f1d1d',
+        showCancelButton: true,
+        cancelButtonText: 'Cancelar'
+      });
+    }
+
     const { value: formValues } = await Swal.fire({
       title: 'Subir Comprobante de Pago',
       html: `
@@ -405,19 +425,30 @@ export default function MisCursosYEventos() {
                           )}
                           
                           {curso.estado_registro === 'COMPLETADO' && (
-                            <button
-                              onClick={() => irAlCurso(evento.id_evt)}
-                              className="w-full bg-[#7f1d1d] text-white py-2 rounded-lg font-semibold hover:bg-[#991b1b] transition"
-                            >
-                              📚 Ver Curso →
-                            </button>
+                            <div className="space-y-2">
+                              <button
+                                onClick={() => irAlCurso(evento.id_evt)}
+                                className="w-full bg-[#7f1d1d] text-white py-2 rounded-lg font-semibold hover:bg-[#991b1b] transition"
+                              >
+                                📚 Ver Curso →
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  window.open(`http://localhost:3001/api/certificados/generate/${curso.num_reg_per}`, '_blank');
+                                }}
+                                className="w-full bg-green-600 text-white py-2 rounded-lg font-semibold hover:bg-green-700 transition"
+                              >
+                                🎓 Obtener certificado
+                              </button>
+                            </div>
                           )}
                           
                           {curso.estado_registro === 'RECHAZADO' && (
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleSubirComprobante(curso.num_reg_per);
+                                handleSubirComprobante(curso.num_reg_per, curso.comentarios_responsable);
                               }}
                               className="w-full bg-red-600 text-white py-2 rounded-lg font-semibold hover:bg-red-700 transition"
                             >
@@ -565,15 +596,26 @@ export default function MisCursosYEventos() {
                         )}
 
                         {evento.estado_registro === 'COMPLETADO' && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              irAlEvento(evt.id_evt);
-                            }}
-                            className="mt-2 w-full bg-[#7f1d1d] text-white py-2 rounded-lg font-semibold hover:bg-[#991b1b] transition"
-                          >
-                            📚 Ver Evento →
-                          </button>
+                          <div className="mt-2 space-y-2">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                irAlEvento(evt.id_evt);
+                              }}
+                              className="w-full bg-[#7f1d1d] text-white py-2 rounded-lg font-semibold hover:bg-[#991b1b] transition"
+                            >
+                              📚 Ver Evento →
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                window.open(`http://localhost:3001/api/certificados/generate/${evento.num_reg_per}`, '_blank');
+                              }}
+                              className="w-full bg-green-600 text-white py-2 rounded-lg font-semibold hover:bg-green-700 transition"
+                            >
+                              🎓 Obtener certificado
+                            </button>
+                          </div>
                         )}
 
                         {evento.estado_registro === 'RECHAZADO' && (

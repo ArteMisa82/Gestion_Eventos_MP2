@@ -61,8 +61,11 @@ interface Usuario {
 interface RequisitoPersonalizado {
   id: string;
   tipo: "asistencia" | "nota" | "carta" | "documento" | "otro";
-  valor?: string | number;
+  valor?: string | number;      // Para nota y asistencia
+  descripcion?: string;          // Para documentos/requisitos
+  obligatorio?: boolean;         // Para requisitos_evento
   activo: boolean;
+  destino?: "detalle" | "requisito";  // 🆕 Indicar dónde va el requisito
 }
 
 export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalEditarEventoProps) {
@@ -219,40 +222,111 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
     fetchUsuarios();
   }, []);
 
-  // Inicializar requisitos personalizados basados en los datos existentes del evento
+  // 🔥 Inicializar requisitos personalizados desde la BD
   useEffect(() => {
-    const requisitosIniciales: RequisitoPersonalizado[] = [];
+    const cargarRequisitosDesdeDB = async () => {
+      const requisitosIniciales: RequisitoPersonalizado[] = [];
+      
+      console.log('🔍 Cargando requisitos desde BD para evento:', evento);
 
-    // Si el evento original tenía asistencia requerida, agregarla
-    if (evento.requiereAsistencia && evento.asistenciaMinima) {
-      requisitosIniciales.push({
-        id: 'asistencia-' + Date.now(),
-        tipo: 'asistencia',
-        valor: evento.asistenciaMinima,
-        activo: true
-      });
-    }
+      // 1️⃣ Cargar requisitos desde detalle_eventos (asistencia y nota)
+      const detalle = (evento as any).detalle_eventos?.[0];
+      if (detalle) {
+        console.log('📦 Detalle encontrado:', detalle);
+        
+        // Asistencia (campo asi_evt_det = 1 si es obligatoria)
+        if (detalle.asi_evt_det === 1) {
+          requisitosIniciales.push({
+            id: 'asistencia-db',
+            tipo: 'asistencia',
+            valor: 1,
+            activo: true,
+            destino: "detalle"
+          });
+          console.log('✅ Asistencia cargada desde detalle_eventos');
+        }
 
-    // Si el evento original tenía nota mínima, agregarla
-    if (evento.nota && evento.nota > 0) {
-      requisitosIniciales.push({
-        id: 'nota-' + Date.now(),
-        tipo: 'nota',
-        valor: evento.nota,
-        activo: true
-      });
-    }
+        // Nota mínima (campo not_min_evt)
+        if (detalle.not_min_evt && detalle.not_min_evt > 0) {
+          requisitosIniciales.push({
+            id: 'nota-db',
+            tipo: 'nota',
+            valor: detalle.not_min_evt,
+            activo: true,
+            destino: "detalle"
+          });
+          console.log('✅ Nota mínima cargada:', detalle.not_min_evt);
+        }
 
-    // Si el evento original requería carta de motivación, agregarla
-    if (evento.cartaMotivacion) {
-      requisitosIniciales.push({
-        id: 'carta-' + Date.now(),
-        tipo: 'carta',
-        activo: true
-      });
-    }
+        // 2️⃣ Cargar requisitos desde requisitos_evento (documentos)
+        if (detalle.requisitos_evento && Array.isArray(detalle.requisitos_evento)) {
+          console.log('📄 Requisitos_evento encontrados:', detalle.requisitos_evento);
+          
+          detalle.requisitos_evento.forEach((req: any, index: number) => {
+            // Determinar el tipo basado en tip_req
+            let tipo: RequisitoPersonalizado['tipo'] = 'documento';
+            
+            if (req.tip_req === 'CARTA_MOTIVACION' || req.des_req?.toLowerCase().includes('carta')) {
+              tipo = 'carta';
+            } else if (req.tip_req === 'DOCUMENTO' || req.tip_req === 'CEDULA' || req.tip_req === 'TITULO') {
+              tipo = 'documento';
+            } else {
+              tipo = 'otro';
+            }
 
-    setRequisitosPersonalizados(requisitosIniciales);
+            requisitosIniciales.push({
+              id: `requisito-db-${req.id_req || index}`,
+              tipo: tipo,
+              descripcion: req.des_req || req.tip_req,
+              obligatorio: req.obligatorio ?? true,
+              activo: true,
+              destino: "requisito"
+            });
+            console.log(`✅ Requisito cargado: ${req.tip_req} - ${req.des_req}`);
+          });
+        }
+      }
+
+      // 3️⃣ Fallback: cargar desde campos antiguos del evento (compatibilidad)
+      if (requisitosIniciales.length === 0) {
+        console.log('⚠️ No se encontraron requisitos en BD, usando campos legacy');
+        
+        if (evento.requiereAsistencia && evento.asistenciaMinima) {
+          requisitosIniciales.push({
+            id: 'asistencia-legacy',
+            tipo: 'asistencia',
+            valor: evento.asistenciaMinima,
+            activo: true,
+            destino: "detalle"
+          });
+        }
+
+        if (evento.nota && evento.nota > 0) {
+          requisitosIniciales.push({
+            id: 'nota-legacy',
+            tipo: 'nota',
+            valor: evento.nota,
+            activo: true,
+            destino: "detalle"
+          });
+        }
+
+        if (evento.cartaMotivacion) {
+          requisitosIniciales.push({
+            id: 'carta-legacy',
+            tipo: 'carta',
+            activo: true,
+            obligatorio: true,
+            destino: "requisito"
+          });
+        }
+      }
+
+      console.log('📋 Requisitos finales cargados:', requisitosIniciales);
+      setRequisitosPersonalizados(requisitosIniciales);
+    };
+
+    cargarRequisitosDesdeDB();
   }, [evento]);
 
   // Filtrar docentes basado en el texto ingresado
@@ -339,9 +413,14 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
       return;
     }
 
+    // 🆕 Determinar el destino automáticamente según el tipo
+    const destino: "detalle" | "requisito" = 
+      ['nota', 'asistencia'].includes(nuevoRequisito.tipo) ? 'detalle' : 'requisito';
+
     const requisitoConId = {
       ...nuevoRequisito,
-      id: Date.now().toString()
+      id: Date.now().toString(),
+      destino  // 🆕
     };
 
     setRequisitosPersonalizados(prev => [...prev, requisitoConId]);
@@ -600,17 +679,7 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
         return;
       }
 
-      // Validar requisitos de asistencia
-      const requisitoAsistencia = requisitosPersonalizados.find(req => req.tipo === 'asistencia' && req.activo);
-      if (requisitoAsistencia && requisitoAsistencia.valor && (Number(requisitoAsistencia.valor) < 0 || Number(requisitoAsistencia.valor) > 100)) {
-        Swal.fire({ 
-          icon: "warning", 
-          title: "Asistencia inválida", 
-          text: "La asistencia mínima debe estar entre 0% y 100%.", 
-          confirmButtonColor: "#581517" 
-        });
-        return;
-      }
+      // Validación de asistencia removida (ahora es solo 1 o 0)
 
       if (formData.pago === "Pago") {
         if ((formData.precioEstudiantes ?? 0) < 0 || (formData.precioGeneral ?? 0) < 0) {
@@ -717,6 +786,30 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
         return fecha.toISOString();
       };
 
+      // 🆕 SEPARAR REQUISITOS EN DOS TIPOS
+      // Requisitos que van a detalle_eventos (nota y asistencia)
+      const requisitoDetalle = {
+        not_min_evt: requisitosPersonalizados
+          .find(r => r.tipo === 'nota' && r.activo)?.valor || 0,
+        asi_evt_det: requisitosPersonalizados
+          .find(r => r.tipo === 'asistencia' && r.activo)?.valor || 0
+      };
+
+      // Requisitos que van a requisitos_evento (documentos específicos)
+      const requisitoEventos = requisitosPersonalizados
+        .filter(r => ['carta', 'documento', 'otro'].includes(r.tipo) && r.activo)
+        .map(r => ({
+          tip_req: r.tipo === 'carta' ? 'Carta de Motivación' : 
+                   r.tipo === 'documento' ? (r.descripcion || 'Documento') : 
+                   r.descripcion || 'Otro requisito',
+          des_req: r.descripcion || '',
+          obligatorio: r.obligatorio !== false
+        }));
+
+      console.log('🆕 SEPARACIÓN DE REQUISITOS:');
+      console.log('   Requisitos para detalle_eventos:', requisitoDetalle);
+      console.log('   Requisitos para requisitos_evento:', requisitoEventos);
+
       const eventoData = {
         nom_evt: formData.nombre.trim(),
         fec_evt: convertirFechaLocal(formData.fechaInicio),
@@ -735,11 +828,11 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
           cup_det: Number(formData.cupos ?? formData.capacidad ?? 30),
           hor_det: Number(formData.horas || 40),
           cat_det: tipoEventoMapeado,
-          // Estos campos ahora se manejan en requisitos personalizados
-          asi_evt_det: 0,
-          not_min_evt: 0,
+          not_min_evt: Number(requisitoDetalle.not_min_evt) || 0,  // 🆕 Desde requisitos
+          asi_evt_det: Number(requisitoDetalle.asi_evt_det) || 0,  // 🆕 Desde requisitos
           are_det: "TECNOLOGIA E INGENIERIA"
-        }
+        },
+        requisitos: requisitoEventos  // 🆕 Nuevos requisitos específicos del evento
       };
 
       console.log("=== DATOS A ENVIAR ===");
@@ -817,13 +910,27 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
           }
         }
 
+        // 🆕 RECARGAR EL EVENTO DESDE LA BD PARA OBTENER DATOS FRESCOS (especialmente requisitos)
+        try {
+          console.log("📥 Recargando evento desde la BD para obtener datos frescos...");
+          const eventoRecargado = await eventosAPI.getById(evento.id);
+          console.log("✅ Evento recargado exitosamente:", eventoRecargado);
+          
+          // Pasar el evento completo recargado desde la BD
+          onGuardar(eventoRecargado);
+        } catch (reloadError) {
+          console.error("❌ Error recargando evento:", reloadError);
+          // Fallback: pasar los datos del formulario si no se puede recargar
+          onGuardar({ ...formData, imagen: formData.imagen || imageDefault });
+        }
+
         await Swal.fire({
           icon: "success",
           title: "¡Éxito!",
           text: response.message || "El evento ha sido actualizado correctamente",
           confirmButtonColor: "#581517"
         });
-        onGuardar({ ...formData, imagen: formData.imagen || imageDefault });
+        
         onClose();
       } else {
         throw new Error(response?.message || "Error al actualizar el evento");
@@ -1281,27 +1388,48 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
                   </div>
 
                   {/* Campos de valor para tipos específicos */}
-                  {(nuevoRequisito.tipo === 'asistencia' || nuevoRequisito.tipo === 'nota') && (
+                  {nuevoRequisito.tipo === 'nota' && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        {nuevoRequisito.tipo === 'nota' ? 'Nota mínima (0-10)' : 'Asistencia mínima (0-100%)'}
+                        Nota mínima (0-10)
                       </label>
                       <div className="flex items-center gap-2">
                         <input
                           type="number"
-                          min={nuevoRequisito.tipo === 'nota' ? 0 : 0}
-                          max={nuevoRequisito.tipo === 'nota' ? 10 : 100}
-                          step={nuevoRequisito.tipo === 'nota' ? 0.1 : 1}
+                          min="0"
+                          max="10"
+                          step="0.1"
                           value={nuevoRequisito.valor as number || 0}
                           onChange={(e) => setNuevoRequisito(prev => ({
                             ...prev,
                             valor: Number(e.target.value)
                           }))}
                           className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                          placeholder={nuevoRequisito.tipo === 'nota' ? '0-10' : '0-100'}
+                          placeholder="0-10"
                         />
-                        <span className="text-sm text-gray-500 whitespace-nowrap">
-                          {nuevoRequisito.tipo === 'nota' ? '/10' : '%'}
+                        <span className="text-sm text-gray-500 whitespace-nowrap">/10</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Checkbox para asistencia (ahora solo 1 o 0) */}
+                  {nuevoRequisito.tipo === 'asistencia' && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        ¿Requiere control de asistencia?
+                      </label>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          checked={nuevoRequisito.valor === 1}
+                          onChange={(e) => setNuevoRequisito(prev => ({
+                            ...prev,
+                            valor: e.target.checked ? 1 : 0
+                          }))}
+                          className="w-5 h-5 border-gray-300 rounded cursor-pointer accent-[#581517]"
+                        />
+                        <span className="text-sm text-gray-600">
+                          {nuevoRequisito.valor === 1 ? '✅ Sí, se controlará asistencia' : '❌ No se controlará asistencia'}
                         </span>
                       </div>
                     </div>
@@ -1353,24 +1481,42 @@ export default function ModalEditarEvento({ evento, onClose, onGuardar }: ModalE
                             </span>
                           </div>
                           
-                          {/* Mostrar campo de valor solo para nota y asistencia cuando están activos */}
-                          {(requisito.tipo === 'nota' || requisito.tipo === 'asistencia') && requisito.activo && (
+                          {/* Mostrar campo de valor solo para nota cuando está activo */}
+                          {requisito.tipo === 'nota' && requisito.activo && (
                             <div className="mt-2">
                               <label className="block text-xs text-gray-600 mb-1">
-                                {requisito.tipo === 'nota' ? 'Nota mínima (0-10)' : 'Asistencia mínima (0-100%)'}
+                                Nota mínima (0-10)
                               </label>
                               <div className="flex items-center gap-2">
                                 <input
                                   type="number"
-                                  min={requisito.tipo === 'nota' ? 0 : 0}
-                                  max={requisito.tipo === 'nota' ? 10 : 100}
-                                  step={requisito.tipo === 'nota' ? 0.1 : 1}
+                                  min="0"
+                                  max="10"
+                                  step="0.1"
                                   value={requisito.valor as number || 0}
                                   onChange={(e) => actualizarValorRequisito(requisito.id, Number(e.target.value))}
                                   className="w-24 border border-gray-300 rounded px-2 py-1 text-sm"
                                 />
-                                <span className="text-xs text-gray-500">
-                                  {requisito.tipo === 'nota' ? '/10' : '%'}
+                                <span className="text-xs text-gray-500">/10</span>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Mostrar checkbox para asistencia cuando está activo */}
+                          {requisito.tipo === 'asistencia' && requisito.activo && (
+                            <div className="mt-2">
+                              <label className="block text-xs text-gray-600 mb-1">
+                                Control de asistencia
+                              </label>
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="checkbox"
+                                  checked={requisito.valor === 1}
+                                  onChange={(e) => actualizarValorRequisito(requisito.id, e.target.checked ? 1 : 0)}
+                                  className="w-4 h-4 border-gray-300 rounded cursor-pointer accent-[#581517]"
+                                />
+                                <span className="text-xs text-gray-600">
+                                  {requisito.valor === 1 ? '✅ Habilitado' : '❌ Deshabilitado'}
                                 </span>
                               </div>
                             </div>

@@ -1,5 +1,12 @@
 import React from "react";
-import { Categoria } from "../page";
+
+interface Categoria {
+  id?: string;
+  nombre: string;
+  descripcion?: string;
+  fechaCreacion?: string | Date;
+  requisitos?: string[];
+}
 
 interface CategoriaCardProps {
   categoria: Categoria;
@@ -37,13 +44,13 @@ export default function CategoriaCard({ categoria, onDelete }: CategoriaCardProp
             {categoria.nombre}
           </h3>
           <p className="text-xs text-gray-500 mt-1">
-            Creada el {formatDate(categoria.fechaCreacion)}
+            {categoria.fechaCreacion ? `Creada el ${formatDate(new Date(categoria.fechaCreacion))}` : "Sin fecha"}
           </p>
         </div>
         
-        {onDelete && (
+        {onDelete && categoria.id && (
           <button
-            onClick={() => onDelete(categoria.id)}
+            onClick={() => onDelete(categoria.id!)}
             className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-500 transition-all duration-200"
             title="Eliminar categoría"
           >
@@ -61,13 +68,13 @@ export default function CategoriaCard({ categoria, onDelete }: CategoriaCardProp
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <span className="text-sm font-medium text-gray-700">
-            Requisitos ({categoria.requisitos.length})
+            Requisitos ({categoria.requisitos?.length || 0})
           </span>
         </div>
 
-        {categoria.requisitos.length > 0 ? (
+        {(categoria.requisitos?.length ?? 0) > 0 ? (
           <ul className="space-y-2">
-            {categoria.requisitos.map((requisito, index) => (
+            {(categoria.requisitos || []).map((requisito, index) => (
               <li 
                 key={index} 
                 className="flex items-center justify-between text-sm bg-gray-50 px-3 py-2 rounded-lg group"

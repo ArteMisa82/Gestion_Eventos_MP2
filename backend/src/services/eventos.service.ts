@@ -358,12 +358,16 @@ export class EventosService {
           are_det: data.detalles!.are_det || 'TECNOLOGIA E INGENIERIA',
           cat_det: catDetValue,
           tip_evt: tipEvtValue,
+          not_min_evt: data.detalles!.not_min_evt ? Number(data.detalles!.not_min_evt) : 0,  // 🆕 Nota mínima
+          asi_evt_det: data.detalles!.asi_evt_det ? Number(data.detalles!.asi_evt_det) : 0   // 🆕 Asistencia mínima
         };
 
         console.log('📝 Datos del DETALLE a guardar:');
         console.log('   - cup_det:', detalleData.cup_det);
         console.log('   - hor_det:', detalleData.hor_det);
         console.log('   - cat_det:', detalleData.cat_det);
+        console.log('   - not_min_evt:', detalleData.not_min_evt);  // 🆕
+        console.log('   - asi_evt_det:', detalleData.asi_evt_det);  // 🆕
 
         if (detalleExistente) {
           // Actualizar detalle existente
@@ -474,6 +478,39 @@ export class EventosService {
         } else {
           console.log(`  ⚠️ No se encontraron instructores para guardar`);
         }
+      }
+
+      // 🆕 GUARDAR REQUISITOS DEL EVENTO
+      if (data.requisitos && data.requisitos.length > 0) {
+        console.log('📋 PROCESANDO REQUISITOS DEL EVENTO:');
+        console.log(`   Total de requisitos a guardar: ${data.requisitos.length}`);
+        
+        try {
+          // Primero, eliminar requisitos existentes para este detalle
+          const deletedCount = await prisma.requisitos_evento.deleteMany({
+            where: { id_det: id_det_final }
+          });
+          console.log(`   🗑️ Requisitos anteriores eliminados: ${deletedCount.count}`);
+
+          // Luego, crear los nuevos requisitos
+          for (const req of data.requisitos) {
+            const requisitoCreado = await prisma.requisitos_evento.create({
+              data: {
+                id_det: id_det_final,
+                tip_req: req.tip_req,
+                des_req: req.des_req || '',
+                obligatorio: req.obligatorio !== false
+              }
+            });
+            console.log(`   ✅ Requisito guardado: ${req.tip_req} (Obligatorio: ${req.obligatorio !== false})`);
+          }
+          console.log(`   🎉 ${data.requisitos.length} requisitos guardados exitosamente`);
+        } catch (reqError: any) {
+          console.error(`   ❌ Error guardando requisitos:`, reqError.message);
+          throw new Error(`No se pudieron guardar los requisitos del evento: ${reqError.message}`);
+        }
+      } else {
+        console.log('📋 Sin requisitos específicos para guardar');
       }
     }
 
