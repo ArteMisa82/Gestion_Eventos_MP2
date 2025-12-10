@@ -1,0 +1,121 @@
+:root {
+  --brand: #7f1d1d;
+  --brand-600: #8f2020;
+  --ink: #111827;
+  --ring: #e5e7eb;
+}
+
+/* ==== CONTENEDOR GENERAL ==== */
+.header {
+  background: #fff;
+  border-bottom: 1px solid var(--ring);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.nav {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+/* ==== MARCA ==== */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+
+.brandText {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* ==== LINKS ==== */
+.links {
+  list-style: none;
+  display: flex;
+  gap: 24px;
+  margin: 0;
+  padding: 0;
+}
+
+.link {
+  color: var(--ink);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.link:hover {
+  color: var(--brand);
+}
+
+.activeLink {
+  color: var(--brand);
+  font-weight: 700;
+  border-bottom: 2px solid var(--brand);
+  padding-bottom: 4px;
+}
+
+/* ==== BOTONES ==== */
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.primaryBtn,
+.secondaryBtn {
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 9999px;
+  padding: 8px 14px;
+  transition: all 0.2s ease;
+}
+
+/* Burdeos principal */
+.primaryBtn {
+  background: var(--brand);
+  color: #fff;
+}
+.primaryBtn:hover {
+  background: var(--brand-600);
+}
+
+/* Borde gris claro */
+.secondaryBtn {
+  border: 1px solid var(--ring);
+  color: var(--ink);
+  background: #fff;
+}
+.secondaryBtn:hover {
+  border-color: var(--brand);
+  color: var(--brand);
+}
+
+/* ==== RESPONSIVE ==== */
+@media (max-width: 900px) {
+  .nav {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .links {
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .actions {
+    width: 100%;
+    justify-content: center;
+  }
+}

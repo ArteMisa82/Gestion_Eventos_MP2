@@ -105,6 +105,10 @@ export class InscripcionesService {
       throw new Error('El registro de evento no existe');
     }
 
+    if (!data.id_reg_evt) {
+      throw new Error('El id_reg_evt es requerido');
+    }
+
     // Validar inscripción (cupo, estado, duplicados)
     const validacion = await this.validarInscripcion(
       data.id_usu,
@@ -218,6 +222,10 @@ export class InscripcionesService {
         throw new Error('No hay niveles configurados en el sistema');
       }
 
+      if (!data.id_det) {
+        throw new Error('El id_det es requerido para crear el registro de evento');
+      }
+
       const { generateRegistroEventoId } = require('../utils/id-generator.util');
       const id_reg_evt = await generateRegistroEventoId();
 
@@ -227,7 +235,7 @@ export class InscripcionesService {
           id_det: data.id_det,
           id_niv: primerNivel.id_niv
         }
-      });
+      }) as any;
     }
 
     // Crear la inscripción
@@ -590,6 +598,104 @@ export class InscripcionesService {
         fec_reg_per: rp.fec_reg_per
       }))
     };
+  }
+
+  /**
+   * Guarda los documentos y requisitos adicionales de una inscripción
+   * Almacena: carta de motivación, documentos específicos, documentos extra
+   */
+  async guardarDocumentosInscripcion(
+    num_reg_per: number,
+    datos: {
+      carta_motivacion?: string;
+      documento_especifico?: string;
+      documento_especifico_url?: string;
+      documento_extra_1?: string;
+      documento_extra_1_url?: string;
+      documento_extra_2?: string;
+      documento_extra_2_url?: string;
+    }
+  ) {
+    console.log(`\n📦 GUARDANDO DOCUMENTOS - Inscripción #${num_reg_per}`);
+    console.log('📄 Datos a guardar:', datos);
+
+    // Validar que la inscripción existe
+    const inscripcion = await prisma.registro_personas.findUnique({
+      where: { num_reg_per }
+    });
+
+    if (!inscripcion) {
+      throw new Error(`Inscripción #${num_reg_per} no encontrada`);
+    }
+
+    // Actualizar la inscripción con los documentos
+    const actualizada = await prisma.registro_personas.update({
+      where: { num_reg_per },
+      data: {
+        carta_motivacion: datos.carta_motivacion || inscripcion.carta_motivacion,
+        documento_especifico: datos.documento_especifico || inscripcion.documento_especifico,
+        documento_especifico_url: datos.documento_especifico_url || inscripcion.documento_especifico_url,
+        documento_extra_1: datos.documento_extra_1 || inscripcion.documento_extra_1,
+        documento_extra_1_url: datos.documento_extra_1_url || inscripcion.documento_extra_1_url,
+        documento_extra_2: datos.documento_extra_2 || inscripcion.documento_extra_2,
+        documento_extra_2_url: datos.documento_extra_2_url || inscripcion.documento_extra_2_url,
+        fec_envio_documentos: new Date()
+      },
+      include: INSCRIPCION_INCLUDES
+    });
+
+    console.log(`✅ DOCUMENTOS GUARDADOS - Inscripción #${num_reg_per}`);
+    console.log('📋 Datos almacenados en BD:');
+    console.log('  - carta_motivacion:', actualizada.carta_motivacion ? 'Sí' : 'No');
+    console.log('  - documento_especifico:', actualizada.documento_especifico);
+    console.log('  - documento_especifico_url:', actualizada.documento_especifico_url);
+    console.log('  - documento_extra_1:', actualizada.documento_extra_1);
+    console.log('  - documento_extra_1_url:', actualizada.documento_extra_1_url);
+    console.log('  - documento_extra_2:', actualizada.documento_extra_2);
+    console.log('  - documento_extra_2_url:', actualizada.documento_extra_2_url);
+
+    return this.formatResponse(actualizada);
+  }
+
+  /**
+   * Obtiene los documentos de una inscripción
+   */
+  async obtenerDocumentosInscripcion(num_reg_per: number) {
+    console.log(`\n🔍 OBTENIENDO DOCUMENTOS - Inscripción #${num_reg_per}`);
+
+    const inscripcion = await prisma.registro_personas.findUnique({
+      where: { num_reg_per },
+      select: {
+        num_reg_per: true,
+        carta_motivacion: true,
+        documento_especifico: true,
+        documento_especifico_url: true,
+        documento_extra_1: true,
+        documento_extra_1_url: true,
+        documento_extra_2: true,
+        documento_extra_2_url: true,
+        fec_envio_documentos: true,
+        usuarios: {
+          select: {
+            id_usu: true,
+            nom_usu: true,
+            ape_usu: true,
+            cor_usu: true
+          }
+        }
+      }
+    });
+
+    if (!inscripcion) {
+      throw new Error(`Inscripción #${num_reg_per} no encontrada`);
+    }
+
+    console.log('✅ DOCUMENTOS OBTENIDOS:');
+    console.log('  - carta_motivacion:', inscripcion.carta_motivacion ? 'Sí' : 'No');
+    console.log('  - documento_especifico:', inscripcion.documento_especifico);
+    console.log('  - fec_envio_documentos:', inscripcion.fec_envio_documentos);
+
+    return inscripcion;
   }
 
   /**

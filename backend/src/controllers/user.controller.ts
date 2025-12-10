@@ -9,6 +9,46 @@ import fs from 'fs';
 
 const userService = new UserService();
 
+const clasificarCorreo = (email: string) => {
+  const emailLower = email.trim().toLowerCase();
+
+  if (!emailLower.includes('@')) {
+    return { esEstudiante: false, esAdministrativo: false, esAdmin: false, error: 'Correo inválido' };
+  }
+
+  const [localPart, domain] = emailLower.split('@');
+
+  if (emailLower === 'admin@admin.com') {
+    return { esEstudiante: false, esAdministrativo: false, esAdmin: true };
+  }
+
+  if (domain.endsWith('.com')) {
+    return { esEstudiante: false, esAdministrativo: false, esAdmin: false };
+  }
+
+  if (domain === 'uta.edu.ec') {
+    const adminPattern = /^[a-z]+$/i;
+    const studentPattern = /^[a-z]+\d{4}$/i;
+
+    if (adminPattern.test(localPart)) {
+      return { esEstudiante: false, esAdministrativo: true, esAdmin: false };
+    }
+
+    if (studentPattern.test(localPart)) {
+      return { esEstudiante: true, esAdministrativo: false, esAdmin: false };
+    }
+
+    return {
+      esEstudiante: false,
+      esAdministrativo: false,
+      esAdmin: false,
+      error: 'Correo institucional inválido. Estudiante: letras + 4 dígitos (ej: juan1234@uta.edu.ec). Administrativo: solo letras (ej: pedrolopez@uta.edu.ec).'
+    };
+  }
+
+  return { esEstudiante: false, esAdministrativo: false, esAdmin: false };
+};
+
 export class UserController {
 
   async getById(req: Request, res: Response) {
@@ -62,15 +102,42 @@ export class UserController {
     try {
       const id = Number(req.params.id);
       const { niv_usu, ...userData } = req.body;
+      const existingUser = await prisma.usuarios.findUnique({ where: { id_usu: id } });
+
+      if (!existingUser) {
+        return res.status(404).json({
+          success: false,
+          message: 'Usuario no encontrado'
+        });
+      }
       
       console.log('Actualizando usuario ID:', id);
       console.log('Datos recibidos:', req.body);
-      
-      // Actualizar datos básicos del usuario
-      const updated = await userService.updateById(id, userData);
-      
-      // Si se proporciona niv_usu, actualizar en la tabla estudiantes
-      if (niv_usu) {
+
+      const emailParaEvaluar = (userData.cor_usu || existingUser.cor_usu || '').trim();
+      const roles = clasificarCorreo(emailParaEvaluar);
+
+      if (roles.error) {
+        return res.status(400).json({ success: false, message: roles.error });
+      }
+
+      if (niv_usu && !roles.esEstudiante) {
+        return res.status(400).json({
+          success: false,
+          message: 'Solo correos de estudiante válidos pueden seleccionar nivel académico.'
+        });
+      }
+
+      // Actualizar datos básicos del usuario con roles recalculados
+      const updated = await userService.updateById(id, {
+        ...userData,
+        stu_usu: roles.esEstudiante ? 1 : 0,
+        adm_usu: roles.esAdministrativo ? 1 : 0,
+        Administrador: roles.esAdmin
+      });
+
+      // Si se proporciona niv_usu y es estudiante, actualizar en la tabla estudiantes
+      if (niv_usu && roles.esEstudiante) {
         console.log('Actualizando nivel del estudiante a:', niv_usu);
         
         // Buscar estudiante activo del usuario
@@ -100,7 +167,7 @@ export class UserController {
           });
         }
       }
-      
+
       res.json({
         success: true,
         message: 'Usuario actualizado correctamente',

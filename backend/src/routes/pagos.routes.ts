@@ -2,13 +2,25 @@
 import { Router } from 'express';
 import { PagosController } from '../controllers/pagos.controller';
 import multer from 'multer';
+import path from 'path';
 import { authMiddleware, adminMiddleware } from '../middlewares/auth.middleware';
 
 const router = Router();
 const pagosController = new PagosController();
 
-// Configuración de subida de archivos
-const upload = multer({ dest: 'uploads/comprobantes/' });
+// Configuración de subida de archivos con extensión preservada
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/comprobantes/');
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname) || '.pdf'; // Por defecto .pdf si no tiene extensión
+    cb(null, uniqueSuffix + ext);
+  }
+});
+
+const upload = multer({ storage });
 
 
 /**
@@ -36,7 +48,7 @@ const upload = multer({ dest: 'uploads/comprobantes/' });
  *       404:
  *         description: Evento sin tarifas
  */
-router.get('/tarifas/:idEvento', pagosController.getTarifas);
+router.get('/tarifas/:idEvento', pagosController.getTarifas.bind(pagosController));
 
 /**
  * @swagger
@@ -67,7 +79,7 @@ router.get('/tarifas/:idEvento', pagosController.getTarifas);
  *       400:
  *         description: Datos inválidos
  */
-router.post('/registrar', pagosController.registrarPago);
+router.post('/registrar', pagosController.registrarPago.bind(pagosController));
 
 /**
  * @swagger
@@ -89,7 +101,7 @@ router.post('/registrar', pagosController.registrarPago);
  *       404:
  *         description: Registro o evento no encontrado
  */
-router.get('/orden_pago/:numRegPer', pagosController.getPaymentOrder);
+router.get('/orden_pago/:numRegPer', pagosController.getPaymentOrder.bind(pagosController));
 
 /**
  * @swagger
@@ -125,7 +137,27 @@ router.post(
     '/subir-comprobante/:numRegPer',
     authMiddleware,                 // Requiere login
     upload.single('comprobante'),   // Subida del archivo
-    pagosController.subirComprobante
+    pagosController.subirComprobante.bind(pagosController)
+);
+
+/**
+ * @swagger
+ * /pagos/pendientes-validacion:
+ *   get:
+ *     summary: Obtener pagos pendientes de validación
+ *     tags: [Pagos]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Lista de pagos pendientes
+ *       500:
+ *         description: Error del servidor
+ */
+router.get(
+    '/pendientes-validacion',
+    adminMiddleware,  // Solo responsables/admin pueden ver pagos pendientes
+    pagosController.getPagosPendientes.bind(pagosController)
 );
 
 /**
@@ -154,6 +186,8 @@ router.post(
  *               estado:
  *                 type: string
  *                 enum: [APROBAR, RECHAZAR]
+ *               comentarios:
+ *                 type: string
  *     responses:
  *       200:
  *         description: Validación realizada
@@ -163,7 +197,7 @@ router.post(
 router.put(
     '/validar/:numRegPer',
     adminMiddleware,                // Solo el responsable/admin puede validar
-    pagosController.validarComprobante
+    pagosController.validarComprobante.bind(pagosController)
 );
 
 export default router;

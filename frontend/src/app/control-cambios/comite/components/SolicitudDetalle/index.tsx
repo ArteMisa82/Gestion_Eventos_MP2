@@ -10,7 +10,7 @@ import BotonesAccionITIL from "./BotonesAccionITIL";
 import TimelineITIL from "./TimelineITIL";
 
 // ✅ Definir el tipo para performAction
-type PerformActionType = (id: number, accion: string, extraData?: any) => void;
+type PerformActionType = (id: number, accion: "Aprobado" | "Rechazado" | "Cancelado" | "RolloutProgramado" | "Implementado" | "Revertido" | "ActualizarCamposComite", extraData?: any) => Promise<void>;
 
 interface Props {
   selected: Solicitud | null;
