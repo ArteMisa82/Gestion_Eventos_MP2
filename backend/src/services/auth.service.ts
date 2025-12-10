@@ -95,11 +95,14 @@ export class AuthService {
     apellido: string;
   }): Promise<AuthResult> {
     try {
+      console.log('📝 Iniciando registro para:', userData.email);
+      
       const existingUser = await this.prisma.usuarios.findUnique({
         where: { cor_usu: userData.email }
       });
 
       if (existingUser) {
+        console.log('❌ Usuario ya existe:', userData.email);
         return { success: false, error: 'El usuario ya existe' };
       }
 
@@ -107,9 +110,11 @@ export class AuthService {
 
       // DETERMINAR ROL AUTOMATICAMENTE POR EMAIL
       const rolValidacion = this.determinarRolPorEmail(userData.email);
+      console.log('🔍 Validación de rol:', rolValidacion);
       
       // Verificar si hay error en la validación del email
       if (rolValidacion.error) {
+        console.log('❌ Error en validación de email:', rolValidacion.error);
         return { success: false, error: rolValidacion.error };
       }
 
@@ -121,31 +126,16 @@ export class AuthService {
           pas_usu: hashedPassword,
           nom_usu: userData.nombre,
           ape_usu: userData.apellido,
-          stu_usu: esEstudiante ? 1 : 0,           // 1 si es estudiante
-          adm_usu: esAdministrativo ? 1 : 0,       // 1 si es administrativo
-          Administrador: esAdmin                   // true solo si es admin@admin.com
-        },
-        include: {
-          estudiantes: {
-            include: {
-              nivel: {
-                include: {
-                  carreras: true
-                }
-              }
-            },
-            where: {
-              est_activo: 1
-            },
-            take: 1
-          }
+          stu_usu: esEstudiante ? 1 : 0,
+          adm_usu: esAdministrativo ? 1 : 0,
+          Administrador: esAdmin
         }
       });
 
-      // Si es estudiante, crear registro en tabla estudiantes (sin nivel por ahora)
-      // El nivel se agregará cuando complete su perfil
+      console.log('✅ Usuario creado en BD:', newUser.cor_usu);
+
+      // Si es estudiante, crear registro en tabla estudiantes
       if (esEstudiante) {
-        // Obtener el primer nivel disponible como temporal
         const primerNivel = await this.prisma.niveles.findFirst({
           orderBy: { id_niv: 'asc' }
         });
@@ -157,18 +147,14 @@ export class AuthService {
               id_niv: primerNivel.id_niv,
               fec_ingreso: new Date(),
               est_activo: 1,
-              observaciones: 'Registro creado automáticamente. Usuario debe actualizar su nivel en el perfil.'
+              observaciones: 'Registro automático'
             }
           });
-          
-          console.log(`✅ Registro de estudiante creado para usuario ${newUser.cor_usu} con nivel temporal ${primerNivel.id_niv}`);
+          console.log(`✅ Estudiante registrado: ${newUser.cor_usu}`);
         }
       }
 
-      console.log(`Nuevo usuario registrado: ${newUser.cor_usu} (Rol: ${this.determineUserRole(newUser)})`);
-
-      const nivel = newUser.estudiantes && newUser.estudiantes.length > 0 ? newUser.estudiantes[0].nivel : null;
-      const niv_usu = nivel ? nivel.id_niv : null;
+      console.log(`✅ Registro completado para: ${newUser.cor_usu}`);
 
       return {
         success: true,
@@ -181,15 +167,15 @@ export class AuthService {
           ape_seg_usu: newUser.ape_seg_usu,
           ced_usu: newUser.ced_usu,
           tel_usu: newUser.tel_usu,
-          niv_usu: niv_usu,
+          niv_usu: null,
           adm_usu: newUser.adm_usu,
           stu_usu: newUser.stu_usu,
           "Administrador": newUser.Administrador,
-          nivel: nivel,
+          nivel: null,
         } as any
       };
     } catch (error) {
-      console.error('Error en registro:', error);
+      console.error('❌ Error en registro:', error);
       return { success: false, error: 'Error al registrar usuario' };
     }
   }
