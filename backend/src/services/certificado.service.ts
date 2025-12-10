@@ -11,18 +11,27 @@ import path from 'path'; // Necesario para construir rutas de archivos
 // => subimos dos niveles y entramos a logos
 const LOGOS_DIR = path.join(__dirname, '..', '..', 'logos');
 
-// Usa los nombres reales que tienes en la carpeta logos
-const UTA_LOGO_PATH = path.join(LOGOS_DIR, 'logo_UTA.png');
-const FISEI_LOGO_PATH = path.join(LOGOS_DIR, 'Default_Image.png');
+
+const FISEI_LOGO_PATH = path.join(LOGOS_DIR, 'FiseiUTA.png');
+const HEADER_PATH = path.join(LOGOS_DIR, 'header.png');
+
+// Sponsors
+const CEDIA_SPONSOR_PATH = path.join(LOGOS_DIR, 'cediaSponsor.png');
+const REDI_SPONSOR_PATH = path.join(LOGOS_DIR, 'RediUtaSponsor.png');
+const SCOPUS_SPONSOR_PATH = path.join(LOGOS_DIR, 'Scopus_logoSponsor.png');
+const DIDE_SPONSOR_PATH = path.join(LOGOS_DIR, 'dideSponsor.jpg');
+
+// --- Rutas de las fuentes elegantes ---
+// Carpeta: backend/fonts
+const FONTS_DIR = path.join(__dirname, '..', '..', 'fonts');
+const FONT_BODY = path.join(FONTS_DIR, 'Lora-Regular.ttf');
+const FONT_BODY_BOLD = path.join(FONTS_DIR, 'Lora-Bold.ttf');
+const FONT_TITLE = path.join(FONTS_DIR, 'PlayfairDisplay-Bold.ttf');
 
 // --- Ruta base para certificados (misma que en el controller) ---
 const CERTIFICATES_BASE_DIR = 'C:\\Users\\user\\Documents\\certificado';
 
-// --- Datos de Texto ---
-const NOMBRE_UNIVERSIDAD = 'UNIVERSIDAD TÉCNICA DE AMBATO';
-const NOMBRE_FACULTAD =
-  'FACULTAD DE INGENIERÍA EN SISTEMAS ELECTRÓNICA E INDUSTRIAL';
-const NOMBRE_CARRERA = 'CARRERA DE TECNOLOGÍAS DE LA INFORMACIÓN';
+// Solo dejamos el texto de la firma
 const FIRMA_COORDINADOR_TEXT = 'Firma del Coordinador';
 
 // --- Función para asegurar carpeta ---
@@ -179,13 +188,13 @@ export class CertificadoService {
       if (detalle.not_evt_det !== null && !notaAprobada) {
         razon = `la Nota (${detalle.not_evt_det}) es menor al ${NOTA_MINIMA}% requerido.`;
       } else if (detalle.asi_evt_det !== null && !asistenciaAprobada) {
-        razon = `la Asistencia (${asistenciaActual * 100}%) es menor al ${
-          ASISTENCIA_MINIMA * 100
-        }% requerido.`;
+        razon = `la Asistencia (${asistenciaActual * 100}%) es menor al ${ASISTENCIA_MINIMA * 100
+          }% requerido.`;
       }
       throw new Error(`El participante no cumple con ${razon}`);
     }
 
+    // 🎨 DISEÑO DEL CERTIFICADO (similar a CSEI)
     return new Promise((resolve, reject) => {
       const doc = new PDFDocument({ layout: 'landscape', size: 'A4' });
       const buffers: Buffer[] = [];
@@ -193,6 +202,24 @@ export class CertificadoService {
       doc.on('data', (chunk) => buffers.push(chunk));
       doc.on('end', () => resolve(Buffer.concat(buffers)));
       doc.on('error', reject);
+
+      // ====== REGISTRO DE FUENTES (con fallback) ======
+      let BODY_FONT = 'Helvetica';
+      let BODY_FONT_BOLD = 'Helvetica-Bold';
+      let TITLE_FONT = 'Helvetica-Bold';
+
+      if (fs.existsSync(FONT_BODY)) {
+        doc.registerFont('Body', FONT_BODY);
+        BODY_FONT = 'Body';
+      }
+      if (fs.existsSync(FONT_BODY_BOLD)) {
+        doc.registerFont('BodyBold', FONT_BODY_BOLD);
+        BODY_FONT_BOLD = 'BodyBold';
+      }
+      if (fs.existsSync(FONT_TITLE)) {
+        doc.registerFont('Title', FONT_TITLE);
+        TITLE_FONT = 'Title';
+      }
 
       const fullName = `${data.usuarios.nom_usu} ${data.usuarios.ape_usu}`;
       const eventName = detalle.eventos.nom_evt;
@@ -208,71 +235,124 @@ export class CertificadoService {
 
       const pageWidth = doc.page.width;
       const pageHeight = doc.page.height;
-      const logoWidth = 80;
-      const margin = 50;
+      const margin = 40;
 
-      // 🖼️ Logos solo si existen (para no romper el PDF si falta algún archivo)
-      if (fs.existsSync(UTA_LOGO_PATH)) {
-        doc.image(UTA_LOGO_PATH, margin, margin, { width: logoWidth });
+      const borderTop = margin / 2;
+      const borderBottom = pageHeight - margin / 2;
+      const borderLeft = margin / 2;
+      const borderRight = pageWidth - margin / 2;
+
+      const FULL_X = borderLeft;
+      const FULL_W = borderRight - borderLeft;
+
+      // === MARCO EXTERIOR ===
+      doc
+        .lineWidth(2)
+        .rect(borderLeft, borderTop, FULL_W, borderBottom - borderTop)
+        .stroke('#999999');
+
+      // === HEADER ROJO O IMAGEN ===
+      const headerHeight = 110;
+
+      if (fs.existsSync(HEADER_PATH)) {
+        // Imagen de header completa (ya incluye textos de universidad)
+        doc.image(HEADER_PATH, borderLeft, borderTop, {
+          width: FULL_W,
+          height: headerHeight,
+        });
+      } else {
+        // Rectángulo rojo si no hay imagen
+        doc
+          .save()
+          .rect(borderLeft, borderTop, FULL_W, headerHeight)
+          .fill('#B1001A')
+          .restore();
       }
+
+      // Logos en el header
+      // Logo FISEI (más grande en el header)
+      const logoSize = 200; // antes 75
+
       if (fs.existsSync(FISEI_LOGO_PATH)) {
-        doc.image(FISEI_LOGO_PATH, pageWidth - margin - logoWidth, margin, {
-          width: logoWidth,
+        // 🔼 Más arriba: antes borderTop + 20
+        doc.image(FISEI_LOGO_PATH, borderRight - logoSize - 85, borderTop + -22, {
+          width: logoSize,
         });
       }
 
-      doc
-        .font('Helvetica-Bold')
-        .fontSize(12)
-        .fillColor('#000')
-        .text(NOMBRE_UNIVERSIDAD, margin + logoWidth + 10, margin + 5, {
-          width: pageWidth - (margin + logoWidth + 10) * 2,
-          align: 'center',
-        });
-      doc
-        .font('Helvetica-Bold')
-        .fontSize(10)
-        .text(NOMBRE_FACULTAD, margin + logoWidth + 10, undefined, {
-          width: pageWidth - (margin + logoWidth + 10) * 2,
-          align: 'center',
-        });
-      doc
-        .font('Helvetica')
-        .fontSize(9)
-        .text(NOMBRE_CARRERA, margin + logoWidth + 10, undefined, {
-          width: pageWidth - (margin + logoWidth + 10) * 2,
-          align: 'center',
-        })
-        .moveDown(1.5);
+      // === CONTENIDO PRINCIPAL ===
+      let y = borderTop + headerHeight + 25;
 
+      // Nombre del evento grande (similar a "CSEI IV")
       doc
-        .font('Helvetica-Bold')
+        .font(TITLE_FONT)
         .fontSize(28)
-        .fillColor('#333')
-        .text('CERTIFICADO DE PARTICIPACIÓN', 0, doc.y + 20, {
+        .fillColor('#333366')
+        .text(eventName.toUpperCase(), FULL_X, y, {
+          width: FULL_W,
           align: 'center',
-        })
-        .moveDown(2);
+        });
 
+      y = doc.y + 8;
+
+      // Frase tipo certificado
+      // Frase tipo certificado (color negro)
       doc
-        .font('Helvetica')
+        .font(TITLE_FONT)
+        .fontSize(20)
+        .fillColor('#000000') // negro
+        .text('EL PRESENTE CERTIFICADO SE OTORGA A', FULL_X, y, {
+          width: FULL_W,
+          align: 'center',
+        });
+
+      y = doc.y + 15;
+
+      // Etiqueta tipo "TO:"
+      doc
+        .font(BODY_FONT_BOLD)
         .fontSize(16)
-        .fillColor('#000')
-        .text(`Otorgado a: ${fullName}`, { align: 'center' })
-        .moveDown(1);
+        .fillColor('#000000')
+        .text('A:', borderLeft + 80, y + 4);
 
+      // Nombre grande alineado con "A:"
       doc
-        .font('Helvetica')
-        .fontSize(14)
-        .text(`Por haber participado en el evento: ${eventName}`, {
-          align: 'center',
-        })
-        .text(`Con una duración de ${eventHours} horas académicas.`, {
-          align: 'center',
-        })
-        .text(`Realizado el ${eventDate}.`, { align: 'center' })
-        .moveDown(2);
+        .font(TITLE_FONT)
+        .fontSize(26)
+        .text(fullName.toUpperCase(), borderLeft + 120, y, {
+          width: FULL_W - 160,
+          align: 'left',
+        });
 
+      // Línea bajo el nombre
+      const nameLineY = doc.y + 5;
+      doc
+        .moveTo(borderLeft + 70, nameLineY)
+        .lineTo(borderRight - 70, nameLineY)
+        .lineWidth(1)
+        .stroke('#000000');
+
+      y = nameLineY + 20;
+
+      // Texto descriptivo
+      doc
+        .font(BODY_FONT)
+        .fontSize(11.5)
+        .fillColor('#000000')
+        .text(
+          `Por su participación en el evento "${eventName}", ` +
+          `con una duración de ${eventHours} horas académicas, ` +
+          `realizado el ${eventDate}.`,
+          FULL_X,   // centrado horizontalmente
+          y,
+          {
+            width: FULL_W, // usa todo el ancho
+            align: 'center', // centrado
+          }
+        );
+
+
+      // === BLOQUE DE NOTA / ASISTENCIA (opcional) ===
       if (detalle.not_evt_det !== null || detalle.asi_evt_det !== null) {
         const nota =
           detalle.not_evt_det !== null
@@ -284,32 +364,82 @@ export class CertificadoService {
             : '';
 
         let infoAdicional = '';
-        if (nota && asistencia) infoAdicional = `${nota} y ${asistencia}.`;
-        else if (nota) infoAdicional = `${nota}.`;
-        else if (asistencia) infoAdicional = `${asistencia}.`;
+        if (nota && asistencia) infoAdicional = `${nota} · ${asistencia}`;
+        else if (nota) infoAdicional = nota;
+        else if (asistencia) infoAdicional = asistencia;
 
         if (infoAdicional) {
+          const boxY = doc.y + 20;
+          const boxHeight = 36;
+          const boxWidth = FULL_W / 2;
+          const boxX = borderLeft + (FULL_W - boxWidth) / 2;
+
           doc
-            .font('Helvetica')
-            .fontSize(12)
-            .text(`(Detalles: ${infoAdicional})`, { align: 'center' })
-            .moveDown(1);
+            .save()
+            .roundedRect(boxX, boxY, boxWidth, boxHeight, 8)
+            .fill('#f8f8ff')
+            .restore();
+
+          doc
+            .font(BODY_FONT)
+            .fontSize(11)
+            .fillColor('#333366')
+            .text(infoAdicional, boxX + 10, boxY + 10, {
+              width: boxWidth - 20,
+              align: 'center',
+            });
+
+          y = boxY + boxHeight + 10;
+        } else {
+          y = doc.y + 30;
         }
+      } else {
+        y = doc.y + 40;
       }
 
-      const signatureY = pageHeight - margin - 50;
-      doc
-        .moveTo(pageWidth / 2 - 100, signatureY)
-        .lineTo(pageWidth / 2 + 100, signatureY)
-        .stroke();
+      // === FIRMA CENTRAL ===
+      const signatureY = borderBottom - 100;
 
       doc
-        .font('Helvetica')
-        .fontSize(10)
-        .text(FIRMA_COORDINADOR_TEXT, pageWidth / 2 - 100, signatureY + 5, {
-          width: 200,
-          align: 'center',
+        .moveTo(pageWidth / 2 - 120, signatureY)
+        .lineTo(pageWidth / 2 + 120, signatureY)
+        .lineWidth(1)
+        .stroke('#555555');
+
+      doc
+        .font(BODY_FONT)
+        .fontSize(11)
+        .fillColor('#000000')
+        .text(
+          FIRMA_COORDINADOR_TEXT,
+          pageWidth / 2 - 120,
+          signatureY + 5,
+          {
+            width: 240,
+            align: 'center',
+          }
+        );
+
+      // === SPONSORS ABAJO (fila centrada) ===
+      const sponsors: string[] = [];
+      if (fs.existsSync(CEDIA_SPONSOR_PATH)) sponsors.push(CEDIA_SPONSOR_PATH);
+      if (fs.existsSync(REDI_SPONSOR_PATH)) sponsors.push(REDI_SPONSOR_PATH);
+      if (fs.existsSync(SCOPUS_SPONSOR_PATH)) sponsors.push(SCOPUS_SPONSOR_PATH);
+      if (fs.existsSync(DIDE_SPONSOR_PATH)) sponsors.push(DIDE_SPONSOR_PATH);
+
+      if (sponsors.length > 0) {
+        const sponsorWidth = 70;
+        const gap = 25;
+        const totalWidth =
+          sponsors.length * sponsorWidth + (sponsors.length - 1) * gap;
+        let x = (pageWidth - totalWidth) / 2;
+        const sponsorY = borderBottom - 55;
+
+        sponsors.forEach((logoPath) => {
+          doc.image(logoPath, x, sponsorY, { width: sponsorWidth });
+          x += sponsorWidth + gap;
         });
+      }
 
       doc.end();
     });
