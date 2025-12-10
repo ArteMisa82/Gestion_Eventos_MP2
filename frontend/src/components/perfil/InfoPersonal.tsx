@@ -16,6 +16,10 @@ interface Nivel {
     id_car: string;
     nom_car: string;
   };
+  carreras?: {
+    id_car: string;
+    nom_car: string;
+  };
   estudiantes_activos: number;
   cursos_disponibles: number;
 }
@@ -43,7 +47,7 @@ export default function InfoPersonal({ setMostrarModal }: InfoPersonalProps) {
     niv_usu: '',
     cor_usu: ''
   });
-  //const [niveles, setNiveles] = useState<Nivel[]>([]);
+  const [niveles, setNiveles] = useState<Nivel[]>([]);
   const [loading, setLoading] = useState(false);
 
   // Cargar datos del usuario
@@ -77,9 +81,17 @@ const carrerasDelEstudiante = ((user as any)?.estudiantes || [])
     nombre: `${e.nivel.carreras.nom_car} - ${e.nivel.nom_niv}`
   }));
 
+// Opciones de nivel: preferir catálogo completo, si no hay usar las del estudiante
+const opcionesNivel = niveles.length > 0
+  ? niveles.map((n: any) => ({
+      id_niv: n.id_niv,
+      nombre: `${n.carreras?.nom_car || n.carrera?.nom_car || 'Carrera'} - ${n.nom_niv}`
+    }))
+  : carrerasDelEstudiante;
+
 
   // Cargar niveles desde el backend
-  /*useEffect(() => {
+  useEffect(() => {
     const fetchNiveles = async () => {
       try {
         const response = await fetch('http://localhost:3001/api/niveles', {
@@ -89,7 +101,6 @@ const carrerasDelEstudiante = ((user as any)?.estudiantes || [])
         });
         const result = await response.json();
         
-        // El backend devuelve { success: true, data: [...] }
         if (result.success && result.data) {
           setNiveles(result.data);
         }
@@ -98,10 +109,10 @@ const carrerasDelEstudiante = ((user as any)?.estudiantes || [])
       }
     };
 
-    if (token) {
+    if (token && esEstudiante) {
       fetchNiveles();
     }
-  }, [token]);*/
+  }, [token, esEstudiante]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -271,16 +282,18 @@ const carrerasDelEstudiante = ((user as any)?.estudiantes || [])
         />
 
         {/* Nivel (Carrera + Semestre) - Solo para estudiantes */}
-        {esEstudiante && carrerasDelEstudiante.length > 0 && (
+        {esEstudiante && opcionesNivel.length > 0 && (
           <select
             name="niv_usu"
             value={formData.niv_usu}
-            disabled
+            onChange={handleChange}
             className="p-3 border border-gray-300 rounded-xl
                        focus:ring-2 focus:ring-[#7A1C1C] focus:border-transparent
                        transition-all duration-200 text-gray-700 bg-white"
+            required
           >
-            {carrerasDelEstudiante.map((c) => (
+            <option value="">Selecciona tu carrera / semestre</option>
+            {opcionesNivel.map((c) => (
               <option key={c.id_niv} value={c.id_niv}>
                 {c.nombre}
               </option>
