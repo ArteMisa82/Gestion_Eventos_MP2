@@ -934,8 +934,38 @@ export const usuariosAPI = {
     return handleResponse(response);
   },
 };
+ /* ==========================================
+    Certificados Usuarios
+   ========================================== */
+  export const certificadosAPI = {
+  /**
+   * Generar un certificado para un usuario
+   * POST /api/certificados-usuario/:id
+   */
+  generar: async (id_usu: number, data: { nombre: string; num_reg_per?: number }, token?: string) => {
+    const response = await fetch(`${API_URL}/certificados-usuario/${id_usu}`, {
+      method: 'POST',
+      headers: getHeaders(token),
+      credentials: 'include',
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  },
 
+  /**
+   * Obtener certificados de un usuario
+   * GET /api/certificados-usuario/:id
+   */
+  listar: async (id_usu: number, token?: string) => {
+    const response = await fetch(`${API_URL}/certificados-usuario/${id_usu}`, {
+      headers: getHeaders(token),
+      credentials: 'include',
+    });
+    return handleResponse(response);
+  },
+};
 
+  /**
 /* ==========================================
    ⭐ FAVORITOS (EVENTOS)
    ========================================== */

@@ -128,11 +128,11 @@ model personas {
 }
 
 model registro_evento {
-  id_reg_evt        String              @id @db.VarChar(10)
-  id_det            String              @db.VarChar(10)
-  id_niv            String              @db.VarChar(10)
-  detalle_eventos   detalle_eventos     @relation(fields: [id_det], references: [id_det], onDelete: Cascade)
-  nivel             nivel               @relation(fields: [id_niv], references: [id_niv], onDelete: Cascade)
+  id_reg_evt        String                 @id @db.VarChar(10)
+  id_det            String                 @db.VarChar(10)
+  id_niv            String                 @db.VarChar(10)
+  detalle_eventos   detalle_eventos        @relation(fields: [id_det], references: [id_det], onDelete: Cascade)
+  nivel             nivel                  @relation(fields: [id_niv], references: [id_niv], onDelete: Cascade)
   registro_personas registro_personas[]
 }
 
@@ -156,7 +156,7 @@ model registro_personas {
   registro_evento         registro_evento      @relation(fields: [id_reg_evt], references: [id_reg_evt], onDelete: Cascade)
   usuarios                usuarios             @relation(fields: [id_usu], references: [id_usu], onDelete: Cascade)
   requisitos_persona      requisitos_persona[]
-
+  certificados_usuario certificados_usuario[] @relation("RegistroCertificados")
   @@index([fec_reg_per], map: "idx_registro_personas_fecha")
   @@index([id_usu], map: "idx_registro_personas_usuario")
   @@index([id_reg_evt, not_fin_evt, asi_evt_det], map: "idx_registro_personas_calificaciones")
@@ -190,7 +190,7 @@ model requisitos_persona {
   validado_por          Int?
   requisitos_evento     requisitos_evento @relation(fields: [id_req], references: [id_req], onDelete: Cascade)
   registro_personas     registro_personas @relation(fields: [num_reg_per], references: [num_reg_per], onDelete: Cascade)
-
+  certificados certificados_usuario[] @relation("RequisitosCertificados")
   @@unique([num_reg_per, id_req])
   @@index([num_reg_per], map: "idx_requisitos_persona_registro")
   @@index([estado_validacion], map: "idx_requisitos_validacion")
@@ -235,7 +235,9 @@ model usuarios {
   estudiantes          estudiantes[]
   eventos              eventos[]
   material_curso       material_curso[]
+  password_reset       password_reset?
   registro_personas    registro_personas[]
+  certificados         certificados_usuario[] // <-- agregamos este lado inverso
 
   @@index([ced_usu], map: "idx_usuarios_cedula")
   @@index([cor_usu], map: "idx_usuarios_correo")
@@ -279,16 +281,17 @@ model detalle_instructores {
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model estudiantes {
-  id_est            Int                 @id @default(autoincrement())
+  id_est            Int                    @id @default(autoincrement())
   id_usu            Int
-  id_niv            String              @db.VarChar(10)
-  fec_ingreso       DateTime            @default(dbgenerated("CURRENT_DATE")) @db.Date
-  fec_egreso        DateTime?           @db.Date
-  est_activo        Int                 @default(1) @db.SmallInt
+  id_niv            String                 @db.VarChar(10)
+  fec_ingreso       DateTime               @default(dbgenerated("CURRENT_DATE")) @db.Date
+  fec_egreso        DateTime?              @db.Date
+  est_activo        Int                    @default(1) @db.SmallInt
   observaciones     String?
-  nivel             nivel               @relation(fields: [id_niv], references: [id_niv], onDelete: Cascade)
-  usuarios          usuarios            @relation(fields: [id_usu], references: [id_usu], onDelete: Cascade)
+  nivel             nivel                  @relation(fields: [id_niv], references: [id_niv], onDelete: Cascade)
+  usuarios          usuarios               @relation(fields: [id_usu], references: [id_usu], onDelete: Cascade)
   registro_personas registro_personas[]
+  certificados      certificados_usuario[]
 
   @@unique([id_usu, id_niv, fec_ingreso], map: "estudiantes_unico_activo")
   @@index([est_activo], map: "idx_estudiantes_activo")
@@ -422,4 +425,32 @@ model sc_usuarios {
   sub_modulo String?  @db.VarChar(100)
   apv_cam    String   @default("EN ESPERA") @db.VarChar(15)
   prioridad  String   @default("NORMAL") @db.VarChar(20)
+}
+
+model certificados_usuario {
+  id_cert          Int                  @id @default(autoincrement())
+  id_usu           Int
+  id_est           Int
+  num_reg_per      Int
+  id_req_per       Int?                 // Campo opcional para vincular requisitos_persona
+  nombre           String               @db.VarChar(150)
+  url_cert         String               @db.VarChar(255)
+  creado_en        DateTime             @default(now())
+
+  // Relaciones
+  usuarios         usuarios             @relation(fields: [id_usu], references: [id_usu], onDelete: Cascade)
+  estudiantes      estudiantes          @relation(fields: [id_est], references: [id_est], onDelete: Cascade)
+  registro_persona registro_personas   @relation(fields: [num_reg_per], references: [num_reg_per], onDelete: Cascade, name: "RegistroCertificados")
+  requisitos_persona requisitos_persona? @relation(fields: [id_req_per], references: [id_req_per], name: "RequisitosCertificados")
+model password_reset {
+  id         Int       @id @default(autoincrement())
+  id_usu     Int       @unique
+  token      String    @unique @db.VarChar(255)
+  expires_at DateTime  @db.Timestamptz(6)
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  usuarios   usuarios  @relation(fields: [id_usu], references: [id_usu], onDelete: Cascade, onUpdate: NoAction, map: "fk_password_reset_usuario")
+
+  @@index([expires_at], map: "idx_password_reset_expires")
+  @@index([token], map: "idx_password_reset_token")
+  @@index([id_usu], map: "idx_password_reset_usuario")
 }

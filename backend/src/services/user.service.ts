@@ -14,50 +14,54 @@ export class UserService {
   }
 
   async getById(id: number): Promise<IUser | null> {
-    const user = await prisma.usuarios.findUnique({ 
-      where: { id_usu: id },
-      include: {
-        estudiantes: {
-          include: {
-            nivel: {
-              include: {
-                carreras: true
-              }
+  const user = await prisma.usuarios.findUnique({ 
+    where: { id_usu: id },
+    include: {
+      // ✅ CERTIFICADOS DEL USUARIO
+      certificados: true,
+
+      // ✅ Relación con estudiante
+      estudiantes: {
+        include: {
+          nivel: {
+            include: {
+              carreras: true
             }
-          },
-          where: {
-            est_activo: 1
-          },
-          //take: 1
-        },
-        // Eventos donde el usuario fue asignado como responsable
-        eventos: {
-          select: {
-            id_evt: true,
-            nom_evt: true,
-            est_evt: true
           }
         },
-        // Relación que indica si el usuario aparece como instructor en algún detalle
-        detalle_instructores: {
-          select: {
-            id_det: true,
-            rol_instructor: true,
-            usuarios: {
-              select: {
-                id_usu: true,
-                nom_usu: true,
-                ape_usu: true,
-                cor_usu: true
-              }
+        where: { est_activo: 1 },
+        take: 1
+      },
+
+      // ✅ Eventos asignados
+      eventos: {
+        select: {
+          id_evt: true,
+          nom_evt: true,
+          est_evt: true
+        }
+      },
+
+      // ✅ Instructor en detalles
+      detalle_instructores: {
+        select: {
+          id_det: true,
+          rol_instructor: true,
+          usuarios: {
+            select: {
+              id_usu: true,
+              nom_usu: true,
+              ape_usu: true,
+              cor_usu: true
             }
           }
         }
       }
-    });
-    
-    return user as any;
-  }
+    }
+  });
+  
+  return user as any;
+}
 
   async create(data: IUser): Promise<IUser> {
     return prisma.usuarios.create({ data });

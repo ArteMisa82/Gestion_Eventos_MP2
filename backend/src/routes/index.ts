@@ -17,6 +17,8 @@ import comiteRoutes from './comite.routes'; // 👈 NUEVO
 import certificadosRoutes from './certificados.routes';
 import tarifasEventoRoutes from './tarifas-evento.routes';
 import requisitosRoutes from './requisitos.routes';
+import certificadosUsuarioRoutes from './certificadosUsuario.routes'; 
+import validacionesRoutes from './validaciones.routes';
 
 // 👉 IMPORTAR LAS RUTAS NUEVAS AQUÍ
 import favoriteEventsRoutes from './favoriteEvents.routes';
@@ -45,7 +47,9 @@ router.use('/certificados', certificadosRoutes);
 router.use('/requisitos', requisitosRoutes);
 
 router.use('/tarifas-evento', tarifasEventoRoutes);
+router.use('/certificados-usuario', certificadosUsuarioRoutes);
 // 👇 ESTA LÍNEA FALTABA
 router.use('/comite', comiteRoutes);
+router.use('/validaciones', validacionesRoutes);
 
 export default router;
