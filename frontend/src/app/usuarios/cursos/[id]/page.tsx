@@ -7,53 +7,103 @@ export default function DetalleCurso() {
   const { id } = useParams();
   const router = useRouter();
 
-  const CURSOS = [
-    { 
-      id: 1, 
-      title: "Liderazgo Estratégico", 
-      progress: 70, 
-      nota: 0, 
-      asistencia: 0,
-      categoria: "Desarrollo Personal",
-      duracion: "8 semanas",
-      instructor: "María González",
-      descripcion: "Desarrolla habilidades de liderazgo para gestionar equipos de alto rendimiento.",
-      materiales: [
-        { tipo: "pdf", nombre: "Guía del curso", descargado: true },
-        { tipo: "video", nombre: "Video introductorio", descargado: false },
-        { tipo: "tarea", nombre: "Actividad 1 - Autoevaluación", descargado: true }
-      ]
-    },
-    { 
-      id: 2, 
-      title: "Marketing Digital", 
-      progress: 100, 
-      nota: 96, 
-      asistencia: 88,
-      categoria: "Marketing",
-      duracion: "6 semanas",
-      instructor: "Carlos Rodríguez",
-      descripcion: "Domina las estrategias digitales para potenciar tu marca en línea.",
-      materiales: [
-        { tipo: "pdf", nombre: "Manual de Marketing Digital", descargado: true },
-        { tipo: "video", nombre: "Fundamentos del SEO", descargado: true },
-        { tipo: "caso", nombre: "Estudio de caso - Campaña exitosa", descargado: true }
-      ]
-    },
-  ];
-
   const [curso, setCurso] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const data = CURSOS.find((c) => c.id === Number(id));
-    setCurso(data);
-  }, [id]);
+    const cargarCurso = async () => {
+      try {
+        setLoading(true);
+        const token = localStorage.getItem('token');
+        const userData = localStorage.getItem('user');
+        
+        if (!token || !userData) {
+          router.push('/login');
+          return;
+        }
 
-  if (!curso) return (
+        const user = JSON.parse(userData);
+
+        // Obtener todos los registros del usuario
+        const response = await fetch(`http://localhost:3001/api/registro-personas/usuario/${user.id_usu}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Error al cargar registros');
+        }
+
+        const result = await response.json();
+        const registros = Array.isArray(result.data || result) ? (result.data || result) : [];
+        
+        // Buscar el registro específico de este evento
+        const registro = registros.find((r: any) => 
+          r.registro_evento?.detalle_eventos?.eventos?.id_evt === id
+        );
+
+        if (!registro) {
+          setError('No estás inscrito en este curso');
+          setLoading(false);
+          return;
+        }
+
+        const evento = registro.registro_evento?.detalle_eventos?.eventos;
+        const detalle = registro.registro_evento?.detalle_eventos;
+
+        // Formatear datos para la vista
+        const cursoFormateado = {
+          id: evento.id_evt,
+          title: evento.nom_evt,
+          progress: 100, // Completado
+          nota: 0,
+          asistencia: 0,
+          categoria: detalle?.are_det || 'General',
+          duracion: `${detalle?.hor_det || 0} horas`,
+          instructor: 'Por definir',
+          descripcion: evento.des_evt || 'Sin descripción disponible',
+          materiales: [
+            { tipo: "pdf", nombre: "Material del curso", descargado: true },
+            { tipo: "video", nombre: "Videos del curso", descargado: false }
+          ],
+          num_reg_per: registro.num_reg_per
+        };
+
+        setCurso(cursoFormateado);
+      } catch (err: any) {
+        console.error('Error:', err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (id) {
+      cargarCurso();
+    }
+  }, [id, router]);
+
+  if (loading) return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center">
       <div className="text-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#7f1d1d] mx-auto"></div>
         <p className="mt-4 text-gray-600">Cargando curso...</p>
+      </div>
+    </div>
+  );
+
+  if (error || !curso) return (
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+      <div className="text-center">
+        <p className="text-red-600 mb-4">{error || 'Curso no encontrado'}</p>
+        <button
+          onClick={() => router.push('/usuarios/cursos')}
+          className="bg-[#7f1d1d] text-white px-6 py-2 rounded-lg hover:bg-[#991b1b]"
+        >
+          Volver a Mis Cursos
+        </button>
       </div>
     </div>
   );
@@ -178,8 +228,11 @@ export default function DetalleCurso() {
               </div>
 
               {/* BOTÓN CERTIFICADO */}
-              <button className="w-full bg-[#7f1d1d] text-white py-4 rounded-xl font-semibold hover:bg-[#991b1b] transition">
-                Descargar Certificado 📄
+              <button 
+                onClick={() => window.open(`http://localhost:3001/api/certificados/generate/${curso.num_reg_per}`, '_blank')}
+                className="w-full bg-[#7f1d1d] text-white py-4 rounded-xl font-semibold hover:bg-[#991b1b] transition"
+              >
+                🎓 Descargar Certificado
               </button>
             </>
           )}

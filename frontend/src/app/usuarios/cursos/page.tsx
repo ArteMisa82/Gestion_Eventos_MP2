@@ -116,12 +116,24 @@ export default function MisCursosYEventos() {
     }
   }, [router, user]);
 
-  const irAlCurso = (idEvento: string) => {
-    router.push(`/cursos/${idEvento}`);
+  const irAlCurso = (idEvento: string, estadoRegistro?: string) => {
+    // Si el curso está completado, ir a la vista de curso del usuario
+    if (estadoRegistro === 'COMPLETADO') {
+      router.push(`/usuarios/cursos/${idEvento}`);
+    } else {
+      // Si no está completado, ir a la inscripción
+      router.push(`/cursos/${idEvento}`);
+    }
   };
 
-  const irAlEvento = (idEvento: string) => {
-    router.push(`/cursos/${idEvento}`);
+  const irAlEvento = (idEvento: string, estadoRegistro?: string) => {
+    // Si el evento está completado, ir a la vista de curso del usuario
+    if (estadoRegistro === 'COMPLETADO') {
+      router.push(`/usuarios/cursos/${idEvento}`);
+    } else {
+      // Si no está completado, ir a la inscripción
+      router.push(`/cursos/${idEvento}`);
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -359,7 +371,7 @@ export default function MisCursosYEventos() {
                       className="bg-white rounded-xl shadow hover:shadow-xl transition-all duration-200 border border-gray-200 overflow-hidden"
                     >
                       {/* Cover */}
-                      <div className="relative h-40 w-full cursor-pointer" onClick={() => irAlCurso(evento.id_evt)}>
+                      <div className="relative h-40 w-full cursor-pointer" onClick={() => irAlCurso(evento.id_evt, curso.estado_registro)}>
                         <Image
                           src={evento.ima_evt || "/Default_Image.png"}
                           alt={evento.nom_evt}
@@ -378,7 +390,7 @@ export default function MisCursosYEventos() {
 
                       {/* Body */}
                       <div className="p-4">
-                        <h2 className="font-bold text-lg text-gray-900 line-clamp-2 cursor-pointer hover:text-[#7f1d1d]" onClick={() => irAlCurso(evento.id_evt)}>
+                        <h2 className="font-bold text-lg text-gray-900 line-clamp-2 cursor-pointer hover:text-[#7f1d1d]" onClick={() => irAlCurso(evento.id_evt, curso.estado_registro)}>
                           {evento.nom_evt}
                         </h2>
 
@@ -427,7 +439,7 @@ export default function MisCursosYEventos() {
                           {curso.estado_registro === 'COMPLETADO' && (
                             <div className="space-y-2">
                               <button
-                                onClick={() => irAlCurso(evento.id_evt)}
+                                onClick={() => irAlCurso(evento.id_evt, curso.estado_registro)}
                                 className="w-full bg-[#7f1d1d] text-white py-2 rounded-lg font-semibold hover:bg-[#991b1b] transition"
                               >
                                 📚 Ver Curso →
@@ -458,7 +470,7 @@ export default function MisCursosYEventos() {
 
                           {!curso.estado_registro && (
                             <button
-                              onClick={() => irAlCurso(evento.id_evt)}
+                              onClick={() => irAlCurso(evento.id_evt, curso.estado_registro)}
                               className="w-full bg-[#7f1d1d] text-white py-2 rounded-lg font-semibold hover:bg-[#991b1b] transition"
                             >
                               Ver Detalles →
@@ -518,7 +530,7 @@ export default function MisCursosYEventos() {
                     <div
                       key={evento.num_reg_per}
                       className="bg-white rounded-xl shadow hover:shadow-xl transition-all duration-200 border border-gray-200 overflow-hidden cursor-pointer"
-                      onClick={() => irAlEvento(evt.id_evt)}
+                      onClick={() => irAlEvento(evt.id_evt, evento.estado_registro)}
                     >
                       {/* Cover */}
                       <div className="relative h-40 w-full">
@@ -600,7 +612,7 @@ export default function MisCursosYEventos() {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                irAlEvento(evt.id_evt);
+                                irAlEvento(evt.id_evt, evento.estado_registro);
                               }}
                               className="w-full bg-[#7f1d1d] text-white py-2 rounded-lg font-semibold hover:bg-[#991b1b] transition"
                             >
