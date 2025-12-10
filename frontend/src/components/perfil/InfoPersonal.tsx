@@ -53,7 +53,7 @@ export default function InfoPersonal({ setMostrarModal }: InfoPersonalProps) {
       // Obtener el nivel del estudiante activo
       const nivelActual = userData.estudiantes && userData.estudiantes.length > 0 
         ? userData.estudiantes[0].id_niv 
-        : '';
+        : (userData.niv_usu || '');
       
       setFormData({
         nom_usu: user.nom_usu || '',
@@ -125,19 +125,28 @@ export default function InfoPersonal({ setMostrarModal }: InfoPersonalProps) {
       return;
     }
 
+    const esEstudiante = (user as any)?.stu_usu === 1;
+
+    if (esEstudiante && !formData.niv_usu) {
+      await Swal.fire({
+        icon: 'error',
+        title: 'Nivel requerido',
+        text: 'Selecciona tu nivel / semestre para completar el perfil de estudiante',
+        confirmButtonColor: '#7A1C1C'
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
-      // Remove niv_usu and cor_usu from formData as they shouldn't be updated this way
-      const { niv_usu, cor_usu, ...dataToUpdate } = formData;
-      
       const response = await fetch(`http://localhost:3001/api/user/${user?.id_usu}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(dataToUpdate)
+        body: JSON.stringify(formData)
       });
 
       const result = await response.json();
@@ -151,7 +160,7 @@ export default function InfoPersonal({ setMostrarModal }: InfoPersonalProps) {
         });
         
         // Actualizar localStorage
-        const updatedUser = { ...user, ...formData };
+        const updatedUser = { ...user, ...result.data, niv_usu: formData.niv_usu };
         localStorage.setItem('user', JSON.stringify(updatedUser));
         window.location.reload();
       } else {

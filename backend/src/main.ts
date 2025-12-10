@@ -2,6 +2,8 @@ import express from 'express';
 import session from 'express-session';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
+import fs from 'fs';
 import routes from './routes';
 import { sessionConfig } from './utils/session.util';
 import prisma from './config/database';
@@ -31,6 +33,36 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // 🔥 Sesiones configuradas
 app.use(session(sessionConfig));
+
+// 📁 Servir archivos estáticos (uploads) con Content-Type correcto
+app.use('/uploads', (req, res, next) => {
+  console.log('🔍 [UPLOADS] Solicitud:', req.path);
+  console.log('🔍 [UPLOADS] Ruta completa:', req.url);
+  console.log('🔍 [UPLOADS] Extensión:', path.extname(req.path));
+  const uploadsRoot = path.join(__dirname, '../uploads');
+  const requestedPath = path.join(uploadsRoot, req.path);
+  // Si viene con .pdf pero el archivo real no tiene extensión, hacemos fallback
+  if (req.path.endsWith('.pdf') && !fs.existsSync(requestedPath)) {
+    const withoutExtPath = requestedPath.replace(/\.pdf$/, '');
+    if (fs.existsSync(withoutExtPath)) {
+      console.log('🔁 [UPLOADS] Archivo sin extensión encontrado, reescribiendo URL');
+      req.url = req.url.replace(/\.pdf$/, '');
+    }
+  }
+  
+  // Si la URL no tiene extensión, asumir que es PDF
+  if (!path.extname(req.path)) {
+    console.log('✅ [UPLOADS] Sin extensión detectada - Agregando Content-Type: application/pdf');
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'inline');
+  }
+  next();
+}, express.static(path.join(__dirname, '../uploads'), {
+  setHeaders: (res, path) => {
+    console.log('📄 [STATIC] Sirviendo archivo:', path);
+    console.log('📄 [STATIC] Tipo MIME:', res.getHeader('Content-Type'));
+  }
+}));
 
 // ✔ Ruta base de prueba
 app.get('/', (req, res) => {

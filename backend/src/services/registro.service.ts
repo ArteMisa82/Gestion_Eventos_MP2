@@ -349,7 +349,13 @@ export class RegistroService {
     try {
       const registros = await prisma.registro_personas.findMany({
         where: { id_usu },
-        include: {
+        select: {
+          num_reg_per: true,
+          id_reg_evt: true,
+          fec_reg_per: true,
+          estado_registro: true,
+          responsable_valida: true,
+          comentarios_responsable: true,
           estudiantes: {
             include: {
               nivel: {
@@ -368,6 +374,14 @@ export class RegistroService {
               },
             },
           },
+          pagos: {
+            select: {
+              num_pag: true,
+              pag_o_no: true,
+              met_pag: true,
+              val_pag: true,
+            }
+          }
         },
         orderBy: {
           fec_reg_per: 'desc',

@@ -4,114 +4,202 @@ import React, { useEffect, useState } from "react";
 import { Eye, CheckCircle, XCircle, Search } from "lucide-react";
 import Swal from "sweetalert2";
 
-interface DocumentoValidar {
-  id: string;
-  usuario: string;
-  tipoDocumento: string;
-  evento: string;
-  estado: "Pendiente" | "Aprobado" | "Rechazado";
-  urlArchivo: string;
+interface PagoValidar {
+  num_pag: number;
+  num_reg_per: number;
+  val_pag: number;
+  met_pag: string;
+  pdf_comp_pag: string | null;
+  estado_pago: "Pendiente" | "Aprobado" | "Rechazado";
+  usuario: {
+    id_usu: number;
+    nombre_completo: string;
+    ced_usu: string;
+    email: string;
+  };
+  evento: {
+    nom_evt: string;
+    id_evt: string;
+  };
+  estado_registro: string;
+  fecha_registro: string;
 }
 
 export default function ValidacionesResponsable() {
-  const [documentos, setDocumentos] = useState<DocumentoValidar[]>([]);
+  const [pagos, setPagos] = useState<PagoValidar[]>([]);
   const [filtro, setFiltro] = useState("Todos");
   const [busqueda, setBusqueda] = useState("");
+  const [loading, setLoading] = useState(true);
 
-  // 🔥 Mock data de ejemplo (puedes sustituirla luego por tu API)
+  // Cargar pagos pendientes desde la API
   useEffect(() => {
-    setDocumentos([
-      {
-        id: "1",
-        usuario: "Juan Pérez",
-        tipoDocumento: "Cédula",
-        evento: "MasterClass de Fotografía",
-        estado: "Pendiente",
-        urlArchivo: "/ejemplos/cedula.pdf",
-      },
-      {
-        id: "2",
-        usuario: "María López",
-        tipoDocumento: "Certificado Médico",
-        evento: "Conferencia Salud 2024",
-        estado: "Aprobado",
-        urlArchivo: "/ejemplos/certificado.pdf",
-      },
-      {
-        id: "3",
-        usuario: "Carlos Jiménez",
-        tipoDocumento: "Autorización de Representante",
-        evento: "Campamento Deportivo",
-        estado: "Rechazado",
-        urlArchivo: "/ejemplos/autorizacion.pdf",
-      },
-    ]);
+    cargarPagosPendientes();
   }, []);
+
+  const cargarPagosPendientes = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('http://localhost:3001/api/pagos/pendientes-validacion', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al cargar pagos pendientes');
+      }
+
+      const data = await response.json();
+      setPagos(data);
+    } catch (error) {
+      console.error('Error:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'No se pudieron cargar los pagos pendientes'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // -----------------------------
   // 🟢 Acciones Frontend
   // -----------------------------
 
-  const aprobarDocumento = async (id: string) => {
-    setDocumentos((prev) =>
-      prev.map((d) => (d.id === id ? { ...d, estado: "Aprobado" } : d))
-    );
-
-    Swal.fire({
-      icon: "success",
-      title: "Documento aprobado",
-      timer: 1500,
-      showConfirmButton: false,
+  const aprobarPago = async (numRegPer: number) => {
+    const confirmacion = await Swal.fire({
+      title: '¿Aprobar este pago?',
+      text: 'Se completará la inscripción del usuario',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#10b981',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Sí, aprobar',
+      cancelButtonText: 'Cancelar'
     });
+
+    if (!confirmacion.isConfirmed) return;
+
+    try {
+      const response = await fetch(`http://localhost:3001/api/pagos/validar/${numRegPer}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ estado: 'APROBAR' })
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al aprobar el pago');
+      }
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Pago aprobado',
+        text: 'La inscripción ha sido completada',
+        timer: 2000,
+        showConfirmButton: false,
+      });
+
+      // Recargar la lista
+      cargarPagosPendientes();
+
+    } catch (error) {
+      console.error('Error:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'No se pudo aprobar el pago'
+      });
+    }
   };
 
-  const rechazarDocumento = async (id: string) => {
+  const rechazarPago = async (numRegPer: number) => {
     const { value: motivo } = await Swal.fire({
-      title: "Motivo del rechazo",
-      input: "textarea",
-      inputPlaceholder: "Describe por qué se rechaza este documento...",
-      confirmButtonText: "Rechazar",
-      confirmButtonColor: "#b91c1c",
+      title: 'Motivo del rechazo',
+      input: 'textarea',
+      inputPlaceholder: 'Describe por qué se rechaza este pago...',
+      confirmButtonText: 'Rechazar',
+      confirmButtonColor: '#b91c1c',
       showCancelButton: true,
       inputValidator: (value) => {
-        if (!value) return "Debes ingresar un motivo";
+        if (!value) return 'Debes ingresar un motivo';
         return null;
       },
     });
 
     if (!motivo) return;
 
-    setDocumentos((prev) =>
-      prev.map((d) => (d.id === id ? { ...d, estado: "Rechazado" } : d))
-    );
+    try {
+      const response = await fetch(`http://localhost:3001/api/pagos/validar/${numRegPer}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ 
+          estado: 'RECHAZAR',
+          comentarios: motivo
+        })
+      });
 
-    Swal.fire({
-      icon: "success",
-      title: "Documento rechazado",
-      text: `Motivo: ${motivo}`,
-    });
+      if (!response.ok) {
+        throw new Error('Error al rechazar el pago');
+      }
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Pago rechazado',
+        text: `El usuario será notificado para volver a subir el comprobante`,
+      });
+
+      // Recargar la lista
+      cargarPagosPendientes();
+
+    } catch (error) {
+      console.error('Error:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'No se pudo rechazar el pago'
+      });
+    }
   };
 
   // -----------------------------
   // 🟡 Filtrado y búsqueda
   // -----------------------------
 
-  const filtrarDocumentos = documentos.filter((doc) => {
-    const coincideFiltro = filtro === "Todos" || doc.estado === filtro;
+  const filtrarPagos = pagos.filter((pago) => {
+    const coincideFiltro = filtro === "Todos" || pago.estado_pago === filtro;
 
     const coincideBusqueda =
-      doc.usuario.toLowerCase().includes(busqueda.toLowerCase()) ||
-      doc.tipoDocumento.toLowerCase().includes(busqueda.toLowerCase()) ||
-      doc.evento.toLowerCase().includes(busqueda.toLowerCase());
+      pago.usuario.nombre_completo.toLowerCase().includes(busqueda.toLowerCase()) ||
+      pago.usuario.ced_usu.includes(busqueda) ||
+      pago.evento.nom_evt.toLowerCase().includes(busqueda.toLowerCase()) ||
+      pago.met_pag.toLowerCase().includes(busqueda.toLowerCase());
 
     return coincideFiltro && coincideBusqueda;
   });
+
+  if (loading) {
+    return (
+      <div className="p-8 bg-white min-h-screen text-gray-800 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#581517] mx-auto mb-4"></div>
+          <p className="text-gray-600">Cargando pagos pendientes...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-8 bg-white min-h-screen text-gray-800">
 
       <h1 className="text-3xl font-semibold text-center text-[#581517] mb-6">
-        Validaciones de Documentos
+        Validación de Pagos
       </h1>
 
       {/* 🔍 Buscador */}
@@ -120,7 +208,7 @@ export default function ValidacionesResponsable() {
           <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
           <input
             type="text"
-            placeholder="Buscar por usuario, documento o evento..."
+            placeholder="Buscar por usuario, cédula, evento o método de pago..."
             className="w-full border rounded-md p-2 pl-10"
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
@@ -151,60 +239,73 @@ export default function ValidacionesResponsable() {
           <thead className="bg-gray-100 text-gray-700 text-sm">
             <tr>
               <th className="p-3 border">Usuario</th>
-              <th className="p-3 border">Tipo de Documento</th>
+              <th className="p-3 border">Cédula</th>
               <th className="p-3 border">Evento</th>
+              <th className="p-3 border">Método</th>
+              <th className="p-3 border">Valor</th>
               <th className="p-3 border">Estado</th>
               <th className="p-3 border">Acciones</th>
             </tr>
           </thead>
 
           <tbody>
-            {filtrarDocumentos.map((doc) => (
-              <tr key={doc.id} className="text-sm">
-                <td className="p-3 border">{doc.usuario}</td>
-                <td className="p-3 border">{doc.tipoDocumento}</td>
-                <td className="p-3 border">{doc.evento}</td>
+            {filtrarPagos.map((pago) => (
+              <tr key={pago.num_pag} className="text-sm">
+                <td className="p-3 border">{pago.usuario.nombre_completo}</td>
+                <td className="p-3 border">{pago.usuario.ced_usu}</td>
+                <td className="p-3 border">{pago.evento.nom_evt}</td>
+                <td className="p-3 border">
+                  <span className="px-2 py-1 rounded-md text-xs font-semibold bg-blue-100 text-blue-700">
+                    {pago.met_pag}
+                  </span>
+                </td>
+                <td className="p-3 border">${pago.val_pag.toFixed(2)}</td>
 
                 <td className="p-3 border">
                   <span
                     className={`px-2 py-1 rounded-md text-xs font-semibold
                     ${
-                      doc.estado === "Pendiente"
+                      pago.estado_pago === "Pendiente"
                         ? "bg-yellow-100 text-yellow-700"
-                        : doc.estado === "Aprobado"
+                        : pago.estado_pago === "Aprobado"
                         ? "bg-green-100 text-green-700"
                         : "bg-red-100 text-red-700"
                     }`}
                   >
-                    {doc.estado}
+                    {pago.estado_pago}
                   </span>
                 </td>
 
                 <td className="p-3 border flex gap-2 justify-center">
 
-                  {/* Ver PDF */}
-                  <button
-                    onClick={() => window.open(doc.urlArchivo, "_blank")}
-                    className="text-blue-600 hover:text-blue-800"
-                  >
-                    <Eye size={20} />
-                  </button>
+                  {/* Ver Comprobante */}
+                  {pago.pdf_comp_pag && (
+                    <button
+                      onClick={() => window.open(`http://localhost:3001/${pago.pdf_comp_pag}`, "_blank")}
+                      className="text-blue-600 hover:text-blue-800"
+                      title="Ver comprobante"
+                    >
+                      <Eye size={20} />
+                    </button>
+                  )}
 
                   {/* Aprobar */}
-                  {doc.estado === "Pendiente" && (
+                  {pago.estado_pago === "Pendiente" && (
                     <button
-                      onClick={() => aprobarDocumento(doc.id)}
+                      onClick={() => aprobarPago(pago.num_reg_per)}
                       className="text-green-600 hover:text-green-800"
+                      title="Aprobar pago"
                     >
                       <CheckCircle size={20} />
                     </button>
                   )}
 
                   {/* Rechazar */}
-                  {doc.estado === "Pendiente" && (
+                  {pago.estado_pago === "Pendiente" && (
                     <button
-                      onClick={() => rechazarDocumento(doc.id)}
+                      onClick={() => rechazarPago(pago.num_reg_per)}
                       className="text-red-600 hover:text-red-800"
+                      title="Rechazar pago"
                     >
                       <XCircle size={20} />
                     </button>
@@ -213,10 +314,10 @@ export default function ValidacionesResponsable() {
               </tr>
             ))}
 
-            {filtrarDocumentos.length === 0 && (
+            {filtrarPagos.length === 0 && (
               <tr>
-                <td colSpan={5} className="text-center p-4 text-gray-500">
-                  No hay documentos encontrados
+                <td colSpan={7} className="text-center p-4 text-gray-500">
+                  No hay pagos encontrados
                 </td>
               </tr>
             )}

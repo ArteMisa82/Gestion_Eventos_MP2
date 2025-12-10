@@ -2,13 +2,25 @@
 import { Router } from 'express';
 import { PagosController } from '../controllers/pagos.controller';
 import multer from 'multer';
+import path from 'path';
 import { authMiddleware, adminMiddleware } from '../middlewares/auth.middleware';
 
 const router = Router();
 const pagosController = new PagosController();
 
-// Configuración de subida de archivos
-const upload = multer({ dest: 'uploads/comprobantes/' });
+// Configuración de subida de archivos con extensión preservada
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/comprobantes/');
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname) || '.pdf'; // Por defecto .pdf si no tiene extensión
+    cb(null, uniqueSuffix + ext);
+  }
+});
+
+const upload = multer({ storage });
 
 
 /**
@@ -130,6 +142,26 @@ router.post(
 
 /**
  * @swagger
+ * /pagos/pendientes-validacion:
+ *   get:
+ *     summary: Obtener pagos pendientes de validación
+ *     tags: [Pagos]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Lista de pagos pendientes
+ *       500:
+ *         description: Error del servidor
+ */
+router.get(
+    '/pendientes-validacion',
+    adminMiddleware,  // Solo responsables/admin pueden ver pagos pendientes
+    pagosController.getPagosPendientes.bind(pagosController)
+);
+
+/**
+ * @swagger
  * /pagos/validar/{numRegPer}:
  *   put:
  *     summary: Validar comprobante de pago
@@ -154,6 +186,8 @@ router.post(
  *               estado:
  *                 type: string
  *                 enum: [APROBAR, RECHAZAR]
+ *               comentarios:
+ *                 type: string
  *     responses:
  *       200:
  *         description: Validación realizada

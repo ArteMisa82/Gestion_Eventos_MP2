@@ -241,48 +241,52 @@ export class AuthService {
 
   // NUEVO METODO: Determinar rol automaticamente por email
   private determinarRolPorEmail(email: string): { esEstudiante: boolean; esAdministrativo: boolean; esAdmin: boolean; error?: string } {
-    const emailLower = email.toLowerCase();
-    
-    // 1. Verificar si es ADMIN (admin@admin.com)
-    if (emailLower === 'admin@admin.com') {
+    const emailLower = email.trim().toLowerCase();
+
+    if (!emailLower.includes('@')) {
       return {
         esEstudiante: false,
-        esAdministrativo: false, 
-        esAdmin: true
+        esAdministrativo: false,
+        esAdmin: false,
+        error: 'Correo inválido'
       };
     }
 
-    // 2. Verificar si es dominio UTA (@uta.edu.ec)
-    if (emailLower.endsWith('@uta.edu.ec')) {
-      const usuarioPart = emailLower.split('@')[0]; // parte antes del @
-      
-      // Verificar si tiene AL MENOS un dígito
-      const tieneDigitos = /\d/.test(usuarioPart);
-      
-      if (tieneDigitos) {
-        // Tiene números => ESTUDIANTE
-        return {
-          esEstudiante: true,
-          esAdministrativo: false,
-          esAdmin: false
-        };
-      } else {
-        // Sin números => ADMINISTRATIVO
-        return {
-          esEstudiante: false,
-          esAdministrativo: true,
-          esAdmin: false
-        };
-      }
+    const [localPart, domain] = emailLower.split('@');
+
+    // 1) Super admin fijo
+    if (emailLower === 'admin@admin.com') {
+      return { esEstudiante: false, esAdministrativo: false, esAdmin: true };
     }
 
-    // 3. Usuario EXTERNO (correos públicos: gmail, hotmail, etc.)
-    // Se guardan con stu_usu: 0 y adm_usu: 0 (usuarios públicos)
-    return {
-      esEstudiante: false,
-      esAdministrativo: false,
-      esAdmin: false
-    };
+    // 2) Dominios .com => externos (no estudiante ni administrativo)
+    if (domain.endsWith('.com')) {
+      return { esEstudiante: false, esAdministrativo: false, esAdmin: false };
+    }
+
+    // 3) Institucional UTA
+    if (domain === 'uta.edu.ec') {
+      const adminPattern = /^[a-z]+$/i;             // solo letras
+      const studentPattern = /^[a-z]+\d{4}$/i;      // letras seguidas de exactamente 4 dígitos
+
+      if (adminPattern.test(localPart)) {
+        return { esEstudiante: false, esAdministrativo: true, esAdmin: false };
+      }
+
+      if (studentPattern.test(localPart)) {
+        return { esEstudiante: true, esAdministrativo: false, esAdmin: false };
+      }
+
+      return {
+        esEstudiante: false,
+        esAdministrativo: false,
+        esAdmin: false,
+        error: 'Correo institucional inválido. Estudiante: letras + 4 dígitos (ej: juan1234@uta.edu.ec). Administrativo: solo letras (ej: pedrolopez@uta.edu.ec).'
+      };
+    }
+
+    // 4) Otros dominios => externos
+    return { esEstudiante: false, esAdministrativo: false, esAdmin: false };
   }
 
   async sendVerificationEmail(userId: number): Promise<{ success: boolean; message: string }> {
