@@ -291,4 +291,57 @@ export class PagosService {
             }
         };
     }
+
+    // --------------------------------------------------------
+    // OBTENER PAGOS PENDIENTES DE VALIDACIÓN
+    // --------------------------------------------------------
+    async getPagosPendientesValidacion() {
+        const pagosPendientes = await prisma.pagos.findMany({
+            where: { 
+                pag_o_no: 0 // Pendiente de validación
+            },
+            include: {
+                registro_personas: {
+                    include: {
+                        usuarios: true,
+                        registro_evento: {
+                            include: {
+                                detalle_eventos: {
+                                    include: {
+                                        eventos: true
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            orderBy: {
+                num_pag: 'desc' // Más recientes primero
+            }
+        });
+
+        return pagosPendientes.map((pago: any) => ({
+            num_pag: pago.num_pag,
+            num_reg_per: pago.num_reg_per,
+            val_pag: pago.val_pag.toNumber(),
+            met_pag: pago.met_pag,
+            pdf_comp_pag: pago.pdf_comp_pag,
+            estado_pago: pago.pag_o_no === 0 ? 'Pendiente' : pago.pag_o_no === 1 ? 'Aprobado' : 'Rechazado',
+            usuario: {
+                id_usu: pago.registro_personas.usuarios.id_usu,
+                nombre_completo: `${pago.registro_personas.usuarios.nom_usu} ${pago.registro_personas.usuarios.ape_usu}`,
+                ced_usu: pago.registro_personas.usuarios.ced_usu,
+                email: pago.registro_personas.usuarios.email_usu
+            },
+            evento: {
+                nom_evt: pago.registro_personas.registro_evento.detalle_eventos.eventos.nom_evt,
+                id_evt: pago.registro_personas.registro_evento.detalle_eventos.eventos.id_evt
+            },
+            estado_registro: pago.registro_personas.estado_registro,
+            fecha_registro: pago.registro_personas.fec_reg_per
+        }));
+    }
 }
+
+export { PagosService };

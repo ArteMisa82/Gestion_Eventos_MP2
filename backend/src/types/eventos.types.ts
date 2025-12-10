@@ -28,12 +28,22 @@ export interface UpdateEventoDto {
   id_responsable?: number; // Solo ADMIN puede cambiar el responsable
   carreras?: string[]; // Carreras objetivo del evento
   semestres?: string[]; // Semestres objetivo del evento
+  docentes?: string[]; // Docentes/Instructores del evento
+  categoria?: string; // Categoría personalizada del evento
+  requisitosCategoria?: string[]; // Requisitos basados en categoría
   detalles?: {
     cup_det?: number;
     hor_det?: number;
     cat_det?: string;  // Usar cat_det en lugar de tip_evt
     are_det?: string;
+    not_min_evt?: number;  // 🆕 Nota mínima (0-10)
+    asi_evt_det?: number;  // 🆕 Asistencia mínima (0-100%)
   };
+  requisitos?: Array<{  // 🆕 Requisitos específicos del evento
+    tip_req: string;    // Tipo de requisito (ej: "Carta de Motivación", "Diploma")
+    des_req?: string;   // Descripción del requisito
+    obligatorio?: boolean;  // Si es obligatorio
+  }>;
 }
 
 export interface AsignarResponsableDto {

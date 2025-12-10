@@ -17,6 +17,7 @@ import comiteRoutes from './comite.routes'; // 👈 NUEVO
 import certificadosRoutes from './certificados.routes';
 import tarifasEventoRoutes from './tarifas-evento.routes';
 import requisitosRoutes from './requisitos.routes';
+import validacionesRoutes from './validaciones.routes';
 
 // 👉 IMPORTAR LAS RUTAS NUEVAS AQUÍ
 import favoriteEventsRoutes from './favoriteEvents.routes';
@@ -47,5 +48,6 @@ router.use('/requisitos', requisitosRoutes);
 router.use('/tarifas-evento', tarifasEventoRoutes);
 // 👇 ESTA LÍNEA FALTABA
 router.use('/comite', comiteRoutes);
+router.use('/validaciones', validacionesRoutes);
 
 export default router;

@@ -402,6 +402,84 @@ export class RegistroController {
   }
 
   /**
+   * POST /api/inscripciones/:num_reg_per/documentos
+   * Guarda los documentos y requisitos adicionales de una inscripción
+   */
+  async guardarDocumentosInscripcion(req: Request, res: Response) {
+    try {
+      const { num_reg_per } = req.params;
+      const {
+        carta_motivacion,
+        documento_especifico,
+        documento_especifico_url,
+        documento_extra_1,
+        documento_extra_1_url,
+        documento_extra_2,
+        documento_extra_2_url
+      } = req.body;
+
+      if (!num_reg_per) {
+        return res.status(400).json({
+          success: false,
+          message: 'num_reg_per es requerido'
+        });
+      }
+
+      const resultado = await inscripcionesService.guardarDocumentosInscripcion(
+        parseInt(num_reg_per),
+        {
+          carta_motivacion,
+          documento_especifico,
+          documento_especifico_url,
+          documento_extra_1,
+          documento_extra_1_url,
+          documento_extra_2,
+          documento_extra_2_url
+        }
+      );
+
+      return res.status(200).json(
+        successResponse(resultado, 'Documentos guardados exitosamente')
+      );
+    } catch (error: any) {
+      return res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  /**
+   * GET /api/inscripciones/:num_reg_per/documentos
+   * Obtiene los documentos de una inscripción
+   */
+  async obtenerDocumentosInscripcion(req: Request, res: Response) {
+    try {
+      const { num_reg_per } = req.params;
+
+      if (!num_reg_per) {
+        return res.status(400).json({
+          success: false,
+          message: 'num_reg_per es requerido'
+        });
+      }
+
+      const documentos = await inscripcionesService.obtenerDocumentosInscripcion(
+        parseInt(num_reg_per)
+      );
+
+      return res.status(200).json(
+        successResponse(documentos, 'Documentos obtenidos exitosamente')
+      );
+    } catch (error: any) {
+      return res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  /**
    * DELETE /api/inscripciones/:id
    * Cancela una inscripción
    */
