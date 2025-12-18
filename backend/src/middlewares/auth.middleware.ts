@@ -21,7 +21,8 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
     // Agregar datos del usuario al request
     (req as any).userId = payload.id_usu;
     (req as any).userEmail = payload.cor_usu;
-    (req as any).isAdmin = payload.adm_usu === 1;
+    // Acepta Administrador (super admin) o adm_usu == 1 (admin/responsable)
+    (req as any).isAdmin = payload.Administrador === true || payload.adm_usu === 1;
 
     next();
   } catch (error) {
@@ -37,7 +38,7 @@ export const adminMiddleware = (req: Request, res: Response, next: NextFunction)
   if (!(req as any).isAdmin) {
     return res.status(403).json({
       success: false,
-      message: 'Acceso denegado. Se requieren permisos de administrador'
+      message: 'Acceso denegado. Se requieren permisos de administrador o responsable'
     });
   }
   next();

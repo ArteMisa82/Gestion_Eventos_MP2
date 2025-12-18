@@ -230,6 +230,96 @@ router.get(
 
 /**
  * @swagger
+ * /api/inscripciones/{num_reg_per}/documentos:
+ *   post:
+ *     summary: Guardar documentos y requisitos de una inscripción
+ *     description: Guarda carta de motivación, documentos específicos y documentos extra de una inscripción
+ *     tags: [Inscripciones]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: num_reg_per
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID del registro de personas
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               carta_motivacion:
+ *                 type: string
+ *                 description: Texto de la carta de motivación
+ *               documento_especifico:
+ *                 type: string
+ *                 description: Nombre del documento específico
+ *               documento_especifico_url:
+ *                 type: string
+ *                 description: URL del documento específico
+ *               documento_extra_1:
+ *                 type: string
+ *                 description: Nombre del primer documento adicional
+ *               documento_extra_1_url:
+ *                 type: string
+ *                 description: URL del primer documento adicional
+ *               documento_extra_2:
+ *                 type: string
+ *                 description: Nombre del segundo documento adicional
+ *               documento_extra_2_url:
+ *                 type: string
+ *                 description: URL del segundo documento adicional
+ *     responses:
+ *       200:
+ *         description: Documentos guardados correctamente
+ *       400:
+ *         description: Datos inválidos
+ *       401:
+ *         description: No autenticado
+ *       404:
+ *         description: Inscripción no encontrada
+ */
+router.post(
+  '/:num_reg_per/documentos',
+  authMiddleware,
+  registroController.guardarDocumentosInscripcion.bind(registroController)
+);
+
+/**
+ * @swagger
+ * /api/inscripciones/{num_reg_per}/documentos:
+ *   get:
+ *     summary: Obtener documentos de una inscripción
+ *     description: Obtiene todos los documentos y requisitos guardados de una inscripción
+ *     tags: [Inscripciones]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: num_reg_per
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID del registro de personas
+ *     responses:
+ *       200:
+ *         description: Documentos obtenidos correctamente
+ *       401:
+ *         description: No autenticado
+ *       404:
+ *         description: Inscripción no encontrada
+ */
+router.get(
+  '/:num_reg_per/documentos',
+  authMiddleware,
+  registroController.obtenerDocumentosInscripcion.bind(registroController)
+);
+
+/**
+ * @swagger
  * /api/inscripciones/{id}:
  *   delete:
  *     summary: Cancelar una inscripción

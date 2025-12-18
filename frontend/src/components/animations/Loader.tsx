@@ -2,8 +2,20 @@
 "use client";
 import { motion } from "framer-motion";
 import Image from "next/image";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function Loader() {
+  const router = useRouter();
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      router.push("/home");
+    }, 3500); // 2.5s de delay + 1s de transición = 3.5s
+
+    return () => clearTimeout(timer);
+  }, [router]);
+
   return (
     <motion.div
       className="flex flex-col items-center justify-center h-screen bg-white"

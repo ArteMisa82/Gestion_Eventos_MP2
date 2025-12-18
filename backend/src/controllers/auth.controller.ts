@@ -173,11 +173,11 @@ export class AuthController {
         });
       }
 
-      // Validar estructura de email
+      // ✅ Validar estructura de email - NO permitir @uta.edu.ec
       if (email.toLowerCase().endsWith('@uta.edu.ec')) {
         return res.status(403).json({
           success: false,
-          message: 'No es posible recuperar la contraseña para correos institucionales (@uta.edu.ec). Por favor, notifica a la DTIC para recuperar tu contraseña.'
+          message: 'No se puede cambiar la contraseña. Diríjase a la DITIC.'
         });
       }
 
@@ -287,11 +287,11 @@ export class AuthController {
         });
       }
 
-      // Validar estructura de email
+      // ✅ Validar estructura de email - NO permitir @uta.edu.ec
       if (user.cor_usu.toLowerCase().endsWith('@uta.edu.ec')) {
         return res.status(403).json({
           success: false,
-          message: 'No es posible enviar códigos de verificación a correos institucionales (@uta.edu.ec). Por favor, notifica a la DTIC para verificar tu correo.'
+          message: 'No se puede enviar códigos de verificación a correos institucionales. Diríjase a la DITIC.'
         });
       }
 

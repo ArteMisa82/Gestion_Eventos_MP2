@@ -1,7 +1,7 @@
 import { PrismaClient } from '../generated/prisma';
-import { TokenUtil } from '../utils/token.util';
 import { EmailService } from './email.service';
 import { hashPassword } from '../utils/bcrypt.util';
+import crypto from 'crypto';
 
 const prisma = new PrismaClient();
 const emailService = new EmailService();
@@ -16,11 +16,11 @@ export class PasswordService {
   // Solicitar recuperación de contraseña
   async requestPasswordReset(email: string): Promise<PasswordResetResult> {
     try {
-      // Validar que no sea email @uta.edu.ec
+      // ✅ Validar que NO sea email @uta.edu.ec
       if (email.toLowerCase().endsWith('@uta.edu.ec')) {
         return {
           success: false,
-          message: 'No es posible recuperar la contraseña para correos institucionales (@uta.edu.ec). Por favor, notifica a la DTIC para recuperar tu contraseña.'
+          message: 'No se puede cambiar la contraseña. Diríjase a la DITIC.'
         };
       }
 
@@ -33,20 +33,28 @@ export class PasswordService {
         // Por seguridad, no revelar si el email existe o no
         return {
           success: true,
-          message: 'Si el email existe, recibirás un enlace de recuperación'
+          message: 'Si el email existe en nuestro sistema, recibirás un enlace de recuperación en tu correo'
         };
       }
 
-      // Generar token único
-      const resetToken = TokenUtil.generateToken();
-      const expirationDate = TokenUtil.getExpirationDate(1); // 1 hora
+      // Generar token único y seguro
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      
+      // Token válido por 1 hora (3600 segundos)
+      const expirationDate = new Date();
+      expirationDate.setHours(expirationDate.getHours() + 1);
 
-      // Guardar token en BD (usaremos la tabla usuarios temporalmente)
-      await prisma.usuarios.update({
-        where: { id_usu: user.id_usu },
+      // Eliminar token anterior si existe
+      await prisma.password_reset.deleteMany({
+        where: { id_usu: user.id_usu }
+      });
+
+      // Guardar token en BD
+      await prisma.password_reset.create({
         data: {
-          // Usaremos un campo temporal - en producción usar tabla separada
-          pdf_ced_usu: resetToken // Campo temporal para demo
+          id_usu: user.id_usu,
+          token: resetToken,
+          expires_at: expirationDate
         }
       });
 
@@ -56,14 +64,14 @@ export class PasswordService {
       if (!emailSent) {
         return {
           success: false,
-          message: 'Error enviando email de recuperación'
+          message: 'Error enviando email de recuperación. Intenta nuevamente más tarde.'
         };
       }
 
       return {
         success: true,
-        message: 'Email de recuperación enviado',
-        resetToken: resetToken // Solo para testing
+        message: 'Se ha enviado un enlace de recuperación a tu correo. Válido por 1 hora.',
+        resetToken: resetToken // Solo para testing/desarrollo
       };
 
     } catch (error) {
@@ -78,33 +86,61 @@ export class PasswordService {
   // Restablecer contraseña con token
   async resetPassword(token: string, newPassword: string): Promise<PasswordResetResult> {
     try {
-      // Buscar usuario con el token
-      const user = await prisma.usuarios.findFirst({
-        where: { pdf_ced_usu: token }
+      // Validar longitud mínima de contraseña
+      if (!newPassword || newPassword.length < 6) {
+        return {
+          success: false,
+          message: 'La contraseña debe tener al menos 6 caracteres'
+        };
+      }
+
+      // Buscar token válido
+      const passwordReset = await prisma.password_reset.findUnique({
+        where: { token }
       });
 
-      if (!user) {
+      if (!passwordReset) {
         return {
           success: false,
           message: 'Token inválido o expirado'
         };
       }
 
+      // Verificar si el token ha expirado
+      const now = new Date();
+      if (passwordReset.expires_at < now) {
+        // Eliminar token expirado
+        await prisma.password_reset.delete({
+          where: { token }
+        });
+        
+        return {
+          success: false,
+          message: 'El enlace de recuperación ha expirado. Solicita uno nuevo.'
+        };
+      }
+
       // Hashear nueva contraseña
       const hashedPassword = await hashPassword(newPassword);
 
-      // Actualizar contraseña y limpiar token
-      await prisma.usuarios.update({
-        where: { id_usu: user.id_usu },
-        data: {
-          pas_usu: hashedPassword,
-          pdf_ced_usu: null // Limpiar token
-        }
-      });
+      // Actualizar contraseña del usuario en una transacción
+      await prisma.$transaction([
+        // Actualizar la contraseña
+        prisma.usuarios.update({
+          where: { id_usu: passwordReset.id_usu },
+          data: {
+            pas_usu: hashedPassword
+          }
+        }),
+        // Eliminar el token de recuperación
+        prisma.password_reset.delete({
+          where: { token }
+        })
+      ]);
 
       return {
         success: true,
-        message: 'Contraseña restablecida exitosamente'
+        message: 'Contraseña restablecida exitosamente. Ahora puedes iniciar sesión con tu nueva contraseña.'
       };
 
     } catch (error) {
@@ -119,10 +155,25 @@ export class PasswordService {
   // Verificar validez del token
   async verifyResetToken(token: string): Promise<boolean> {
     try {
-      const user = await prisma.usuarios.findFirst({
-        where: { pdf_ced_usu: token }
+      const passwordReset = await prisma.password_reset.findUnique({
+        where: { token }
       });
-      return !!user;
+
+      if (!passwordReset) {
+        return false;
+      }
+
+      // Verificar si el token ha expirado
+      const now = new Date();
+      if (passwordReset.expires_at < now) {
+        // Eliminar token expirado
+        await prisma.password_reset.delete({
+          where: { token }
+        });
+        return false;
+      }
+
+      return true;
     } catch (error) {
       console.error('Error verificando token:', error);
       return false;

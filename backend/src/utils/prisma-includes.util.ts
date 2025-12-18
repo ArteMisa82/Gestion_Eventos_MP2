@@ -21,10 +21,12 @@ export const INSTRUCTOR_INCLUDE = {
 
 export const DETALLE_INCLUDES = {
   withInstructores: {
-    detalle_instructores: INSTRUCTOR_INCLUDE
+    detalle_instructores: INSTRUCTOR_INCLUDE,
+    requisitos_evento: true // Incluir requisitos del detalle
   },
   full: {
     detalle_instructores: INSTRUCTOR_INCLUDE,
+    requisitos_evento: true, // Incluir requisitos del detalle
     eventos: {
       include: {
         usuarios: { select: USUARIO_SELECT }

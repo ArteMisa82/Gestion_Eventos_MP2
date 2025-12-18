@@ -1,10 +1,12 @@
 // backend/src/routes/certificados.routes.ts
 
 import { Router } from 'express';
-import { CertificadoController } from '../controllers/certificado.controller'; 
+import { CertificadoController } from '../controllers/certificado.controller';
+import { CertificadoService } from '../services/certificado.service';
 
 const router = Router();
 const certificadoController = new CertificadoController();
+const certificadoService = new CertificadoService();
 
 /**
  * @swagger
@@ -39,7 +41,9 @@ const certificadoController = new CertificadoController();
  *       404:
  *         description: Registro no encontrado
  */
-router.get('/generate/:registrationId', certificadoController.generateCertificate);
+router.get('/generate/:registrationId', (req, res) =>
+  certificadoController.generateCertificate(req, res)
+);
 
 /**
  * @swagger
@@ -53,9 +57,6 @@ router.get('/generate/:registrationId', certificadoController.generateCertificat
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - id_reg_per
- *               - url_certificado
  *             properties:
  *               id_reg_per:
  *                 type: string
@@ -70,6 +71,72 @@ router.get('/generate/:registrationId', certificadoController.generateCertificat
  *       400:
  *         description: Datos inválidos
  */
-router.post('/guardar', certificadoController.saveCertificate);
+router.post('/guardar', (req, res) =>
+  certificadoController.saveCertificate(req, res)
+);
+
+/**
+ * @swagger
+ * /api/certificados/verificar/{registrationId}:
+ *   get:
+ *     summary: Verificar si existe el certificado y si es válido
+ *     tags: [Certificados]
+ *     parameters:
+ *       - in: path
+ *         name: registrationId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Resultado de la verificación
+ */
+router.get('/verificar/:registrationId', (req, res) =>
+  certificadoController.verifyCertificate(req, res)
+);
+
+/**
+ * @swagger
+ * /api/certificados/generate-and-save/{registrationId}:
+ *   post:
+ *     summary: Generar el certificado, guardarlo en disco y registrar la URL en la BD
+ *     tags: [Certificados]
+ *     parameters:
+ *       - in: path
+ *         name: registrationId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Certificado generado y guardado
+ *       400:
+ *         description: ID inválido
+ *       500:
+ *         description: Error interno del servidor
+ */
+router.post('/generate-and-save/:registrationId', async (req, res) => {
+  try {
+    const registrationId = parseInt(req.params.registrationId, 10);
+    if (isNaN(registrationId)) {
+      return res.status(400).json({ message: 'ID de registro inválido.' });
+    }
+
+    const certificateUrl = await certificadoService.generateAndSaveCertificate(
+      registrationId
+    );
+
+    return res.json({
+      message: 'Certificado generado, guardado en disco y registrado en BD.',
+      certificateUrl,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      message: 'Error al generar y guardar el certificado.',
+      error: (error as Error).message,
+    });
+  }
+});
 
 export default router;

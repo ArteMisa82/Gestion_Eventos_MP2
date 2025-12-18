@@ -8,6 +8,7 @@ import ModalCambioContraseña from "@/components/perfil/ModalCambioContrasena";
 import FotoPerfil from "@/components/perfil/FotoPerfil";
 import InfoPersonal from "@/components/perfil/InfoPersonal";
 import DocumentosPersonales from "@/components/perfil/DocumentosPersonales";
+import Certificados from '@/components/perfil/Certificados';
 
 export default function PerfilPage() {
   const { user } = useAuth();
@@ -42,10 +43,18 @@ export default function PerfilPage() {
 
         <div className="lg:col-span-2 space-y-8">
           <InfoPersonal setMostrarModal={setMostrarModal} />
-          <DocumentosPersonales 
+          <DocumentosPersonales
             usuario={usuario}
             setUsuario={setUsuario}
           />
+          {/* Sección de certificados */}
+          {usuario.id_usu && (
+            <div className="mt-8">
+              <h2 className="text-2xl font-bold text-[#7A1C1C] mb-4">Certificados</h2>
+              <Certificados usuarioId={usuario.id_usu} />
+            </div>
+          )}
+
         </div>
       </div>
 

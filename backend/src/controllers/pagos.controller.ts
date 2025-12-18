@@ -99,6 +99,11 @@ export class PagosController {
         const { numRegPer } = req.params;
         const { metodoPago } = req.body; // Recibir método de pago del frontend
 
+        console.log('📤 [UPLOAD] Archivo recibido:', file);
+        console.log('📤 [UPLOAD] Ruta del archivo:', file?.path);
+        console.log('📤 [UPLOAD] Nombre original:', file?.originalname);
+        console.log('📤 [UPLOAD] MIME Type:', file?.mimetype);
+
         if (!file) {
             return res.status(400).json({ message: 'Debe adjuntar un archivo de comprobante (PDF o imagen).' });
         }
@@ -116,7 +121,8 @@ export class PagosController {
 
         try {
             // La ruta donde Multer guardó el archivo
-            const rutaArchivo = file.path; 
+            const rutaArchivo = file.path;
+            console.log('💾 [UPLOAD] Guardando en BD:', rutaArchivo);
             
             await pagosService.registrarComprobante(
                 parseInt(numRegPer), 
@@ -124,11 +130,14 @@ export class PagosController {
                 metodoPago
             );
 
+            console.log('✅ [UPLOAD] Comprobante registrado correctamente');
+
             // Se establece el estado en 0 (Pendiente de Revisión)
             return res.status(200).json({ 
                 message: 'Comprobante subido correctamente, pendiente de validación administrativa.' 
             });
         } catch (error) {
+            console.error('❌ [UPLOAD] Error:', error);
             const errorMessage = (error as Error).message;
             const statusCode = errorMessage.includes('404') || errorMessage.includes('no encontrado') ? 404 : 500;
             return res.status(statusCode).json({ 
@@ -140,27 +149,19 @@ export class PagosController {
 
     async validarComprobante(req: Request, res: Response) {
         const { numRegPer } = req.params;
-        const { estado, userId } = req.body; // Se espera userId del auth o frontend
+        const { estado, comentarios } = req.body;
 
         try {
             if (estado !== 'APROBAR' && estado !== 'RECHAZAR') {
                 return res.status(400).json({ message: 'El campo "estado" debe ser APROBAR o RECHAZAR.' });
             }
 
-            // ------------------------------
-            // NUEVO: Verificar que el usuario sea responsable o admin
-            // ------------------------------
-            const pagoData = await pagosService.getPagoData(parseInt(numRegPer));
-            if (!pagoData) {
-                return res.status(404).json({ message: 'Pago o inscripción no encontrado.' });
-            }
-
-            if (!pagoData.esResponsable(userId)) {
-                return res.status(403).json({ message: 'No tiene permisos para validar este pago.' });
-            }
-
             // Validar comprobante
-            const resultado = await pagosService.validarComprobante(parseInt(numRegPer), estado === 'APROBAR');
+            const resultado = await pagosService.validarComprobante(
+                parseInt(numRegPer), 
+                estado === 'APROBAR',
+                comentarios
+            );
 
             return res.status(200).json({ 
                 message: resultado.message,
@@ -176,4 +177,18 @@ export class PagosController {
             });
         }
     }
+
+    async getPagosPendientes(req: Request, res: Response) {
+        try {
+            const pagosPendientes = await pagosService.getPagosPendientesValidacion();
+            return res.status(200).json(pagosPendientes);
+        } catch (error) {
+            return res.status(500).json({ 
+                message: 'Error al obtener pagos pendientes.', 
+                error: (error as Error).message 
+            });
+        }
+    }
 }
+
+export { PagosController };

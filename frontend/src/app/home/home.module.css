@@ -19,6 +19,11 @@
   flex-direction: column;
   gap: 40px;
 }
+/* Forzar fondo del home y cubrir toda la ventana para evitar fondo negro */
+.main {
+  background: var(--surface, #fff);
+  min-height: 100vh;
+}
 
 /* =========================
    HERO CAROUSEL

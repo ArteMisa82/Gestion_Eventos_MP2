@@ -3,7 +3,7 @@ import ActionButton from "./ActionButton";
 
 interface Props {
   selected: Solicitud;
-  performAction: (id: number, accion: string, extraData?: any) => void; // ✅ Cambiar a string
+  performAction: (id: number, accion: "Aprobado" | "Rechazado" | "Cancelado" | "RolloutProgramado" | "Implementado" | "Revertido" | "ActualizarCamposComite", extraData?: any) => Promise<void>; // ✅ Cambiar a tipo específico
 }
 
 export default function BotonesAccionITIL({ selected, performAction }: Props) {

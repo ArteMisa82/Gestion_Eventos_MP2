@@ -57,7 +57,7 @@ export class EmailService {
 
   // Plantilla para recuperación de contraseña
   async sendPasswordResetEmail(email: string, resetToken: string): Promise<boolean> {
-    const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
+    const resetLink = `${process.env.FRONTEND_URL}/restablecer/${resetToken}`;
     
     // 🔥 En modo desarrollo, mostrar el token en consola
     if (this.isDevelopment || !this.transporter) {
@@ -72,16 +72,45 @@ export class EmailService {
     
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #2563eb;">Recuperación de Contraseña</h2>
-        <p>Hemos recibido una solicitud para restablecer tu contraseña.</p>
-        <p>Haz clic en el siguiente enlace para crear una nueva contraseña:</p>
-        <a href="${resetLink}" 
-           style="background-color: #2563eb; color: white; padding: 12px 24px; 
-                  text-decoration: none; border-radius: 4px; display: inline-block;">
-          Restablecer Contraseña
-        </a>
-        <p>Este enlace expirará en 1 hora.</p>
-        <p>Si no solicitaste este cambio, ignora este email.</p>
+        <div style="background-color: #581517; color: white; padding: 20px; border-radius: 8px 8px 0 0; text-align: center;">
+          <h2 style="margin: 0; font-size: 24px;">🔐 Recuperación de Contraseña</h2>
+        </div>
+        <div style="padding: 30px; background-color: #f9fafb;">
+          <p style="color: #374151; font-size: 16px;">Hemos recibido una solicitud para restablecer tu contraseña en <strong>Gestión Eventos UTA</strong>.</p>
+          
+          <p style="color: #374151; font-size: 16px; margin-top: 20px;">Haz clic en el siguiente botón para crear una nueva contraseña:</p>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${resetLink}" 
+               style="background-color: #581517; color: white; padding: 14px 32px; 
+                      text-decoration: none; border-radius: 8px; display: inline-block;
+                      font-weight: bold; font-size: 16px; transition: background-color 0.3s;">
+              Restablecer Contraseña
+            </a>
+          </div>
+          
+          <p style="color: #6b7280; font-size: 14px;">
+            <strong>⏰ Importante:</strong> Este enlace expirará en <strong>1 hora</strong>. Si esperas más, deberás solicitar uno nuevo.
+          </p>
+          
+          <p style="color: #6b7280; font-size: 14px; margin-top: 20px;">
+            Si no solicitaste este cambio, ignora este email. Tu contraseña seguirá siendo la misma.
+          </p>
+          
+          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+          
+          <p style="color: #9ca3af; font-size: 12px; text-align: center;">
+            Si no puedes hacer clic en el botón, copia y pega este enlace en tu navegador:
+          </p>
+          <p style="color: #9ca3af; font-size: 12px; text-align: center; word-break: break-all;">
+            ${resetLink}
+          </p>
+        </div>
+        <div style="background-color: #f3f4f6; padding: 20px; text-align: center; border-radius: 0 0 8px 8px;">
+          <p style="color: #9ca3af; font-size: 12px; margin: 0;">
+            © 2024 Gestión Eventos UTA. Todos los derechos reservados.
+          </p>
+        </div>
       </div>
     `;
 
